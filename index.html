@@ -1,0 +1,2010 @@
+<!-- Afterglow v1.0 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Afterglow — Sky Forecast</title>
+<meta name="description" content="Sunrise and sunset color-quality forecasts for photographers and pilots.">
+<meta property="og:title" content="Afterglow — Sky Forecast">
+<meta property="og:description" content="Sunrise and sunset color-quality forecasts for photographers and pilots.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://johnstonaerial.github.io/afterGlow/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Afterglow — Sky Forecast">
+<meta name="twitter:description" content="Sunrise and sunset color-quality forecasts for photographers and pilots.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%231B1F3B%22/><circle cx=%2250%22 cy=%2265%22 r=%2226%22 fill=%22%23F2B84B%22/></svg>">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#1B1F3B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Afterglow">
+<style>
+  @font-face {
+    font-family: 'Fraunces';
+    src: local('Fraunces');
+  }
+  :root{
+    --ink: #14172c;
+    --ink-2: #1B1F3B;
+    --ember: #FF6B35;
+    --rose: #E8517A;
+    --gold: #F2B84B;
+    --sand: #F5E6D3;
+    --slate: #8892a8;
+    --slate-dim: #565d78;
+    --line: rgba(245,230,211,0.14);
+    --card: rgba(245,230,211,0.05);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(120% 90% at 50% -10%, #262b4d 0%, var(--ink) 45%, #0d0f1e 100%);
+    color: var(--sand);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 60px;
+  }
+  a { color: inherit; }
+  .wrap{ max-width: 720px; margin: 0 auto; padding: 28px 20px 0; }
+
+  /* ---------- Header ---------- */
+  header{ display:flex; align-items:baseline; justify-content:space-between; gap: 12px; margin-bottom: 22px; }
+  .brand{ font-family: Georgia, 'Times New Roman', serif; font-size: 22px; letter-spacing: 0.02em; font-weight: 600; line-height: 1.1; }
+  .brand em{ font-style: italic; color: var(--gold); font-weight: 500;}
+  .brand .version{ display:block; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.04em; font-weight: 400; color: var(--slate-dim); margin-top: 2px; }
+  #locBtn{
+    background: none; border: 1px solid var(--line); color: var(--slate);
+    font-size: 12px; padding: 7px 12px; border-radius: 20px; cursor: pointer;
+    font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.02em;
+  }
+  #locBtn:hover{ color: var(--sand); border-color: var(--slate); }
+  #locBtn:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  /* ---------- Hero: tonight's swatch ---------- */
+  .hero{
+    border-radius: 22px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    margin-bottom: 18px;
+  }
+  .hero-swatch{
+    position:absolute; inset:0; z-index:0; opacity: 0.9;
+  }
+  .hero-content{
+    position:relative; z-index:1;
+    padding: 30px 26px 26px;
+    background: linear-gradient(180deg, rgba(8,9,20,0.5) 0%, rgba(8,9,20,0.28) 45%, rgba(8,9,20,0.55) 100%);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+  .eyebrow{ font-family:'IBM Plex Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(245,230,211,0.65); margin-bottom: 6px; }
+  .score-row{ display:flex; align-items:flex-end; gap: 14px; margin-bottom: 4px;}
+  .score-num{ font-family: Georgia, 'Times New Roman', serif; font-size: 68px; line-height: 0.9; font-weight: 600; color: var(--sand); text-shadow: 0 2px 12px rgba(0,0,0,0.35); }
+  .score-label{ font-size: 20px; font-weight: 600; padding-bottom: 8px; color: var(--sand); }
+  .hero-sub{ font-size: 14px; color: rgba(245,230,211,0.8); max-width: 46ch; line-height: 1.5; }
+  .hero-times{ display:flex; gap: 22px; margin-top: 18px; flex-wrap: wrap; }
+  .hero-time-item .k{ font-family:'IBM Plex Mono', monospace; font-size: 11px; text-transform:uppercase; letter-spacing:0.08em; color: rgba(245,230,211,0.55); }
+  .hero-time-item .v{ font-family:'IBM Plex Mono', monospace; font-size: 16px; font-weight: 600; color: var(--sand); }
+
+  .toggle-row{ display:flex; gap: 6px; margin-bottom: 16px; }
+  .toggle-btn{
+    flex:1; padding: 10px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--card); color: var(--slate); font-size: 13px; cursor: pointer;
+    font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.03em;
+  }
+  .toggle-btn.active{ background: var(--sand); color: var(--ink); border-color: var(--sand); font-weight: 600;}
+
+  /* ---------- View tabs (Today / Outlook) ---------- */
+  .view-tabs{ display:flex; gap: 6px; margin-bottom: 18px; }
+  .view-tab{
+    flex:1; padding: 11px; border-radius: 14px; border: 1px solid var(--line);
+    background: transparent; color: var(--slate); font-size: 14px; cursor: pointer;
+    font-family: Georgia, serif; letter-spacing: 0.02em;
+  }
+  .view-tab.active{ background: var(--card); color: var(--sand); border-color: var(--gold); font-weight: 600; }
+
+  /* ---------- Outlook (agenda list) ---------- */
+  .agenda-day{ font-family: Georgia, serif; font-size: 20px; font-weight: 600; color: var(--sand); margin: 22px 2px 10px; }
+  .agenda-day.first{ margin-top: 4px; }
+  .agenda-card{
+    border: 1px solid var(--line); background: var(--card); border-radius: 16px;
+    padding: 18px 16px; text-align: center; margin-bottom: 10px; cursor: pointer;
+  }
+  .agenda-card .k{ font-family: Georgia, serif; font-size: 22px; font-weight: 600; color: var(--sand); }
+  .agenda-card .label-word{ font-size: 15px; color: var(--slate); margin: 2px 0 12px; }
+  .agenda-bar{ height: 9px; border-radius: 999px; background: rgba(245,230,211,0.1); overflow: hidden; margin-bottom: 10px; }
+  .agenda-bar i{ display:block; height:100%; border-radius:999px; }
+  .agenda-pct{ font-size: 14px; color: var(--slate); margin-bottom: 2px; }
+  .agenda-time{ font-family:'IBM Plex Mono', monospace; font-size: 15px; color: var(--sand); }
+
+  /* ---------- Map (sun direction) ---------- */
+  .map-nav{ display:flex; align-items:center; justify-content:space-between; gap: 12px; margin-bottom: 14px; }
+  .map-nav button{
+    background: var(--card); border: 1px solid var(--line); color: var(--sand);
+    width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1;
+  }
+  .map-nav button:disabled{ opacity: 0.35; cursor: default; }
+  .map-date{ font-family: Georgia, serif; font-size: 15px; color: var(--sand); text-align: center; flex: 1; }
+  .map-wrap{
+    position: relative; border-radius: 18px; overflow: hidden; border: 1px solid var(--line);
+    height: 360px; margin-bottom: 14px; background: var(--card);
+  }
+  #sunMap{ width: 100%; height: 100%; }
+  .map-compass{ position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1000; }
+  .map-center-btn{
+    position: absolute; right: 12px; top: 12px; z-index: 1001;
+    width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line);
+    background: var(--ink-2); color: var(--sand); font-size: 17px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .map-center-btn:active{ opacity: 0.7; }
+  .map-slider-row{ display:flex; align-items:center; gap: 12px; margin-bottom: 16px; }
+  .map-slider-row input[type=range]{ flex: 1; accent-color: var(--gold); }
+  .map-slider-icon{ font-size: 15px; opacity: 0.7; }
+  .map-readout{ display:flex; gap: 10px; margin-bottom: 14px; }
+  .map-readout .card{ flex: 1; text-align: center; }
+  .map-note{ font-size: 12px; line-height: 1.5; color: var(--slate-dim); }
+
+  /* ---------- 7-day strip ---------- */
+  .section-title{ font-family: Georgia, serif; font-size: 15px; color: var(--slate); text-transform: uppercase; letter-spacing: 0.1em; margin: 26px 0 12px; }
+  .days{ display:flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+  .day-card{
+    flex: 0 0 84px; border-radius: 14px; border: 1px solid var(--line); background: var(--card);
+    padding: 12px 8px; text-align:center; cursor: pointer; transition: border-color .15s;
+  }
+  .day-card.active{ border-color: var(--gold); }
+  .day-card .dow{ font-size: 11px; color: var(--slate); font-family:'IBM Plex Mono', monospace; text-transform: uppercase; }
+  .day-card .swatch{ width: 100%; height: 36px; border-radius: 8px; margin: 8px 0; }
+  .day-card .num{ font-family: Georgia, serif; font-size: 20px; font-weight:600; }
+  .day-card.outlook{ flex: 0 0 72px; opacity: 0.62; }
+  .day-card.outlook .swatch{ height: 28px; }
+  .day-card.outlook .num{ font-size: 17px; }
+  .day-card.outlook.active{ opacity: 1; }
+  .outlook-note{ font-size: 12px; line-height: 1.5; color: var(--slate-dim); margin: 8px 2px 0; }
+
+  /* ---------- Detail cards ---------- */
+  .grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card{ border: 1px solid var(--line); background: var(--card); border-radius: 14px; padding: 14px 16px; }
+  .card .label{ font-family:'IBM Plex Mono', monospace; font-size: 10.5px; text-transform:uppercase; letter-spacing:0.08em; color: var(--slate); margin-bottom: 6px;}
+  .card .value{ font-size: 17px; font-weight: 600; }
+  .card .value small{ font-size:12px; font-weight:400; color: var(--slate); }
+  .bar{ height: 5px; border-radius: 4px; background: rgba(245,230,211,0.1); margin-top: 8px; overflow:hidden; }
+  .bar i{ display:block; height:100%; border-radius:4px; }
+
+  .why{ font-size: 13px; line-height: 1.6; color: var(--slate); border-top: 1px solid var(--line); padding-top: 16px; margin-top: 22px; }
+  .why b{ color: var(--sand); }
+
+  footer{ text-align:center; font-size: 11px; color: var(--slate-dim); margin-top: 36px; font-family:'IBM Plex Mono', monospace; }
+  footer a{ text-decoration: underline; text-decoration-color: var(--slate-dim); }
+
+  .loading, .err{ text-align:center; padding: 60px 20px; color: var(--slate); font-size: 14px; }
+  .err{ color: var(--rose); }
+
+  .stale-bar{ margin: 0 0 18px; padding: 14px 16px; border-radius: 14px;
+    background: rgba(242,184,75,0.08); border: 1px solid rgba(242,184,75,0.30); }
+  .stale-head{ font-size: 14px; color: var(--gold); line-height: 1.45; }
+  .stale-body{ font-size: 13px; color: var(--slate); line-height: 1.5; margin-top: 6px; }
+
+  .err-box{ padding: 48px 22px; text-align: center; max-width: 420px; margin: 0 auto; }
+  .err-head{ font-family: Georgia, serif; font-size: 20px; color: var(--rose); margin-bottom: 10px; line-height: 1.3; }
+  .err-body{ font-size: 14px; color: var(--slate); line-height: 1.55; }
+  .err-retry{ margin-top: 18px; padding: 10px 22px; border-radius: 999px; border: 1px solid var(--line);
+    background: var(--ink-2); color: var(--sand); font-family: inherit; font-size: 14px; cursor: pointer; }
+  .err-retry:active{ opacity: 0.7; }
+  .err-tech{ margin-top: 22px; text-align: left; }
+  .err-tech summary{ font-size: 12px; color: var(--slate); opacity: 0.7; cursor: pointer; text-align: center; }
+  .err-tech code{ display: block; margin-top: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    color: var(--slate); opacity: 0.8; word-break: break-word; line-height: 1.5; }
+
+  /* location modal */
+  .modal-backdrop{ position:fixed; inset:0; background: rgba(10,11,22,0.7); display:none; align-items:center; justify-content:center; z-index: 50; padding: 20px;}
+  .modal-backdrop.open{ display:flex; }
+  .modal{ background: var(--ink-2); border: 1px solid var(--line); border-radius: 18px; padding: 22px; width: 100%; max-width: 380px; }
+  .modal h3{ margin: 0 0 12px; font-family: Georgia, serif; font-weight: 600; }
+  .modal input{
+    width:100%; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--line);
+    background: rgba(0,0,0,0.2); color: var(--sand); font-size: 14px; margin-bottom: 10px;
+  }
+  .modal-results{ max-height: 220px; overflow-y: auto; }
+  .modal-result{ padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+  .modal-result:hover{ background: rgba(245,230,211,0.08); }
+  .modal-actions{ display:flex; justify-content: space-between; margin-top: 10px; }
+  .modal-actions button{
+    background:none; border: none; color: var(--slate); font-size: 13px; cursor: pointer; padding: 6px;
+  }
+  .modal-actions button.gps{ color: var(--gold); }
+  .header-actions{ display:flex; align-items:center; gap: 8px; }
+  #notifBtn{
+    background: transparent; border: 1px solid var(--line); border-radius: 10px;
+    color: var(--sand); font-size: 16px; padding: 6px 10px; cursor: pointer; line-height: 1;
+  }
+  #notifBtn:hover{ color: var(--gold); border-color: var(--slate); }
+  #notifBtn.active{ border-color: var(--gold); color: var(--gold); }
+  .notif-row{ display:flex; align-items:center; justify-content:space-between; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .notif-row:last-of-type{ border-bottom: none; }
+  .notif-row label{ font-size: 14px; }
+  .notif-row select{
+    background: var(--ink); color: var(--sand); border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 8px; font-size: 14px;
+  }
+  .notif-status{ font-size: 13px; color: var(--slate); margin-top: 12px; min-height: 18px; }
+  .switch{ position: relative; display: inline-block; width: 42px; height: 24px; flex-shrink: 0; }
+  .switch input{ opacity: 0; width: 0; height: 0; }
+  .switch-track{
+    position: absolute; inset: 0; background: var(--line); border-radius: 999px;
+    transition: background 0.15s; cursor: pointer;
+  }
+  .switch-track::before{
+    content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px;
+    background: var(--sand); border-radius: 50%; transition: transform 0.15s;
+  }
+  .switch input:checked + .switch-track{ background: var(--gold); }
+  .switch input:checked + .switch-track::before{ transform: translateX(18px); background: var(--ink-2); }
+
+  @media (max-width: 420px){
+    .score-num{ font-size: 54px; }
+    .grid{ grid-template-columns: 1fr 1fr; }
+  }
+</style>
+<!-- Leaflet: free, keyless map tiles for the Map tab's sun-direction view.
+     Loaded synchronously so `L` is guaranteed defined before renderMap() runs. -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">After<em>glow</em><span class="version">v1.0</span></div>
+    <div class="header-actions">
+      <button id="notifBtn" title="Notifications" aria-label="Notifications">🔔</button>
+      <button id="locBtn">···</button>
+    </div>
+  </header>
+
+  <div id="app"><div class="loading">Reading the sky…</div></div>
+
+  <footer>
+    Built for golden hour. Forecasts via Open&#8209;Meteo · not a substitute for checking the sky yourself.<br>
+    <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener">Buy me a coffee ☕</a> if this helped you catch an epic sky.
+  </footer>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h3>Change location</h3>
+    <input type="text" id="locInput" placeholder="City, state, or ZIP" autocomplete="off">
+    <div class="modal-results" id="locResults"></div>
+    <div class="modal-actions">
+      <button class="gps" id="useGps">Use current location</button>
+      <button id="closeModal">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="notifBackdrop">
+  <div class="modal">
+    <h3>Notifications</h3>
+    <div class="notif-row">
+      <label for="notifSunrise">Alert before sunrise</label>
+      <span class="switch">
+        <input type="checkbox" id="notifSunrise">
+        <span class="switch-track"></span>
+      </span>
+    </div>
+    <div class="notif-row">
+      <label for="notifSunset">Alert before sunset</label>
+      <span class="switch">
+        <input type="checkbox" id="notifSunset">
+        <span class="switch-track"></span>
+      </span>
+    </div>
+    <div class="notif-row">
+      <label for="notifGoldenMorning">Alert before morning golden hour</label>
+      <span class="switch">
+        <input type="checkbox" id="notifGoldenMorning">
+        <span class="switch-track"></span>
+      </span>
+    </div>
+    <div class="notif-row">
+      <label for="notifGoldenEvening">Alert before evening golden hour</label>
+      <span class="switch">
+        <input type="checkbox" id="notifGoldenEvening">
+        <span class="switch-track"></span>
+      </span>
+    </div>
+    <div class="notif-row">
+      <label for="notifMinutes">How far ahead</label>
+      <select id="notifMinutes">
+        <option value="15">15 minutes</option>
+        <option value="30">30 minutes</option>
+        <option value="60" selected>1 hour</option>
+        <option value="90">90 minutes</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="gps" id="notifSave">Save</button>
+      <button id="closeNotifModal">Close</button>
+    </div>
+    <div class="notif-status" id="notifStatus"></div>
+  </div>
+</div>
+
+<script>
+/* ---------------------------------------------------------------------
+   Afterglow — sunrise/sunset color-quality forecast
+   Data: Open-Meteo (no API key required, CORS-enabled)
+   Scoring: heuristic model based on published sunset-photography guidance —
+   high-altitude cloud in the 30-70% range catches and scatters color best,
+   low/mid cloud blocks the show, and high humidity flattens saturation.
+--------------------------------------------------------------------- */
+
+const DEFAULT_LOC = { name: "Willow Spring, NC", lat: 35.5257, lon: -78.6797 };
+const $ = (id) => document.getElementById(id);
+
+let state = {
+  loc: null,
+  daily: null,
+  hourly: null,
+  activeDay: 0,
+  mode: "morning", // or "evening"
+  view: "today", // or "outlook" / "map" — which top-level screen is showing
+  mapSliderPct: null, // 0–1 position between sunrise and sunset on the Map tab; null = not yet set for this day
+  sample: { morning: null, evening: null }, // sun-path cloud readings
+  stale: null // set when showing a cached forecast we couldn't refresh
+};
+
+function loadLoc(){
+  try{
+    const saved = JSON.parse(localStorage.getItem("afterglow_loc"));
+    if(saved && saved.lat) return saved;
+  }catch(e){}
+  return null;
+}
+function saveLoc(loc){
+  state.loc = loc;
+  localStorage.setItem("afterglow_loc", JSON.stringify(loc));
+}
+
+// Open-Meteo occasionally stalls on the 700hPa pressure-level field while serving
+// surface data fine. When everything rode in one request, that stall took down the
+// whole forecast — a hang with no error, or an eventual HTTP 500. The wind field
+// only feeds the timelapse card, so it gets its own request on a short leash and
+// the forecast renders without it if it doesn't come back.
+const CORE_TIMEOUT_MS = 15000;
+const WIND_TIMEOUT_MS = 4000;
+
+async function fetchWithTimeout(url, ms){
+  // AbortSignal.timeout isn't on older iOS Safari, so build the controller by hand.
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try{
+    return await fetch(url, { signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Errors carry a `kind` so the UI can say something useful in plain language
+// instead of leaking a parser exception or a raw HTTP code at the user.
+class ForecastError extends Error {
+  constructor(kind, technical){
+    super(technical);
+    this.kind = kind;
+    this.technical = technical;
+  }
+}
+
+// Open-Meteo under load has been observed returning a 200 with a plain-text
+// error body, which makes res.json() throw a raw engine string ("Unexpected
+// token 'U'…" in Chrome, "The string did not match the expected pattern." in
+// Safari). Read as text first so a non-JSON body is a known case, not a crash.
+async function parseJsonSafely(res){
+  let text;
+  try{
+    text = await res.text();
+  }catch(e){
+    throw new ForecastError("truncated", `Could not read response body: ${e.message}`);
+  }
+  if(!text || !text.trim()){
+    throw new ForecastError("truncated", "Response body was empty");
+  }
+  try{
+    return JSON.parse(text);
+  }catch(e){
+    throw new ForecastError("badpayload", `Response wasn't valid JSON. Body began: ${text.slice(0, 80)}`);
+  }
+}
+
+// A 200 with well-formed JSON can still be missing the fields we render from.
+function assertUsableForecast(data){
+  const d = data && data.daily, h = data && data.hourly;
+  const ok = d && Array.isArray(d.sunrise) && d.sunrise.length
+          && Array.isArray(d.sunset)  && d.sunset.length
+          && h && Array.isArray(h.time) && h.time.length
+          && Array.isArray(h.cloud_cover_high);
+  if(!ok){
+    throw new ForecastError("incomplete", `Payload parsed but was missing expected fields. Keys: ${Object.keys(data || {}).join(", ") || "none"}`);
+  }
+  return data;
+}
+
+async function fetchCore(loc){
+  const params = new URLSearchParams({
+    latitude: loc.lat, longitude: loc.lon,
+    daily: "sunrise,sunset",
+    hourly: "cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,precipitation_probability,visibility",
+    windspeed_unit: "mph",
+    timezone: "auto",
+    forecast_days: 11
+  });
+  const url = `https://api.open-meteo.com/v1/forecast?${params}`;
+  let res;
+  try{
+    res = await fetchWithTimeout(url, CORE_TIMEOUT_MS);
+  }catch(networkErr){
+    if(networkErr.name === "AbortError"){
+      throw new ForecastError("timeout", `No response within ${CORE_TIMEOUT_MS / 1000}s`);
+    }
+    if(typeof navigator !== "undefined" && navigator.onLine === false){
+      throw new ForecastError("offline", `Device reports no connection: ${networkErr.message}`);
+    }
+    throw new ForecastError("network", networkErr.message);
+  }
+  if(!res.ok){
+    let detail = "";
+    try{ const body = await res.json(); detail = body.reason || JSON.stringify(body); }catch(e){}
+    const kind = res.status === 429 ? "ratelimit"
+               : res.status >= 500  ? "serverdown"
+               : res.status >= 400  ? "badrequest"
+               : "network";
+    throw new ForecastError(kind, `HTTP ${res.status}${detail ? ": " + detail : ""}`);
+  }
+  return assertUsableForecast(await parseJsonSafely(res));
+}
+
+// Plain-language rendering of whatever went wrong. Every case answers two
+// questions: what happened, and is it worth trying again.
+function describeError(e){
+  const kind = (e && e.kind) || "unknown";
+  const map = {
+    offline: {
+      headline: "Your device isn't online.",
+      body: "Afterglow needs a connection to pull the forecast. Check wifi or cell signal and try again.",
+      retry: true
+    },
+    timeout: {
+      headline: "Open-Meteo didn't answer in time.",
+      body: "The request went out but nothing came back. Usually a weak signal or their servers being busy — neither of which lasts long.",
+      retry: true
+    },
+    network: {
+      headline: "Couldn't reach Open-Meteo.",
+      body: "The connection failed before the forecast came back. If you have signal, this is most likely a brief hiccup on their end.",
+      retry: true
+    },
+    serverdown: {
+      headline: "Open-Meteo is having trouble right now.",
+      body: "Their servers returned an error rather than a forecast. Nothing wrong on your end — it usually clears within a few minutes.",
+      retry: true
+    },
+    ratelimit: {
+      headline: "Too many requests, too quickly.",
+      body: "Open-Meteo is throttling this location for the moment. Give it a minute before trying again.",
+      retry: true
+    },
+    badpayload: {
+      headline: "Open-Meteo sent something that wasn't a forecast.",
+      body: "The response came back as plain text instead of data, which usually means their service is overloaded and erroring mid-request.",
+      retry: true
+    },
+    truncated: {
+      headline: "The forecast arrived incomplete.",
+      body: "The response was cut off before it finished sending. Almost always worth a straight retry.",
+      retry: true
+    },
+    incomplete: {
+      headline: "The forecast came back missing data.",
+      body: "Open-Meteo answered, but without the cloud and sun times Afterglow needs. Likely a temporary gap in their model output for this spot.",
+      retry: true
+    },
+    badrequest: {
+      headline: "Open-Meteo rejected the request.",
+      body: "That points at something in the request itself rather than a passing outage, so a retry may not help.",
+      retry: false
+    },
+    unknown: {
+      headline: "Something went wrong loading the forecast.",
+      body: "The details below might help if this keeps happening.",
+      retry: true
+    }
+  };
+  const picked = map[kind] || map.unknown;
+  return { ...picked, technical: (e && (e.technical || e.message)) || String(e) };
+}
+
+// Never throws. Returns the hourly wind array, or null if it stalled or failed.
+async function fetchWind(loc){
+  const params = new URLSearchParams({
+    latitude: loc.lat, longitude: loc.lon,
+    hourly: "wind_speed_700hPa",
+    windspeed_unit: "mph",
+    timezone: "auto",
+    forecast_days: 11
+  });
+  try{
+    const res = await fetchWithTimeout(`https://api.open-meteo.com/v1/forecast?${params}`, WIND_TIMEOUT_MS);
+    if(!res.ok) return null;
+    const data = await res.json();
+    const arr = data && data.hourly && data.hourly.wind_speed_700hPa;
+    return Array.isArray(arr) ? arr : null;
+  }catch(e){
+    return null; // stalled, aborted, or offline — the timelapse card degrades instead
+  }
+}
+
+async function fetchForecast(loc){
+  // Fire both together so the wind request costs wall-clock time only when it's
+  // slower than core, and never more than WIND_TIMEOUT_MS.
+  const [data, wind] = await Promise.all([fetchCore(loc), fetchWind(loc)]);
+  if(wind && data.hourly && wind.length === data.hourly.time.length){
+    data.hourly.wind_speed_700hPa = wind;
+  }
+  data.windAvailable = !!data.hourly.wind_speed_700hPa;
+  return data;
+}
+
+async function geocode(query){
+  const params = new URLSearchParams({ name: query, count: 6, language: "en", format: "json" });
+  const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${params}`);
+  if(!res.ok) throw new Error("Geocode failed");
+  const data = await res.json();
+  return data.results || [];
+}
+
+/* ---------- Sun-path sampling ----------
+   Afterglow used to score the sky from a single grid cell: yours. But a sunset
+   needs two things in two different places — a clear slot toward the sun for the
+   light to get through (the projector), and cloud overhead to catch it (the
+   screen). Reading only the screen means a solid low deck sitting on the western
+   horizon looks identical to a clear one.
+
+   So we sample a second point along the solar azimuth. At sunset the sun's light
+   reaches cloud above you by grazing over ground roughly 150–200km toward it, so
+   that's where the gap has to be. Low and mid cloud AT THAT POINT gate whether
+   any direct light arrives at all. */
+const SUN_PATH_SAMPLE_KM = 180;
+const SAMPLE_TIMEOUT_MS = 5000;
+
+// Great-circle destination point, per the standard spherical formula.
+function projectPoint(lat, lon, bearingDeg, distKm){
+  const R = 6371;
+  const d = distKm / R;
+  const br = bearingDeg * Math.PI / 180;
+  const p1 = lat * Math.PI / 180, l1 = lon * Math.PI / 180;
+  const p2 = Math.asin(Math.sin(p1) * Math.cos(d) + Math.cos(p1) * Math.sin(d) * Math.cos(br));
+  const l2 = l1 + Math.atan2(Math.sin(br) * Math.sin(d) * Math.cos(p1),
+                             Math.cos(d) - Math.sin(p1) * Math.sin(p2));
+  return { lat: p2 * 180 / Math.PI, lon: ((l2 * 180 / Math.PI) + 540) % 360 - 180 };
+}
+
+// Never throws — a failed sample means we fall back to the old blind ceiling
+// rather than losing the forecast. Same short-leash pattern as the wind field.
+async function fetchSample(pt){
+  const params = new URLSearchParams({
+    latitude: pt.lat.toFixed(4), longitude: pt.lon.toFixed(4),
+    hourly: "cloud_cover_low,cloud_cover_mid",
+    timezone: "auto",
+    forecast_days: 11
+  });
+  try{
+    const res = await fetchWithTimeout(`https://api.open-meteo.com/v1/forecast?${params}`, SAMPLE_TIMEOUT_MS);
+    if(!res.ok) return null;
+    const data = await parseJsonSafely(res);
+    const h = data && data.hourly;
+    if(!h || !Array.isArray(h.time) || !Array.isArray(h.cloud_cover_low) || !Array.isArray(h.cloud_cover_mid)) return null;
+    return { time: h.time, low: h.cloud_cover_low, mid: h.cloud_cover_mid, point: pt };
+  }catch(e){
+    return null;
+  }
+}
+
+// How much direct light gets through toward the sun. Low cloud on the horizon is
+// the single biggest killer of a sunset — the sun simply sets into it — so it
+// gates hard. Mid cloud thins the beam without necessarily stopping it.
+function beamFactor(sampleLow, sampleMid){
+  const lowF = Math.max(0, 1 - (sampleLow / 100) * 1.05);
+  const midF = Math.max(0.25, 1 - (sampleMid / 100) * 0.55);
+  return lowF * midF;
+}
+
+// Pull the sample's low/mid at the hour matching a given event time.
+function sampleAt(sample, eventIso){
+  if(!sample) return null;
+  const j = nearestHourIdx(sample.time, eventIso);
+  if(j == null || j < 0) return null;
+  return { low: sample.low[j] ?? 0, mid: sample.mid[j] ?? 0 };
+}
+
+// One sample per mode. The solar azimuth shifts only a degree or so per day over
+// an 11-day window, so a single point per direction covers the whole forecast
+// rather than needing one request per day.
+async function fetchSunPathSamples(loc, daily){
+  const out = { morning: null, evening: null };
+  if(!daily || loc.lat == null || loc.lon == null) return out;
+  try{
+    const jobs = [];
+    const modes = [["evening", daily.sunset && daily.sunset[0]], ["morning", daily.sunrise && daily.sunrise[0]]];
+    for(const [mode, iso] of modes){
+      if(!iso) continue;
+      const az = solarAzimuth(new Date(iso), loc.lat, loc.lon);
+      if(!isFinite(az)) continue;
+      const pt = projectPoint(loc.lat, loc.lon, az, SUN_PATH_SAMPLE_KM);
+      jobs.push(fetchSample(pt).then(r => { out[mode] = r; }));
+    }
+    await Promise.all(jobs);
+  }catch(e){
+    // Any failure leaves the nulls in place — scoring falls back to blind mode.
+  }
+  return out;
+}
+function scoreEvent(hourly, idx, beam){
+  // idx = the hourly index closest to sunrise/sunset for that day
+  if(idx == null || idx < 0 || idx >= hourly.time.length) return null;
+
+  const low  = hourly.cloud_cover_low[idx]   ?? 0;
+  const mid  = hourly.cloud_cover_mid[idx]   ?? 0;
+  const high = hourly.cloud_cover_high[idx]  ?? 0;
+  const hum  = hourly.relative_humidity_2m[idx] ?? 50;
+  const precip = hourly.precipitation_probability[idx] ?? 0;
+  const vis  = (hourly.visibility && isFinite(hourly.visibility[idx])) ? hourly.visibility[idx] : null;
+
+  // --- Tuning constants (kept together so they're easy to calibrate) ---
+  const CANVAS_PEAK       = 45;   // % high cloud that lights up best
+  const CANVAS_SIGMA_LOW  = 30;   // falloff toward a clear sky
+  const CANVAS_SIGMA_HIGH = 38;   // falloff toward full overcast (gentler on purpose)
+  // When we have no reading toward the sun we can't tell whether there's a gap at
+  // the horizon for light to get under the cloud — the biggest single factor in
+  // whether a deck lights up. Cap the ceiling to reflect that blind spot.
+  // When a sun-path sample IS available that guess is replaced by a measurement,
+  // so the haircut shrinks to a small residual (one sample point, still not the
+  // whole path).
+  const HORIZON_UNKNOWN_CEILING = 0.92;
+  const MEASURED_CEILING = 0.97;
+  const LOW_WEIGHT        = 1.10; // low cloud reaches zero transmission around 91%
+  const MID_WEIGHT        = 0.60; // full mid deck still passes ~40%
+  // Haze. Visibility (metres) is a direct measure of how much the air scatters
+  // light. It replaces the old 2m-relative-humidity proxy, which was
+  // systematically biased against sunrises: overnight radiative cooling pulls
+  // surface air toward its dewpoint on any clear calm night, so dawn RH runs
+  // 85–95% regardless of actual haze while the same sky reads 40% by evening.
+  // Every morning was being penalised for being a morning.
+  const VIS_CLEAR_M       = 15000; // at or above this, no haze penalty
+  const VIS_MURKY_M       = 2000;  // at or below this, the floor applies
+  const HAZE_FLOOR        = 0.35;
+  // Humidity is now only a fallback for when visibility is missing from the
+  // model output. Threshold sits well above the dawn-saturation band so it
+  // flags genuinely muggy air rather than routine overnight cooling.
+  const HUM_WEIGHT        = 0.006;
+  const HUM_FALLBACK_THRESHOLD = 80;
+  const PRECIP_WEIGHT     = 0.65;
+  const MURK_THRESHOLD    = 70;
+  const MURK_WEIGHT       = 0.004;
+
+  // --- Canvas: is there anything up there for the light to catch? ---
+  // High cloud is what actually lights up. This is a MULTIPLIER rather than one
+  // additive term among several: with no canvas, clean air underneath is worth
+  // nothing. (The old additive model gave a dead-clear sky ~70 because three of
+  // its four components measured the ABSENCE of cloud and all maxed out at once.)
+  // Asymmetric falloff — a full cirrus deck is a better bet than an empty sky,
+  // because at least it has something that can glow.
+  const sigma = high < CANVAS_PEAK ? CANVAS_SIGMA_LOW : CANVAS_SIGMA_HIGH;
+  let canvas = Math.exp(-Math.pow(high - CANVAS_PEAK, 2) / (2 * sigma * sigma));
+
+  // Dry-air credit: a near-clear sky with exceptional visibility can still
+  // produce clean, saturated horizon color via Rayleigh scattering, even with
+  // nothing up high to catch light directly. This is a small, capped nudge —
+  // not a floor — so an ordinary hazy-but-technically-clear sky (moderate
+  // visibility) still scores low and correctly reads as flat. Only genuinely
+  // exceptional air (well past the existing haze-clear threshold) qualifies.
+  const VIS_EXCEPTIONAL_M = 35000; // meaningfully past the existing 15km "clear" threshold
+  const VIS_PRISTINE_M    = 55000; // full credit ceiling — near the top of what this region sees
+  const DRY_AIR_CREDIT     = 0.25;
+  if (vis != null && vis > VIS_EXCEPTIONAL_M) {
+    const clamp01_local = (v) => Math.max(0, Math.min(1, v));
+    canvas = Math.min(1, canvas + DRY_AIR_CREDIT * clamp01_local((vis - VIS_EXCEPTIONAL_M) / (VIS_PRISTINE_M - VIS_EXCEPTIONAL_M)));
+  }
+
+  // --- Clarity: can the light actually reach that canvas? ---
+  const lowFactor    = Math.max(0,    1 - (low / 100) * LOW_WEIGHT);
+  const midFactor    = Math.max(0,    1 - (mid / 100) * MID_WEIGHT);
+  const clamp01 = (v) => Math.max(0, Math.min(1, v));
+  const hazeFactor = (vis != null)
+    ? HAZE_FLOOR + (1 - HAZE_FLOOR) * clamp01((vis - VIS_MURKY_M) / (VIS_CLEAR_M - VIS_MURKY_M))
+    : Math.max(0.70, 1 - Math.max(0, hum - HUM_FALLBACK_THRESHOLD) * HUM_WEIGHT);
+  const precipFactor = Math.max(0.35, 1 - (precip / 100) * PRECIP_WEIGHT);
+
+  // Murk: saturated mid AND high at once is one thick diffusing deck, not a thin
+  // layer that can glow. A low-cloud reading of 0% otherwise masks this.
+  const murkFactor = (mid > MURK_THRESHOLD && high > MURK_THRESHOLD)
+    ? Math.max(0, 1 - Math.min(mid, high) * MURK_WEIGHT)
+    : 1;
+
+  const clarity = lowFactor * midFactor * hazeFactor * precipFactor * murkFactor;
+
+  // The gate: is there a clear slot toward the sun for light to arrive through?
+  const hasBeam = beam && typeof beam.low === "number" && typeof beam.mid === "number";
+  const beamF = hasBeam ? beamFactor(beam.low, beam.mid) : 1;
+  const ceiling = hasBeam ? MEASURED_CEILING : HORIZON_UNKNOWN_CEILING;
+
+  const score = Math.round(Math.max(2, Math.min(98, 100 * canvas * clarity * beamF * ceiling)));
+
+  return { score, low, mid, high, hum, precip, vis, hazeFactor, hazeFromVis: vis != null,
+           murk: murkFactor < 1, canvas, clarity,
+           beam: hasBeam ? beamF : null, beamLow: hasBeam ? beam.low : null, beamMid: hasBeam ? beam.mid : null };
+}
+
+function label(score){
+  if(score >= 85) return "Epic";
+  if(score >= 70) return "Great";
+  if(score >= 44) return "Good";
+  if(score >= 26) return "Fair";
+  return "Flat";
+}
+
+function blurb(s, mode){
+  const time = mode === "evening" ? "sunset" : "sunrise";
+  const horizon = mode === "evening" ? "west" : "east";
+
+  // Condition-driven cases first — these assert something specific about the sky,
+  // so they read the actual values rather than inferring from the score.
+  if(s.murk) return `Mid and high cloud are both heavily overcast at once — a thick, solid deck rather than a thin layer that can glow. Expect a diffuse, muted glow instead of clean color.`;
+  if(s.beam != null && s.beam < 0.35) return `Cloud is sitting between you and the ${horizon} horizon, roughly ${SUN_PATH_SAMPLE_KM}km out along the sun's line. The low sun's light will likely be blocked before it ever reaches the sky above you — the limiting factor here is over there, not overhead.`;
+  if(s.high < 12 && s.mid < 20 && s.low < 20) return `Essentially clear overhead — there's very little up there for the light to catch. Expect a clean gradient near the horizon rather than real color, though air this dry usually makes for a deep blue hour.`;
+  if(s.low > 65) return `Low cloud is thick enough to block the ${horizon} horizon, so even if there's color higher up, the light that makes it may not reach you.`;
+  if(s.high < 20) return `Not much high cloud to work with — the color that does show will be confined close to the horizon.`;
+  if(s.high > 75 && s.mid < 30 && s.low < 30) return `A near-solid high deck with clear air beneath it. It'll either light up spectacularly or sit there as a gray lid — depends entirely on whether there's a gap at the ${horizon} horizon for light to get underneath, which the forecast can't tell us.`;
+
+  // Score-driven cases: safe to generalise from here, since the specific
+  // conditions above have already been ruled out.
+  if(s.score >= 85) return `High cloud sitting right in the sweet spot to catch color, with a clear line to the ${horizon} horizon. Worth being in position early.`;
+  if(s.score >= 70) return `Solid setup for ${time} color — enough high cloud to light up, without much in the way lower down.`;
+  if(s.score >= 44) return `Workable but not a sure thing. Cloud cover is a bit heavier than ideal, so color may be short-lived.`;
+  if(s.score >= 26) return `Cloud is stacked in a way that'll more likely mute the color than light it up. Not a night to drive far for.`;
+  return `Conditions aren't lining up for much of a show — either too little cloud to scatter light off, or too much of it in the way.`;
+}
+
+/* ---------- Gradient swatch ---------- */
+function swatchGradient(s, mode){
+  const t = s.score / 100;
+  const warm = mode === "evening"
+    ? [`#2b1730`, `#7a2f4a`, `#e8517a`, `#ff6b35`, `#f2b84b`]
+    : [`#141b30`, `#3a3560`, `#c76a8a`, `#f2b84b`, `#fce9c9`];
+  const flat = [`#1b2030`, `#2a3040`, `#4a5568`, `#6b7686`, `#8892a8`];
+  function mix(hexA, hexB, f){
+    const a = hexA.match(/\w\w/g).map(h=>parseInt(h,16));
+    const b = hexB.match(/\w\w/g).map(h=>parseInt(h,16));
+    const c = a.map((v,i)=>Math.round(v + (b[i]-v)*f));
+    return `rgb(${c[0]},${c[1]},${c[2]})`;
+  }
+  const stops = warm.map((w,i)=> mix(flat[i], w, t));
+  return `linear-gradient(180deg, ${stops.join(", ")})`;
+}
+function heroIsDark(s){ return s.score < 44; }
+
+/* ---------- Rendering ---------- */
+function fmtTime(iso){
+  const d = new Date(iso);
+  return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+function addMinutes(iso, mins){
+  return new Date(new Date(iso).getTime() + mins*60000);
+}
+function fmt(d){
+  const dt = (d instanceof Date) ? d : new Date(d);
+  return dt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+function nearestHourIdx(hourlyTimes, targetIso){
+  const target = new Date(targetIso).getTime();
+  let best = 0, bestDiff = Infinity;
+  hourlyTimes.forEach((t, i) => {
+    const diff = Math.abs(new Date(t).getTime() - target);
+    if(diff < bestDiff){ bestDiff = diff; best = i; }
+  });
+  return best;
+}
+function parseLocalDate(dateStr){
+  // dateStr like "2026-07-07" — parsing this directly with `new Date()` treats it as
+  // UTC midnight, which rolls back a day in any timezone behind UTC. Build it from
+  // local components instead so "today" always means today.
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/* ---------- Sun position (azimuth) ----------
+   NOAA/Meeus low-precision solar position formulas. Good to a fraction of a
+   degree, which is plenty for "which way to point the camera." Takes the
+   sunrise/sunset instant (as a JS Date) plus lat/lon and returns the compass
+   bearing of the sun along the horizon at that moment. */
+const D2R = Math.PI / 180, R2D = 180 / Math.PI;
+const dsin = d => Math.sin(d * D2R);
+const dcos = d => Math.cos(d * D2R);
+const dtan = d => Math.tan(d * D2R);
+const dasinc = x => Math.asin(Math.max(-1, Math.min(1, x))) * R2D;
+const dacosc = x => Math.acos(Math.max(-1, Math.min(1, x))) * R2D;
+
+// Shared low-precision solar position bits (declination + equation of time)
+// used by both the azimuth calc and the twilight calc below.
+function solarPosition(date){
+  const JD = date.getTime() / 86400000 + 2440587.5;
+  const T = (JD - 2451545.0) / 36525;
+
+  let L0 = 280.46646 + T * (36000.76983 + T * 0.0003032);
+  L0 = ((L0 % 360) + 360) % 360;
+
+  const M = 357.52911 + T * (35999.05029 - 0.0001537 * T);
+  const e = 0.016708634 - T * (0.000042037 + 0.0000001267 * T);
+
+  const C = dsin(M) * (1.914602 - T * (0.004817 + 0.000014 * T))
+          + dsin(2 * M) * (0.019993 - 0.000101 * T)
+          + dsin(3 * M) * 0.000289;
+
+  const trueLong = L0 + C;
+  const omega = 125.04 - 1934.136 * T;
+  const lambda = trueLong - 0.00569 - 0.00478 * dsin(omega);
+
+  const seconds = 21.448 - T * (46.8150 + T * (0.00059 - T * 0.001813));
+  const e0 = 23 + (26 + seconds / 60) / 60;
+  const obliqCorr = e0 + 0.00256 * dcos(omega);
+
+  const decl = dasinc(dsin(obliqCorr) * dsin(lambda));
+
+  const y = dtan(obliqCorr / 2) * dtan(obliqCorr / 2);
+  const eqTime = 4 * R2D * (
+      y * dsin(2 * L0)
+      - 2 * e * dsin(M)
+      + 4 * e * y * dsin(M) * dcos(2 * L0)
+      - 0.5 * y * y * dsin(4 * L0)
+      - 1.25 * e * e * dsin(2 * M)
+  );
+
+  return { decl, eqTime, lambda };
+}
+
+// Sun's position in the sky (altitude + azimuth) for a given instant, using
+// the same low-precision NOAA/Meeus approach as solarPosition() above. Shared
+// by solarAzimuth() (existing call sites) and the Map tab's altitude readout,
+// so the hour-angle/zenith math lives in exactly one place.
+function solarHorizontal(date, lat, lon){
+  const { decl, eqTime } = solarPosition(date);
+
+  // Note: this assumes the browser's timezone matches the forecast location's
+  // timezone (same assumption the rest of the app makes when it does new Date(iso)
+  // on Open-Meteo's local-time strings). Fine for "check the sky where I am."
+  const utcMinutes = date.getUTCHours() * 60 + date.getUTCMinutes() + date.getUTCSeconds() / 60;
+  let trueSolarTime = (utcMinutes + eqTime + 4 * lon) % 1440;
+  if (trueSolarTime < 0) trueSolarTime += 1440;
+
+  let hourAngle = trueSolarTime / 4 - 180;
+  if (hourAngle < -180) hourAngle += 360;
+  if (hourAngle > 180) hourAngle -= 360;
+
+  const zenith = dacosc(dsin(lat) * dsin(decl) + dcos(lat) * dcos(decl) * dcos(hourAngle));
+  const cosAz = (dsin(lat) * dcos(zenith) - dsin(decl)) / (dcos(lat) * dsin(zenith));
+
+  let az;
+  if (hourAngle > 0) az = (dacosc(cosAz) + 180) % 360;
+  else az = (540 - dacosc(cosAz)) % 360;
+
+  return { alt: 90 - zenith, az };
+}
+
+function solarAzimuth(date, lat, lon){
+  return solarHorizontal(date, lat, lon).az;
+}
+
+function compassDir(deg){
+  const dirs = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+  return dirs[Math.round(deg / 22.5) % 16];
+}
+
+/* ---------- Civil twilight (first light / last light) ----------
+   Same NOAA/Meeus low-precision approach as the azimuth calc above, but
+   solved for the moment the sun crosses 6° below the horizon (zenith 96°)
+   instead of a known clock time. "dawn" = first light before sunrise,
+   "dusk" = last light after sunset. Returns null in the rare case the sun
+   doesn't cross that altitude at all that day (deep polar latitudes). */
+function civilTwilight(eventDate, lat, lon, which, zenith){
+  const { decl, eqTime } = solarPosition(eventDate);
+  if(zenith == null) zenith = 96;
+  const cosHA = (dcos(zenith) - dsin(lat) * dsin(decl)) / (dcos(lat) * dcos(decl));
+  if (cosHA > 1 || cosHA < -1) return null;
+  const ha = dacosc(cosHA);
+
+  const trueSolarTime = which === "dawn" ? (720 - ha * 4) : (720 + ha * 4);
+  let utcMinutes = trueSolarTime - eqTime - 4 * lon;
+  utcMinutes = ((utcMinutes % 1440) + 1440) % 1440;
+
+  const dayStartUTC = Date.UTC(eventDate.getUTCFullYear(), eventDate.getUTCMonth(), eventDate.getUTCDate());
+  return new Date(dayStartUTC + utcMinutes * 60000);
+}
+
+/* ---------- Blue hour window ----------
+   Morning blue hour sits before sunrise (first light -> golden hour start);
+   evening blue hour sits after sunset (golden hour end -> last light).
+   Bounds come from the real twilight calc rather than flat clock-time
+   guesses, so the window is accurate for the actual lat/lon and time of
+   year:
+     - outer edge (first/last light) = sun 6° below horizon (civil twilight)
+     - inner edge (shared with golden hour) = sun 4° below horizon, the
+       conventional golden/blue hour handoff point
+   Falls back to flat-minute estimates only in the rare case civilTwilight()
+   can't resolve a crossing (deep polar latitudes). Shared by render() and
+   pickInitialView() so the "which view should be open" logic tracks the
+   same window shown on the hero card, not just the bare sunrise/sunset
+   instant. */
+function blueHourBounds(sunriseIso, sunsetIso, mode, lat, lon){
+  if(mode === "evening"){
+    const sunset = new Date(sunsetIso);
+    const handoff = (lat != null && lon != null) ? civilTwilight(sunset, lat, lon, "dusk", 94) : null;
+    const lastLight = (lat != null && lon != null) ? civilTwilight(sunset, lat, lon, "dusk") : null;
+    return { start: handoff || sunset, end: lastLight || addMinutes(sunsetIso, 35) };
+  }
+  const sunrise = new Date(sunriseIso);
+  const firstLight = (lat != null && lon != null) ? civilTwilight(sunrise, lat, lon, "dawn") : null;
+  const handoff = (lat != null && lon != null) ? civilTwilight(sunrise, lat, lon, "dawn", 94) : null;
+  return { start: firstLight || addMinutes(sunriseIso, -35), end: handoff || sunrise };
+}
+
+/* ---------- Moon position, phase, and rise/set ----------
+   Low-precision lunar theory (truncated periodic terms — good to a few
+   tenths of a degree, plenty for a compass heading and a rise/set time
+   accurate to within a minute or two) combined with the Sun's apparent
+   ecliptic longitude already computed above, to get phase + illumination. */
+function moonEclipticPosition(date){
+  const JD = date.getTime() / 86400000 + 2440587.5;
+  const d = JD - 2451545.0;
+
+  const L = ((218.316 + 13.176396 * d) % 360 + 360) % 360;  // mean longitude
+  const M = ((134.963 + 13.064993 * d) % 360 + 360) % 360;  // mean anomaly
+  const F = ((93.272  + 13.229350 * d) % 360 + 360) % 360;  // argument of latitude
+
+  const lonEcl = ((L + 6.289 * dsin(M)) % 360 + 360) % 360;
+  const latEcl = 5.128 * dsin(F);
+  const distKm = 385001 - 20905 * dcos(M);
+
+  return { lonEcl, latEcl, distKm };
+}
+
+function eclipticToEquatorial(lonEcl, latEcl){
+  const eps = 23.4397; // mean obliquity of the ecliptic — stable enough at this precision
+  const ra = ((R2D * Math.atan2(
+    dsin(lonEcl) * dcos(eps) - dtan(latEcl) * dsin(eps),
+    dcos(lonEcl)
+  )) % 360 + 360) % 360;
+  const dec = dasinc(dsin(latEcl) * dcos(eps) + dcos(latEcl) * dsin(eps) * dsin(lonEcl));
+  return { ra, dec };
+}
+
+function siderealTime(date, lon){
+  const JD = date.getTime() / 86400000 + 2440587.5;
+  const d = JD - 2451545.0;
+  const gmst = ((280.46061837 + 360.98564736629 * d) % 360 + 360) % 360;
+  return ((gmst + lon) % 360 + 360) % 360; // local sidereal time, degrees
+}
+
+function moonHorizontal(date, lat, lon){
+  const { lonEcl, latEcl, distKm } = moonEclipticPosition(date);
+  const { ra, dec } = eclipticToEquatorial(lonEcl, latEcl);
+  const lst = siderealTime(date, lon);
+  let ha = lst - ra;
+  if(ha < -180) ha += 360;
+  if(ha > 180) ha -= 360;
+
+  const alt = dasinc(dsin(dec) * dsin(lat) + dcos(dec) * dcos(lat) * dcos(ha));
+  const az = ((R2D * Math.atan2(-dsin(ha), dcos(ha) * dsin(lat) - dtan(dec) * dcos(lat))) % 360 + 360) % 360;
+
+  return { alt, az, dec, ra, distKm, lonEcl };
+}
+
+// Illuminated fraction + phase name from the angular separation between the
+// Moon and Sun along the ecliptic. This skips the small correction for the
+// true phase angle (which also depends on Earth-Moon and Earth-Sun distance)
+// — close enough for "how full does it look tonight."
+function moonPhaseInfo(date){
+  const sunLon = solarPosition(date).lambda;
+  const { lonEcl } = moonEclipticPosition(date);
+  const elong = ((lonEcl - sunLon) % 360 + 360) % 360;
+  const illum = (1 - dcos(elong)) / 2;
+
+  const names = [
+    [15, "New", "🌑"], [75, "Waxing crescent", "🌒"], [105, "First quarter", "🌓"],
+    [165, "Waxing gibbous", "🌔"], [195, "Full", "🌕"], [255, "Waning gibbous", "🌖"],
+    [285, "Last quarter", "🌗"], [345, "Waning crescent", "🌘"], [360.1, "New", "🌑"]
+  ];
+  const found = names.find(([edge]) => elong < edge) || names[names.length - 1];
+
+  return { illumPct: Math.round(illum * 100), phaseName: found[1], emoji: found[2] };
+}
+
+// Steps through a local calendar day in 10-minute increments looking for the
+// Moon crossing the horizon (rise = altitude going negative -> positive, set
+// = positive -> negative), then linearly interpolates the crossing minute.
+// The threshold accounts for refraction plus the Moon's own apparent size —
+// same idea as a standard almanac rise/set definition. Some calendar days
+// have no rise, no set, or (rarely) both of one and neither of the other,
+// depending on where the Moon's ~24h50m cycle falls relative to midnight.
+function findMoonEvents(dayStart, lat, lon){
+  const H0 = -0.583;
+  const stepMin = 10;
+  const steps = Math.floor(24 * 60 / stepMin) + 1;
+  let prevT = dayStart, prevAlt = moonHorizontal(prevT, lat, lon).alt - H0;
+  let rise = null, set = null;
+
+  for(let i = 1; i <= steps; i++){
+    const t = new Date(dayStart.getTime() + i * stepMin * 60000);
+    const alt = moonHorizontal(t, lat, lon).alt - H0;
+    if(prevAlt < 0 && alt >= 0 && !rise){
+      const f = prevAlt / (prevAlt - alt);
+      rise = new Date(prevT.getTime() + f * (t - prevT));
+    }
+    if(prevAlt >= 0 && alt < 0 && !set){
+      const f = prevAlt / (prevAlt - alt);
+      set = new Date(prevT.getTime() + f * (t - prevT));
+    }
+    prevT = t; prevAlt = alt;
+  }
+  return { rise, set };
+}
+
+// Ties it together for one calendar day: phase/illumination at midday, rise
+// and set times + compass headings, and whether the Moon lines up with
+// sunrise/sunset closely enough to matter for a shot — a moonrise near
+// sunset (or moonset near sunrise) is the classic "big, warm Moon low over
+// the horizon" window that's worth being in position for.
+function computeMoonInfo(dayStart, lat, lon, sunriseIso, sunsetIso){
+  const events = findMoonEvents(dayStart, lat, lon);
+  const phase = moonPhaseInfo(new Date(dayStart.getTime() + 12 * 3600000));
+
+  const riseAz = events.rise ? moonHorizontal(events.rise, lat, lon).az : null;
+  const setAz  = events.set  ? moonHorizontal(events.set, lat, lon).az  : null;
+
+  let alignment = null;
+  const sunset = new Date(sunsetIso), sunrise = new Date(sunriseIso);
+  if(events.rise){
+    const diff = Math.abs(events.rise - sunset) / 60000;
+    if(diff <= 45) alignment = { type: "moonrise-sunset", minutes: Math.round(diff) };
+  }
+  if(!alignment && events.set){
+    const diff = Math.abs(events.set - sunrise) / 60000;
+    if(diff <= 45) alignment = { type: "moonset-sunrise", minutes: Math.round(diff) };
+  }
+
+  return {
+    ...phase,
+    moonrise: events.rise, moonriseAz: riseAz,
+    moonset: events.set, moonsetAz: setAz,
+    alignment
+  };
+}
+
+function moonCardHTML(m){
+  const riseStr = m.moonrise ? `${fmt(m.moonrise)} <small>${compassDir(m.moonriseAz)}</small>` : `<small>Doesn't rise today</small>`;
+  const setStr  = m.moonset  ? `${fmt(m.moonset)} <small>${compassDir(m.moonsetAz)}</small>`   : `<small>Doesn't set today</small>`;
+  const alignNote = m.alignment
+    ? (m.alignment.type === "moonrise-sunset"
+        ? `Moonrise lands within ${m.alignment.minutes} min of sunset — good odds of a big, warm Moon low over the horizon.`
+        : `Moonset lands within ${m.alignment.minutes} min of sunrise — worth watching the west as the sun comes up.`)
+    : null;
+
+  return `<div class="card" style="grid-column: 1 / -1;">
+    <div class="label">${m.emoji} ${m.phaseName} · ${m.illumPct}% lit</div>
+    <div class="grid" style="margin-top:10px;">
+      <div><div class="label">Moonrise</div><div class="value">${riseStr}</div></div>
+      <div><div class="label">Moonset</div><div class="value">${setStr}</div></div>
+    </div>
+    ${alignNote ? `<div class="outlook-note" style="margin-top:10px;">${alignNote}</div>` : ""}
+    <div class="outlook-note" style="margin-top:${alignNote ? 6 : 10}px;">Rise/set times are calculated, not observed — usually within a few minutes, but can be off by up to ~30-45 min when the Moon crosses the horizon at a shallow angle.</div>
+  </div>`;
+}
+
+/* ---------- Timelapse conditions ----------
+   Scans every hour the Moon is above the horizon on the given calendar day
+   and scores it for a cloud timelapse/hyperlapse shot: partial, moving
+   cloud (roughly 20-60% cover) gives texture and motion crossing the disc,
+   while upper-level wind speed is a rough stand-in for how fast that cloud
+   is actually moving — a clear sky is static, a solid deck just blocks the
+   shot outright. Unlike the sunrise/sunset score (a single instant), this
+   is a window, so it reports the best contiguous stretch rather than one
+   number. */
+function findMoonUpWindow(dayStart, lat, lon){
+  const dayEnd = new Date(dayStart.getTime() + 24 * 3600000);
+  const events = findMoonEvents(dayStart, lat, lon);
+  const H0 = -0.583;
+
+  const upAtStart = moonHorizontal(dayStart, lat, lon).alt > H0;
+  const upAtEnd = moonHorizontal(dayEnd, lat, lon).alt > H0;
+
+  let start = null, end = null;
+  if(upAtStart){
+    start = dayStart;
+    end = events.set || (upAtEnd ? dayEnd : null);
+  } else if(events.rise){
+    start = events.rise;
+    end = events.set || (upAtEnd ? dayEnd : null);
+  }
+  return (start && end) ? { start, end } : null;
+}
+
+function timelapseHourScore(cloudPct, windMph){
+  // Cloud sweet spot centered at 40% — enough to cross the disc without
+  // blocking it outright.
+  const cloudComponent = Math.max(0, 100 - Math.abs(cloudPct - 40) * 1.8);
+  // Wind aloft can be unavailable (its request is separate and short-fused).
+  // Score on cloud alone in that case — treating "unknown" as 0mph would read
+  // as dead calm and silently suppress every window.
+  if(windMph == null){
+    return Math.round(Math.max(0, Math.min(100, cloudComponent)));
+  }
+  // Wind speed saturates around 20mph — past that, more speed doesn't add
+  // much for a hyperlapse (and starts trading off against frame blur if
+  // shooting long exposures).
+  const windComponent = Math.min(100, (windMph / 20) * 100);
+  return Math.round(Math.max(0, Math.min(100, cloudComponent * 0.6 + windComponent * 0.4)));
+}
+
+function timelapseLabel(score){
+  if(score >= 70) return "Great";
+  if(score >= 45) return "Workable";
+  return "Flat";
+}
+
+function scanTimelapseWindow(dayStart, lat, lon, hourly){
+  const upWindow = findMoonUpWindow(dayStart, lat, lon);
+  if(!upWindow) return null;
+
+  const points = [];
+  hourly.time.forEach((t, i) => {
+    const ti = new Date(t).getTime();
+    if(ti < upWindow.start.getTime() || ti > upWindow.end.getTime()) return;
+    const cloud = ((hourly.cloud_cover_mid[i] ?? 0) + (hourly.cloud_cover_high[i] ?? 0)) / 2;
+    const wind = Array.isArray(hourly.wind_speed_700hPa) ? (hourly.wind_speed_700hPa[i] ?? null) : null;
+    points.push({ time: new Date(t), score: timelapseHourScore(cloud, wind), cloud, wind });
+  });
+  const windAvailable = Array.isArray(hourly.wind_speed_700hPa);
+  if(points.length === 0) return { upWindow, points, bestRun: null, windAvailable };
+
+  // Longest/strongest contiguous run of "workable or better" hours.
+  const THRESH = 45;
+  let bestRun = null, curRun = [];
+  const closeRun = () => {
+    if(!curRun.length) return;
+    const avg = curRun.reduce((s, c) => s + c.score, 0) / curRun.length;
+    if(!bestRun || avg > bestRun.avg) bestRun = { points: curRun.slice(), avg };
+    curRun = [];
+  };
+  points.forEach(p => { if(p.score >= THRESH) curRun.push(p); else closeRun(); });
+  closeRun();
+
+  return { upWindow, points, bestRun, windAvailable };
+}
+
+function timelapseCardHTML(result){
+  if(!result || !result.points || result.points.length === 0){
+    return `<div class="card" style="grid-column: 1 / -1;">
+      <div class="label">Timelapse conditions</div>
+      <div class="value" style="font-size:14px;font-weight:400;color:var(--slate)">Moon isn't up during forecast hours today.</div>
+    </div>`;
+  }
+  let body;
+  if(result.bestRun && result.bestRun.avg >= 45){
+    const pts = result.bestRun.points;
+    const start = pts[0].time, end = pts[pts.length - 1].time;
+    body = `<div class="value">${timelapseLabel(Math.round(result.bestRun.avg))} <small>best window</small></div>
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:15px; margin-top:4px;">${fmt(start)}–${fmt(end)}</div>`;
+  } else {
+    body = `<div class="value" style="font-size:14px; font-weight:400; color:var(--slate);">Mostly clear or solid overcast the whole time the Moon's up — not much drift to catch.</div>`;
+  }
+  return `<div class="card" style="grid-column: 1 / -1;">
+    <div class="label">Timelapse conditions <small style="text-transform:none;">— cloud crossing the Moon</small></div>
+    ${body}
+    <div class="outlook-note" style="margin-top:10px;">${result.windAvailable
+      ? `Cloud cover + wind speed aloft — a rough proxy for cloud motion, not a guarantee. Heuristic, not calibrated against real footage yet.`
+      : `Wind aloft unavailable right now, so this is scored on cloud cover alone — it can't say anything about how fast that cloud will actually move. Rougher than usual.`}</div>
+  </div>`;
+}
+
+function render(){
+  const app = $("app");
+  if(!state.daily){ app.innerHTML = '<div class="loading">Reading the sky…</div>'; return; }
+  const tabsHtml = `<div class="view-tabs">
+    <button class="view-tab ${state.view==='today'?'active':''}" data-view="today">Today</button>
+    <button class="view-tab ${state.view==='outlook'?'active':''}" data-view="outlook">Outlook</button>
+    <button class="view-tab ${state.view==='map'?'active':''}" data-view="map">Map</button>
+  </div>`;
+  // The Leaflet instance is tied to a DOM node that app.innerHTML is about to
+  // replace or discard, so tear it down whenever we're not rendering the Map
+  // tab — otherwise Leaflet keeps handles to elements that no longer exist.
+  if(state.view !== "map") destroySunMap();
+  if(state.view === "outlook"){
+    renderOutlook(app, tabsHtml);
+  } else if(state.view === "map"){
+    renderMap(app, tabsHtml);
+  } else {
+    renderToday(app, tabsHtml);
+  }
+  document.querySelectorAll(".view-tab").forEach(b => b.addEventListener("click", () => {
+    state.view = b.dataset.view; render();
+  }));
+}
+
+function renderToday(app, tabsHtml){
+  const { daily, hourly, activeDay, mode, loc } = state;
+
+  const sunrise = daily.sunrise[activeDay];
+  const sunset = daily.sunset[activeDay];
+  const eventIso = mode === "evening" ? sunset : sunrise;
+  const idx = nearestHourIdx(hourly.time, eventIso);
+  const s = scoreEvent(hourly, idx, sampleAt(state.sample[mode], eventIso));
+  if(!s){ app.innerHTML = tabsHtml + '<div class="err">Could not compute a forecast for this day.</div>'; return; }
+
+  const gradient = swatchGradient(s, mode);
+
+  const { start: blueStart, end: blueEnd } = blueHourBounds(sunrise, sunset, mode, loc.lat, loc.lon);
+  // Golden hour shares its far edge with blue hour's near edge (the -4°
+  // sun-angle handoff), so it naturally extends past sunset / before
+  // sunrise instead of stopping dead at the 0° instant.
+  // Golden hour's far edge is shared with blue hour's near edge (the -4°
+  // handoff); its near edge (next to sunset/sunrise) is the sun crossing
+  // 6° above the horizon — the conventional start/end of "golden" light,
+  // rather than a flat 60-minute guess.
+  const sixDegEvening = (loc.lat != null && loc.lon != null) ? civilTwilight(new Date(sunset), loc.lat, loc.lon, "dusk", 84) : null;
+  const sixDegMorning = (loc.lat != null && loc.lon != null) ? civilTwilight(new Date(sunrise), loc.lat, loc.lon, "dawn", 84) : null;
+  const goldenStart = mode === "evening" ? (sixDegEvening || addMinutes(sunset, -60)) : blueEnd;
+  const goldenEnd   = mode === "evening" ? blueStart : (sixDegMorning || addMinutes(sunrise, 60));
+
+  const azimuth = solarAzimuth(new Date(eventIso), loc.lat, loc.lon);
+  const azimuthLabel = `${Math.round(azimuth)}° ${compassDir(azimuth)}`;
+
+  const twilight = mode === "evening"
+    ? civilTwilight(new Date(sunset), loc.lat, loc.lon, "dusk")
+    : civilTwilight(new Date(sunrise), loc.lat, loc.lon, "dawn");
+  const twilightLabel = mode === "evening" ? "Last light" : "First light";
+
+  // Nautical (sun 12° below horizon, zenith 102) and astronomical (18°, zenith
+  // 108) twilight — same civilTwilight() solver, just deeper crossings. Both
+  // can come back null at extreme latitudes/seasons where the sun never gets
+  // that far below the horizon; render() below only shows a row when non-null.
+  const nauticalTwilight = mode === "evening"
+    ? civilTwilight(new Date(sunset), loc.lat, loc.lon, "dusk", 102)
+    : civilTwilight(new Date(sunrise), loc.lat, loc.lon, "dawn", 102);
+  const astroTwilight = mode === "evening"
+    ? civilTwilight(new Date(sunset), loc.lat, loc.lon, "dusk", 108)
+    : civilTwilight(new Date(sunrise), loc.lat, loc.lon, "dawn", 108);
+  const nauticalLabel = mode === "evening" ? "Nautical dusk" : "Nautical dawn";
+  const astroLabel = mode === "evening" ? "Astronomical dusk" : "Astronomical dawn";
+
+  let html = tabsHtml;
+
+  // Stale banner: whenever we're showing cached numbers, say so up front and give
+  // the real age. Never let old data pass as current.
+  if(state.stale){
+    html += `<div class="stale-bar">
+      <div class="stale-head">Showing the last forecast that loaded — from ${describeAge(Date.now() - state.stale.savedAt)}.</div>
+      <div class="stale-body">${state.stale.reason} Cloud cover moves, so treat these numbers as a rough guide rather than tonight's actual sky.</div>
+      <button class="err-retry" id="staleRetry" style="margin-top:12px;">Refresh</button>
+    </div>`;
+  }
+
+  html += `<div class="hero">
+    <div class="hero-swatch" style="background:${gradient}"></div>
+    <div class="hero-content">
+      <div class="eyebrow">${loc.name} · ${parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { weekday:'long', month:'short', day:'numeric' })}</div>
+      <div class="score-row">
+        <div class="score-num">${s.score}</div>
+        <div class="score-label">${label(s.score)} ${mode === "evening" ? "sunset" : "sunrise"}</div>
+      </div>
+      <div class="hero-sub">${blurb(s, mode)}</div>
+      <div class="hero-times">
+        ${(twilight && mode !== "evening") ? `<div class="hero-time-item"><div class="k">${twilightLabel}</div><div class="v">${fmt(twilight)}</div></div>` : ""}
+        <div class="hero-time-item"><div class="k">${mode === "evening" ? "Sunset" : "Sunrise"}</div><div class="v">${fmtTime(eventIso)}</div></div>
+        ${(twilight && mode === "evening") ? `<div class="hero-time-item"><div class="k">${twilightLabel}</div><div class="v">${fmt(twilight)}</div></div>` : ""}
+        <div class="hero-time-item"><div class="k">Direction</div><div class="v">${azimuthLabel}</div></div>
+        <div class="hero-time-item"><div class="k">Golden hour</div><div class="v">${fmt(goldenStart)}–${fmt(goldenEnd)}</div></div>
+        <div class="hero-time-item"><div class="k">Blue hour</div><div class="v">${fmt(blueStart)}–${fmt(blueEnd)}</div></div>
+        ${nauticalTwilight ? `<div class="hero-time-item"><div class="k">${nauticalLabel}</div><div class="v">${fmt(nauticalTwilight)}</div></div>` : ""}
+        ${astroTwilight ? `<div class="hero-time-item"><div class="k">${astroLabel}</div><div class="v">${fmt(astroTwilight)}</div></div>` : ""}
+      </div>
+    </div>
+  </div>`;
+
+  html += `<div class="toggle-row">
+    <button class="toggle-btn ${mode==='morning'?'active':''}" data-mode="morning">Sunrise</button>
+    <button class="toggle-btn ${mode==='evening'?'active':''}" data-mode="evening">Sunset</button>
+  </div>`;
+
+  html += `<div class="section-title">Next 7 days</div><div class="days">`;
+  daily.time.forEach((t, i) => {
+    const evt = mode === "evening" ? daily.sunset[i] : daily.sunrise[i];
+    const j = nearestHourIdx(hourly.time, evt);
+    const ds = scoreEvent(hourly, j, sampleAt(state.sample[mode], evt));
+    const dow = i === 0 ? "Today" : parseLocalDate(t).toLocaleDateString([], { weekday: "short" });
+    html += `<div class="day-card ${i===activeDay?'active':''}" data-day="${i}">
+      <div class="dow">${dow}</div>
+      <div class="swatch" style="background:${ds ? swatchGradient(ds, mode) : '#2a3040'}"></div>
+      <div class="num">${ds ? ds.score : "–"}</div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  const outlookStart = 7;
+  if(daily.time.length > outlookStart){
+    html += `<div class="section-title">Outlook</div><div class="days">`;
+    daily.time.slice(outlookStart).forEach((t, k) => {
+      const i = outlookStart + k;
+      const evt = mode === "evening" ? daily.sunset[i] : daily.sunrise[i];
+      const j = nearestHourIdx(hourly.time, evt);
+      const ds = scoreEvent(hourly, j, sampleAt(state.sample[mode], evt));
+      const dow = parseLocalDate(t).toLocaleDateString([], { weekday: "short" });
+      html += `<div class="day-card outlook ${i===activeDay?'active':''}" data-day="${i}">
+        <div class="dow">${dow}</div>
+        <div class="swatch" style="background:${ds ? swatchGradient(ds, mode) : '#2a3040'}"></div>
+        <div class="num">${ds ? ds.score : "–"}</div>
+      </div>`;
+    });
+    html += `</div>`;
+    html += `<div class="outlook-note">Forecasts this far out lean on modeled cloud layers rather than near-term observation — treat these as a rough read, not a plan.</div>`;
+  }
+
+  html += `<div class="section-title">Sky breakdown</div>`;
+  html += `<div class="grid">
+    ${s.beam != null ? statCard("Toward the sun", Math.max(s.beamLow, s.beamMid), "%",
+        `Low/mid cloud ~${SUN_PATH_SAMPLE_KM}km ${compassDir(azimuth)} — the gap light has to come through`,
+        var2color(Math.max(s.beamLow, s.beamMid), 100, 45, true)) : ``}
+    ${statCard("High cloud", s.high, "%", "Catches & scatters color — 30–60% is ideal", var2color(s.high, 45, 60))}
+    ${statCard("Low cloud", s.low, "%", "Blocks the horizon view when high", var2color(s.low, 100, 40, true))}
+    ${statCard("Mid cloud", s.mid, "%", "Moderate blocker at higher amounts", var2color(s.mid, 100, 50, true))}
+    ${s.hazeFromVis
+      ? statCard("Visibility", Math.round(s.vis / 1609), " mi", "Direct haze reading — under ~9mi starts flattening color", var2color(Math.min(100, (s.vis / 15000) * 100), 100, 70))
+      : statCard("Humidity", s.hum, "%", "Fallback haze proxy — visibility unavailable", var2color(s.hum, 100, 80, true))}
+  </div>`;
+
+  const moon = computeMoonInfo(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, sunrise, sunset);
+  const timelapse = scanTimelapseWindow(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, hourly);
+  html += `<div class="section-title">Moon</div>`;
+  html += `<div class="grid">${moonCardHTML(moon)}${timelapseCardHTML(timelapse)}</div>`;
+
+  html += `<div class="why"><b>How this is scored</b> — Afterglow weighs high-altitude cloud cover (the layer that catches direct light and turns pink/orange), low and mid cloud (which physically block the view of the horizon or the light source), and humidity (haze mutes saturation even on an otherwise clear evening). It's a heuristic, not a guarantee — always worth a look outside 20 minutes before showtime.</div>`;
+
+  app.innerHTML = html;
+
+  document.querySelectorAll(".toggle-btn").forEach(b => b.addEventListener("click", () => {
+    state.mode = b.dataset.mode; render();
+  }));
+  document.querySelectorAll(".day-card").forEach(b => b.addEventListener("click", () => {
+    state.activeDay = parseInt(b.dataset.day); render();
+  }));
+  const staleBtn = $("staleRetry");
+  if(staleBtn) staleBtn.addEventListener("click", () => boot(state.loc));
+}
+
+/* ---------- Outlook (agenda list) ----------
+   A day-by-day list showing both sunrise and sunset scores side by side,
+   rather than the Today view's single-event-at-a-time toggle. Reuses the
+   exact same scoreEvent()/label()/blurb() pipeline — this is purely a
+   different arrangement of the same numbers, not a second scoring path. */
+function agendaColor(score){
+  if(score >= 70) return "#F2B84B"; // gold — Epic/Great
+  if(score >= 44) return "#F2D98B"; // pale gold — Good
+  if(score >= 26) return "#8892a8"; // slate — Fair
+  return "#565d78"; // slate-dim — Flat
+}
+
+function agendaCardHTML(dayIdx, mode, daily, hourly){
+  const evt = mode === "evening" ? daily.sunset[dayIdx] : daily.sunrise[dayIdx];
+  if(!evt) return `<div class="agenda-card"><div class="k">–</div><div class="label-word">No data</div></div>`;
+  const j = nearestHourIdx(hourly.time, evt);
+  const s = scoreEvent(hourly, j, sampleAt(state.sample[mode], evt));
+  if(!s) return `<div class="agenda-card"><div class="k">–</div><div class="label-word">No data</div></div>`;
+  const eventLabel = mode === "evening" ? "Sunset" : "Sunrise";
+  return `<div class="agenda-card" data-day="${dayIdx}" data-mode="${mode}">
+    <div class="k">${eventLabel}</div>
+    <div class="label-word">${label(s.score)}</div>
+    <div class="agenda-bar"><i style="width:${s.score}%; background:${agendaColor(s.score)}"></i></div>
+    <div class="agenda-pct">${s.score}%</div>
+    <div class="agenda-time">${fmtTime(evt)}</div>
+  </div>`;
+}
+
+function renderOutlook(app, tabsHtml){
+  const { daily, hourly, activeDay } = state;
+  let html = tabsHtml;
+
+  daily.time.forEach((t, i) => {
+    const dow = i === 0 ? "Today" : parseLocalDate(t).toLocaleDateString([], { weekday: "long" });
+    html += `<div class="agenda-day${i===0?' first':''}">${dow}</div>`;
+    html += `<div class="grid">
+      ${agendaCardHTML(i, "morning", daily, hourly)}
+      ${agendaCardHTML(i, "evening", daily, hourly)}
+    </div>`;
+    if(i === 6 && daily.time.length > 7){
+      html += `<div class="outlook-note">Days below lean on modeled cloud layers rather than near-term observation — treat these as a rough read, not a plan.</div>`;
+    }
+  });
+
+  app.innerHTML = html;
+
+  // Tapping a card jumps to that day/mode on the Today view — same activeDay
+  // and mode state the hero view reads, so the two screens stay in sync.
+  document.querySelectorAll(".agenda-card[data-day]").forEach(b => b.addEventListener("click", () => {
+    state.activeDay = parseInt(b.dataset.day);
+    state.mode = b.dataset.mode;
+    state.view = "today";
+    render();
+  }));
+}
+
+/* ---------- Map (sun direction) ----------
+   A free, keyless alternative to a native MapKit sun-direction view: an
+   OpenStreetMap tile layer (via Leaflet) centered on the forecast location,
+   with a compass overlay whose line points along the sun's azimuth at a
+   time chosen by the slider. Altitude/azimuth come from solarHorizontal()
+   above — same solar math the rest of the app already relies on, just
+   evaluated at an arbitrary time-of-day instead of only at sunrise/sunset. */
+let sunMapInstance = null;
+
+function destroySunMap(){
+  if(sunMapInstance){ sunMapInstance.remove(); sunMapInstance = null; }
+}
+
+// Draws the compass ring + sun-direction line into the overlay SVG. Standalone
+// so both the initial render and every slider "input" event can call it
+// without re-running the rest of renderMap()'s DOM setup.
+function drawCompass(azDeg){
+  const svg = $("mapCompass");
+  if(!svg) return;
+  const cx = 50, cy = 50, r = 42;
+  const rad = azDeg * Math.PI / 180;
+  const x2 = cx + r * Math.sin(rad);
+  const y2 = cy - r * Math.cos(rad);
+  const dirLabels = [["N", 0], ["E", 90], ["S", 180], ["W", 270]].map(([txt, deg]) => {
+    const dr = deg * Math.PI / 180;
+    const lx = cx + (r + 8) * Math.sin(dr);
+    const ly = cy - (r + 8) * Math.cos(dr) + 2.5;
+    return `<text x="${lx}" y="${ly}" font-size="7" fill="#F5E6D3" text-anchor="middle" font-family="'IBM Plex Mono', monospace">${txt}</text>`;
+  }).join("");
+  svg.innerHTML = `
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(245,230,211,0.35)" stroke-width="1"/>
+    <line x1="${cx}" y1="${cy}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="#FF6B35" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="3" fill="#F5E6D3"/>
+    ${dirLabels}`;
+}
+
+function renderMap(app, tabsHtml){
+  const { daily, loc, activeDay } = state;
+  const sunrise = new Date(daily.sunrise[activeDay]);
+  const sunset = new Date(daily.sunset[activeDay]);
+  const dayLabel = activeDay === 0 ? "Today"
+    : parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" });
+
+  // Slider spans the daylight window for the active day. Defaults to whichever
+  // event the person was last looking at on the Today tab (sunrise vs sunset),
+  // so switching to Map picks up where they left off rather than always
+  // starting at sunrise.
+  const spanMin = (sunset - sunrise) / 60000;
+  if(state.mapSliderPct == null){
+    state.mapSliderPct = state.mode === "evening" ? 1 : 0;
+  }
+  const curTime = new Date(sunrise.getTime() + state.mapSliderPct * spanMin * 60000);
+  const { alt, az } = solarHorizontal(curTime, loc.lat, loc.lon);
+
+  let html = tabsHtml;
+  html += `<div class="map-nav">
+    <button id="mapPrevDay" ${activeDay === 0 ? "disabled" : ""}>‹</button>
+    <div class="map-date">${dayLabel}</div>
+    <button id="mapNextDay" ${activeDay >= daily.time.length - 1 ? "disabled" : ""}>›</button>
+  </div>`;
+  html += `<div class="map-wrap"><div id="sunMap"></div><svg class="map-compass" id="mapCompass" viewBox="0 0 100 100"></svg><button type="button" class="map-center-btn" id="mapCenterBtn" title="Center on location">⌖</button></div>`;
+  html += `<div class="map-slider-row">
+    <span class="map-slider-icon">🌅</span>
+    <input type="range" id="mapSlider" min="0" max="100" step="1" value="${Math.round(state.mapSliderPct * 100)}">
+    <span class="map-slider-icon">🌇</span>
+  </div>`;
+  html += `<div class="map-readout">
+    <div class="card"><div class="label">Time</div><div class="value" id="mapTimeVal">${fmt(curTime)}</div></div>
+    <div class="card"><div class="label">Azimuth</div><div class="value" id="mapAzVal">${Math.round(az)}° ${compassDir(az)}</div></div>
+    <div class="card"><div class="label">Altitude</div><div class="value" id="mapAltVal">${alt.toFixed(1)}°</div></div>
+  </div>`;
+  html += `<div class="map-note">Drag the slider to see which direction the sun sits at any point between sunrise and sunset. The line points along the sun's compass bearing — it doesn't account for hills, trees, or buildings that might block the actual horizon from where you're standing.</div>`;
+
+  app.innerHTML = html;
+
+  destroySunMap();
+  const mapEl = $("sunMap");
+  if(mapEl && typeof L !== "undefined"){
+    try{
+      sunMapInstance = L.map(mapEl, { attributionControl: true }).setView([loc.lat, loc.lon], 14);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(sunMapInstance);
+      L.circleMarker([loc.lat, loc.lon], { radius: 6, color: "#F2B84B", weight: 2, fillColor: "#F2B84B", fillOpacity: 1 }).addTo(sunMapInstance);
+    } catch(e){
+      // A Leaflet init failure here must not take down the rest of this
+      // function — the slider, day nav, and center button below still need
+      // their listeners attached even if the map itself couldn't come up.
+      console.error("Sun map failed to initialize:", e);
+      sunMapInstance = null;
+      mapEl.innerHTML = '<div class="loading" style="padding-top:40%;">Map couldn\'t load — the compass below still works.</div>';
+    }
+  } else if(mapEl){
+    // Leaflet failed to load (blocked script, offline, ad blocker) — degrade
+    // to just the compass, rather than an empty box with no explanation.
+    mapEl.innerHTML = '<div class="loading" style="padding-top:40%;">Map tiles unavailable — the compass below still works.</div>';
+  }
+  drawCompass(az);
+
+  const centerBtn = $("mapCenterBtn");
+  if(centerBtn){
+    centerBtn.addEventListener("click", () => {
+      if(sunMapInstance){
+        // Keep whatever zoom the person has set — recenter, don't reset the view.
+        sunMapInstance.setView([loc.lat, loc.lon], sunMapInstance.getZoom());
+      }
+    });
+  }
+
+  const slider = $("mapSlider");
+  if(slider){
+    slider.addEventListener("input", () => {
+      state.mapSliderPct = slider.value / 100;
+      const t = new Date(sunrise.getTime() + state.mapSliderPct * spanMin * 60000);
+      const pos = solarHorizontal(t, loc.lat, loc.lon);
+      $("mapTimeVal").textContent = fmt(t);
+      $("mapAzVal").textContent = `${Math.round(pos.az)}° ${compassDir(pos.az)}`;
+      $("mapAltVal").textContent = `${pos.alt.toFixed(1)}°`;
+      drawCompass(pos.az);
+    });
+  }
+  const prevBtn = $("mapPrevDay"), nextBtn = $("mapNextDay");
+  if(prevBtn) prevBtn.addEventListener("click", () => {
+    if(state.activeDay > 0){ state.activeDay--; state.mapSliderPct = null; render(); }
+  });
+  if(nextBtn) nextBtn.addEventListener("click", () => {
+    if(state.activeDay < daily.time.length - 1){ state.activeDay++; state.mapSliderPct = null; render(); }
+  });
+}
+
+function var2color(val, ref, sweetOrMax, inverse){
+  // returns a hex for the bar fill
+  let pct;
+  if(inverse){ pct = Math.max(0, 100 - (val/ (sweetOrMax||100)) * 100); }
+  else{ pct = Math.max(0, 100 - Math.abs(val - sweetOrMax) * 2); }
+  if(pct > 66) return "#F2B84B";
+  if(pct > 33) return "#E8517A";
+  return "#565d78";
+}
+
+function statCard(labelText, val, unit, note, color){
+  return `<div class="card">
+    <div class="label">${labelText}</div>
+    <div class="value">${Math.round(val)}${unit} <small>${note}</small></div>
+    <div class="bar"><i style="width:${Math.min(100,val)}%; background:${color}"></i></div>
+  </div>`;
+}
+
+/* ---------- Retry ----------
+   Every transient failure mode we've actually seen from Open-Meteo — 5xx, a
+   plain-text body mid-stream, a stalled request — clears on its own within
+   seconds. Making the user tap "Try again" during golden hour is the wrong
+   division of labour, so retry automatically first and only surface an error
+   once the retries are spent.
+
+   Backoff is staggered rather than immediate: an overloaded service needs a
+   moment, and hammering it makes things worse for everyone. */
+const RETRY_DELAYS_MS = [2000, 5000, 12000];
+// Hard ceiling on the whole retry sequence. Without it, four core timeouts plus
+// backoff could keep someone staring at a spinner for well over a minute — which
+// is useless when the light is going. Past this we stop and show cached data or
+// an error, whichever we have.
+const RETRY_BUDGET_MS = 35000;
+
+// A 4xx means the request itself is wrong; retrying just repeats the mistake.
+function isRetryable(e){
+  return !(e instanceof ForecastError) || e.kind !== "badrequest";
+}
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+async function withRetry(fn, onAttempt){
+  const started = Date.now();
+  let lastErr;
+  for(let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++){
+    if(attempt > 0){
+      const wait = RETRY_DELAYS_MS[attempt - 1];
+      // Don't start a round we can't afford to finish.
+      if(Date.now() - started + wait > RETRY_BUDGET_MS) break;
+      if(onAttempt) onAttempt(attempt, RETRY_DELAYS_MS.length, wait);
+      await sleep(wait);
+    }
+    try{
+      return await fn();
+    }catch(e){
+      lastErr = e;
+      if(!isRetryable(e)) throw e;
+    }
+  }
+  throw lastErr;
+}
+
+/* ---------- Last-known-good cache ----------
+   A stale forecast beats no forecast when you're standing in a field. Cache
+   each successful load and fall back to it when every retry fails — labelled
+   with its actual age, never passed off as current. */
+const CACHE_KEY = "afterglow_last_good";
+const CACHE_MAX_AGE_MS = 36 * 60 * 60 * 1000; // beyond ~1.5 days it's not worth showing
+
+function cacheForecast(loc, data, sample){
+  try{
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      savedAt: Date.now(),
+      loc: { lat: loc.lat, lon: loc.lon, name: loc.name },
+      daily: data.daily, hourly: data.hourly,
+      windAvailable: !!data.windAvailable,
+      sample: sample || { morning: null, evening: null }
+    }));
+  }catch(e){
+    // Quota full or storage disabled — caching is a nicety, never a hard failure.
+  }
+}
+
+// Returns the cached payload only if it's recent enough AND for this location.
+function loadCachedForecast(loc){
+  try{
+    const raw = localStorage.getItem(CACHE_KEY);
+    if(!raw) return null;
+    const c = JSON.parse(raw);
+    if(!c || !c.daily || !c.hourly || !c.savedAt) return null;
+    const age = Date.now() - c.savedAt;
+    if(age > CACHE_MAX_AGE_MS) return null;
+    // Roughly a quarter degree — same neighbourhood, not a different city.
+    if(!c.loc || Math.abs(c.loc.lat - loc.lat) > 0.25 || Math.abs(c.loc.lon - loc.lon) > 0.25) return null;
+    return c;
+  }catch(e){
+    return null;
+  }
+}
+
+function describeAge(ms){
+  const mins = Math.round(ms / 60000);
+  if(mins < 1) return "moments ago";
+  if(mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
+  const hrs = Math.round(mins / 60);
+  if(hrs < 24) return `${hrs} hour${hrs === 1 ? "" : "s"} ago`;
+  const days = Math.round(hrs / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
+/* ---------- Boot ---------- */
+// Default to whichever event (sunrise/sunset) hasn't happened yet, rather
+// than always opening to today's sunrise even if it's already evening.
+function pickInitialView(daily, lat, lon){
+  const now = new Date();
+  const morningBlue = blueHourBounds(daily.sunrise[0], daily.sunset[0], "morning", lat, lon);
+  const eveningBlue = blueHourBounds(daily.sunrise[0], daily.sunset[0], "evening", lat, lon);
+  // Still pre-dawn or in the morning blue hour -> stay on today's sunrise.
+  if(now < morningBlue.end) return { activeDay: 0, mode: "morning" };
+  // Past morning blue hour but not yet past evening blue hour -> today's sunset.
+  if(now < eveningBlue.end) return { activeDay: 0, mode: "evening" };
+  // Evening blue hour has wrapped up -> jump to tomorrow's sunrise, if we have it.
+  return { activeDay: daily.time.length > 1 ? 1 : 0, mode: "morning" };
+}
+
+async function boot(loc){
+  state.loc = loc;
+  state.stale = null;
+  const esc = (t) => String(t).replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
+  const say = (msg) => { $("app").innerHTML = `<div class="loading">${msg}</div>`; };
+
+  say('Reading the sky over ' + esc(loc.name) + '…');
+
+  try{
+    const data = await withRetry(
+      () => fetchForecast(loc),
+      (attempt, total, wait) => {
+        // Say plainly what's happening rather than spinning silently — a stalled
+        // load with no explanation is worse than a slow one that explains itself.
+        say(`Open-Meteo didn't answer. Retrying in ${Math.round(wait / 1000)}s… <span style="opacity:0.6">(attempt ${attempt} of ${total})</span>`);
+      }
+    );
+    state.daily = data.daily;
+    state.hourly = data.hourly;
+    // Sun-path samples need the sunrise/sunset instants to compute an azimuth,
+    // so they go out after core. Both are optional — a failure just falls back
+    // to the blind ceiling rather than costing us the forecast.
+    state.sample = await fetchSunPathSamples(loc, data.daily);
+    const initial = pickInitialView(data.daily, loc.lat, loc.lon);
+    state.activeDay = initial.activeDay;
+    state.mode = initial.mode;
+    cacheForecast(loc, data, state.sample);
+    render();
+  }catch(e){
+    const info = describeError(e);
+
+    // Retries are spent. Before showing an error page, check whether we have a
+    // recent forecast on hand — stale numbers clearly labelled beat nothing.
+    const cached = loadCachedForecast(loc);
+    if(cached){
+      state.daily = cached.daily;
+      state.hourly = cached.hourly;
+      state.sample = cached.sample || { morning: null, evening: null };
+      const initial = pickInitialView(cached.daily, loc.lat, loc.lon);
+      state.activeDay = initial.activeDay;
+      state.mode = initial.mode;
+      state.stale = { savedAt: cached.savedAt, reason: info.headline };
+      render();
+      return;
+    }
+
+    $("app").innerHTML = `<div class="err-box">
+      <div class="err-head">${info.headline}</div>
+      <div class="err-body">${info.body}</div>
+      <div class="err-body" style="margin-top:8px;opacity:0.7;">Tried ${RETRY_DELAYS_MS.length + 1} times before giving up.</div>
+      ${info.retry ? `<button class="err-retry" id="errRetry">Try again</button>` : ``}
+      <details class="err-tech"><summary>Technical detail</summary><code>${esc(info.technical)}</code></details>
+    </div>`;
+    const btn = $("errRetry");
+    if(btn) btn.addEventListener("click", () => boot(loc));
+  }
+}
+
+/* ---------- Location modal ---------- */
+const backdrop = $("modalBackdrop");
+$("locBtn").addEventListener("click", () => { backdrop.classList.add("open"); $("locInput").focus(); });
+$("closeModal").addEventListener("click", () => backdrop.classList.remove("open"));
+backdrop.addEventListener("click", (e) => { if(e.target === backdrop) backdrop.classList.remove("open"); });
+
+/* ---------- Push notifications ---------- */
+// This is the VAPID *public* key only — safe to embed in client code by design.
+// The matching private key lives only in the Cloudflare Worker's environment.
+const VAPID_PUBLIC_KEY = "BHxu1_fnBDbRAf7OTVY74Wec1YQ6BnvGtuET7p23LBEW8b6NhE3YTsF23vrg2m1c9D3lyizR8BhtiEj2O1GiBMc";
+
+// Fill this in once the Worker is deployed (Cloudflare gives you a
+// *.workers.dev URL, or your own custom domain if you set one up).
+const PUSH_WORKER_URL = "https://afterglow-push.fisherofmen58.workers.dev";
+
+const NOTIF_PREFS_KEY = "afterglow_notif_prefs";
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+
+function loadNotifPrefs() {
+  try {
+    return JSON.parse(localStorage.getItem(NOTIF_PREFS_KEY)) || { sunrise: false, sunset: false, goldenMorning: false, goldenEvening: false, minutesBefore: 60 };
+  } catch {
+    return { sunrise: false, sunset: false, goldenMorning: false, goldenEvening: false, minutesBefore: 60 };
+  }
+}
+function saveNotifPrefs(prefs) {
+  localStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(prefs));
+}
+
+function isStandalone() {
+  return window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
+}
+
+function setNotifStatus(msg) {
+  const el = $("notifStatus");
+  if (el) el.textContent = msg;
+}
+
+function updateNotifButtonIndicator() {
+  const prefs = loadNotifPrefs();
+  const btn = $("notifBtn");
+  if (btn) btn.classList.toggle("active", !!(prefs.sunrise || prefs.sunset || prefs.goldenMorning || prefs.goldenEvening));
+}
+
+async function getPushSubscription() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
+  const reg = await navigator.serviceWorker.ready;
+  return reg.pushManager.getSubscription();
+}
+
+async function subscribeToPush(prefs) {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    setNotifStatus("Push notifications aren't supported in this browser.");
+    return false;
+  }
+  if (!isStandalone()) {
+    setNotifStatus("Add Afterglow to your Home Screen first, then open it from there to enable notifications.");
+    return false;
+  }
+  if (PUSH_WORKER_URL.includes("REPLACE-WITH-YOUR-WORKER-URL")) {
+    setNotifStatus("Notifications aren't set up yet — the app needs a Worker URL configured.");
+    return false;
+  }
+
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") {
+    setNotifStatus("Notification permission was not granted.");
+    return false;
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    }
+
+    const res = await fetch(`${PUSH_WORKER_URL}/subscribe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subscription: sub.toJSON(),
+        lat: state.loc.lat,
+        lon: state.loc.lon,
+        notify: { sunrise: prefs.sunrise, sunset: prefs.sunset, goldenMorning: prefs.goldenMorning, goldenEvening: prefs.goldenEvening },
+        minutesBefore: prefs.minutesBefore,
+      }),
+    });
+
+    if (!res.ok) throw new Error("Worker responded with " + res.status);
+    setNotifStatus("Notifications enabled.");
+    return true;
+  } catch (err) {
+    console.error("Afterglow: push subscribe failed:", err);
+    setNotifStatus("Something went wrong enabling notifications. Try again.");
+    return false;
+  }
+}
+
+async function unsubscribeFromPush() {
+  try {
+    const sub = await getPushSubscription();
+    if (sub) {
+      if (!PUSH_WORKER_URL.includes("REPLACE-WITH-YOUR-WORKER-URL")) {
+        await fetch(`${PUSH_WORKER_URL}/unsubscribe`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endpoint: sub.endpoint }),
+        }).catch(() => {}); // best-effort — local unsubscribe still proceeds
+      }
+      await sub.unsubscribe();
+    }
+  } catch (err) {
+    console.error("Afterglow: push unsubscribe failed:", err);
+  }
+}
+
+const notifBackdrop = $("notifBackdrop");
+$("notifBtn").addEventListener("click", () => {
+  const prefs = loadNotifPrefs();
+  $("notifSunrise").checked = !!prefs.sunrise;
+  $("notifSunset").checked = !!prefs.sunset;
+  $("notifGoldenMorning").checked = !!prefs.goldenMorning;
+  $("notifGoldenEvening").checked = !!prefs.goldenEvening;
+  $("notifMinutes").value = String(prefs.minutesBefore || 60);
+  setNotifStatus("");
+  notifBackdrop.classList.add("open");
+});
+$("closeNotifModal").addEventListener("click", () => notifBackdrop.classList.remove("open"));
+notifBackdrop.addEventListener("click", (e) => { if (e.target === notifBackdrop) notifBackdrop.classList.remove("open"); });
+
+$("notifSave").addEventListener("click", async () => {
+  const prefs = {
+    sunrise: $("notifSunrise").checked,
+    sunset: $("notifSunset").checked,
+    goldenMorning: $("notifGoldenMorning").checked,
+    goldenEvening: $("notifGoldenEvening").checked,
+    minutesBefore: parseInt($("notifMinutes").value, 10),
+  };
+
+  if (!prefs.sunrise && !prefs.sunset && !prefs.goldenMorning && !prefs.goldenEvening) {
+    // Nothing selected — treat as "turn notifications off".
+    setNotifStatus("Turning off notifications…");
+    await unsubscribeFromPush();
+    saveNotifPrefs(prefs);
+    updateNotifButtonIndicator();
+    setNotifStatus("Notifications turned off.");
+    return;
+  }
+
+  setNotifStatus("Enabling notifications…");
+  const ok = await subscribeToPush(prefs);
+  if (ok) saveNotifPrefs(prefs);
+  updateNotifButtonIndicator();
+});
+
+updateNotifButtonIndicator();
+
+let searchTimeout;
+$("locInput").addEventListener("input", (e) => {
+  clearTimeout(searchTimeout);
+  const q = e.target.value.trim();
+  if(q.length < 2){ $("locResults").innerHTML = ""; return; }
+  searchTimeout = setTimeout(async () => {
+    try{
+      const results = await geocode(q);
+      $("locResults").innerHTML = results.map(r =>
+        `<div class="modal-result" data-lat="${r.latitude}" data-lon="${r.longitude}" data-name="${r.name}, ${r.admin1 || r.country}">
+          ${r.name}${r.admin1 ? ", " + r.admin1 : ""}${r.country ? " — " + r.country : ""}
+        </div>`
+      ).join("") || '<div class="modal-result" style="cursor:default;color:var(--slate)">No matches</div>';
+      document.querySelectorAll(".modal-result[data-lat]").forEach(el => {
+        el.addEventListener("click", () => {
+          const loc = { name: el.dataset.name, lat: parseFloat(el.dataset.lat), lon: parseFloat(el.dataset.lon) };
+          saveLoc(loc);
+          backdrop.classList.remove("open");
+          boot(loc);
+        });
+      });
+    }catch(err){ $("locResults").innerHTML = '<div class="modal-result" style="cursor:default;color:var(--rose)">Search failed</div>'; }
+  }, 350);
+});
+
+$("useGps").addEventListener("click", () => {
+  if(!navigator.geolocation){ alert("Location services aren't available in this browser."); return; }
+  $("useGps").textContent = "Locating…";
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const loc = { name: "Current location", lat: pos.coords.latitude, lon: pos.coords.longitude };
+      saveLoc(loc);
+      backdrop.classList.remove("open");
+      $("useGps").textContent = "Use current location";
+      boot(loc);
+    },
+    () => { alert("Couldn't get your location — check permissions."); $("useGps").textContent = "Use current location"; },
+    { timeout: 8000 }
+  );
+});
+
+// Init
+function initLocation(){
+  const saved = loadLoc();
+  if(saved){ boot(saved); return; }
+
+  if(!navigator.geolocation){
+    boot(DEFAULT_LOC);
+    return;
+  }
+  // No saved location yet — ask for it up front instead of silently defaulting.
+  $("app").innerHTML = '<div class="loading">Requesting your location…</div>';
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const loc = { name: "Current location", lat: pos.coords.latitude, lon: pos.coords.longitude };
+      saveLoc(loc);
+      boot(loc);
+    },
+    () => { boot(DEFAULT_LOC); }, // denied, timed out, or unavailable — fall back quietly
+    { timeout: 8000 }
+  );
+}
+initLocation();
+</script>
+<script>
+  // Register the service worker for offline support / installability.
+  // Silently no-ops in browsers without support — never blocks normal use.
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch((err) => {
+        console.warn("Afterglow: service worker registration failed:", err);
+      });
+    });
+  }
+</script>
+</body>
+</html>
