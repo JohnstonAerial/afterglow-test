@@ -1,4 +1,4 @@
-<!-- Afterglow v1.0 -->
+<!-- Afterglow v1.1a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -259,7 +259,7 @@
 <div class="wrap">
 
   <header>
-    <div class="brand">After<em>glow</em><span class="version">v1.0</span></div>
+    <div class="brand">After<em>glow</em><span class="version">v1.1a</span></div>
     <div class="header-actions">
       <button id="notifBtn" title="Notifications" aria-label="Notifications">🔔</button>
       <button id="locBtn">···</button>
@@ -1327,8 +1327,10 @@ function renderToday(app, tabsHtml){
     <button class="toggle-btn ${mode==='evening'?'active':''}" data-mode="evening">Sunset</button>
   </div>`;
 
+  const outlookStart = 7;
+
   html += `<div class="section-title">Next 7 days</div><div class="days">`;
-  daily.time.forEach((t, i) => {
+  daily.time.slice(0, outlookStart).forEach((t, i) => {
     const evt = mode === "evening" ? daily.sunset[i] : daily.sunrise[i];
     const j = nearestHourIdx(hourly.time, evt);
     const ds = scoreEvent(hourly, j, sampleAt(state.sample[mode], evt));
@@ -1341,9 +1343,8 @@ function renderToday(app, tabsHtml){
   });
   html += `</div>`;
 
-  const outlookStart = 7;
   if(daily.time.length > outlookStart){
-    html += `<div class="section-title">Outlook</div><div class="days">`;
+    html += `<div class="section-title">Extended</div><div class="days">`;
     daily.time.slice(outlookStart).forEach((t, k) => {
       const i = outlookStart + k;
       const evt = mode === "evening" ? daily.sunset[i] : daily.sunrise[i];
