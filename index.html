@@ -1374,12 +1374,12 @@ function renderToday(app, tabsHtml){
       : statCard("Humidity", s.hum, "%", "Fallback haze proxy — visibility unavailable", var2color(s.hum, 100, 80, true))}
   </div>`;
 
+  html += `<div class="why"><b>How this is scored</b> — Afterglow weighs high-altitude cloud cover (the layer that catches direct light and turns pink/orange), low and mid cloud (which physically block the view of the horizon or the light source), and humidity (haze mutes saturation even on an otherwise clear evening). It's a heuristic, not a guarantee — always worth a look outside 20 minutes before showtime.</div>`;
+
   const moon = computeMoonInfo(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, sunrise, sunset);
   const timelapse = scanTimelapseWindow(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, hourly);
   html += `<div class="section-title">Moon</div>`;
   html += `<div class="grid">${moonCardHTML(moon)}${timelapseCardHTML(timelapse)}</div>`;
-
-  html += `<div class="why"><b>How this is scored</b> — Afterglow weighs high-altitude cloud cover (the layer that catches direct light and turns pink/orange), low and mid cloud (which physically block the view of the horizon or the light source), and humidity (haze mutes saturation even on an otherwise clear evening). It's a heuristic, not a guarantee — always worth a look outside 20 minutes before showtime.</div>`;
 
   app.innerHTML = html;
 
