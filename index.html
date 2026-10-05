@@ -1,4 +1,4 @@
-<!-- Afterglow v1.1a -->
+<!-- Afterglow v1.1b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -259,7 +259,7 @@
 <div class="wrap">
 
   <header>
-    <div class="brand">After<em>glow</em><span class="version">v1.1a</span></div>
+    <div class="brand">After<em>glow</em><span class="version">v1.1b</span></div>
     <div class="header-actions">
       <button id="notifBtn" title="Notifications" aria-label="Notifications">🔔</button>
       <button id="locBtn">···</button>
@@ -1343,24 +1343,6 @@ function renderToday(app, tabsHtml){
   });
   html += `</div>`;
 
-  if(daily.time.length > outlookStart){
-    html += `<div class="section-title">Extended</div><div class="days">`;
-    daily.time.slice(outlookStart).forEach((t, k) => {
-      const i = outlookStart + k;
-      const evt = mode === "evening" ? daily.sunset[i] : daily.sunrise[i];
-      const j = nearestHourIdx(hourly.time, evt);
-      const ds = scoreEvent(hourly, j, sampleAt(state.sample[mode], evt));
-      const dow = parseLocalDate(t).toLocaleDateString([], { weekday: "short" });
-      html += `<div class="day-card outlook ${i===activeDay?'active':''}" data-day="${i}">
-        <div class="dow">${dow}</div>
-        <div class="swatch" style="background:${ds ? swatchGradient(ds, mode) : '#2a3040'}"></div>
-        <div class="num">${ds ? ds.score : "–"}</div>
-      </div>`;
-    });
-    html += `</div>`;
-    html += `<div class="outlook-note">Forecasts this far out lean on modeled cloud layers rather than near-term observation — treat these as a rough read, not a plan.</div>`;
-  }
-
   html += `<div class="section-title">Sky breakdown</div>`;
   html += `<div class="grid">
     ${s.beam != null ? statCard("Toward the sun", Math.max(s.beamLow, s.beamMid), "%",
@@ -1425,16 +1407,13 @@ function renderOutlook(app, tabsHtml){
   const { daily, hourly, activeDay } = state;
   let html = tabsHtml;
 
-  daily.time.forEach((t, i) => {
+  daily.time.slice(0, 7).forEach((t, i) => {
     const dow = i === 0 ? "Today" : parseLocalDate(t).toLocaleDateString([], { weekday: "long" });
     html += `<div class="agenda-day${i===0?' first':''}">${dow}</div>`;
     html += `<div class="grid">
       ${agendaCardHTML(i, "morning", daily, hourly)}
       ${agendaCardHTML(i, "evening", daily, hourly)}
     </div>`;
-    if(i === 6 && daily.time.length > 7){
-      html += `<div class="outlook-note">Days below lean on modeled cloud layers rather than near-term observation — treat these as a rough read, not a plan.</div>`;
-    }
   });
 
   app.innerHTML = html;
