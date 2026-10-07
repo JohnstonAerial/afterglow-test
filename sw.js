@@ -7,7 +7,7 @@
 //   - Everything else (this app's own files, Leaflet's CDN assets): cache-first,
 //     since those don't go stale in a way that matters day-to-day.
 
-const CACHE_NAME = "afterglow-test-v13";
+const CACHE_NAME = "afterglow-test-v14";
 
 // Bump this string (v1 -> v2, etc.) any time index.html, manifest.json, or the
 // icons change, so returning visitors get the new version instead of a cached
@@ -98,6 +98,9 @@ self.addEventListener("notificationclick", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
+
+  // Cloudflare's visit counter (public site only) always goes straight to the network.
+  if (url.hostname.endsWith("cloudflareinsights.com")) return;
 
   // Only handle GET requests; let everything else (if any) pass through untouched.
   if (event.request.method !== "GET") return;
