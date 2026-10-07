@@ -1,4 +1,4 @@
-<!-- Afterglow v1.1b -->
+<!-- Afterglow v1.1c -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -225,6 +225,11 @@
   }
   #notifBtn:hover{ color: var(--gold); border-color: var(--slate); }
   #notifBtn.active{ border-color: var(--gold); color: var(--gold); }
+  /* Buy me a coffee in the header: hidden on a phone held upright, shown on wider screens */
+  .hdr-coffee{ display:none; background: transparent; border: 1px solid var(--line); border-radius: 10px;
+    color: var(--sand); font-size: 13px; padding: 7px 12px; text-decoration: none; line-height: 1; white-space: nowrap; }
+  .hdr-coffee:hover{ color: var(--gold); border-color: var(--slate); }
+  @media (min-width: 480px){ .hdr-coffee{ display:inline-block; } }
   .notif-row{ display:flex; align-items:center; justify-content:space-between; padding: 10px 0; border-bottom: 1px solid var(--line); }
   .notif-row:last-of-type{ border-bottom: none; }
   .notif-row label{ font-size: 14px; }
@@ -260,8 +265,9 @@
 <div class="wrap">
 
   <header>
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.1b</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.1c</span></div>
     <div class="header-actions">
+      <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <button id="notifBtn" title="Notifications" aria-label="Notifications">🔔</button>
       <button id="locBtn">···</button>
     </div>
