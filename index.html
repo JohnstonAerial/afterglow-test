@@ -1,4 +1,4 @@
-<!-- Afterglow v1.1d -->
+<!-- Afterglow v1.1e -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -230,6 +230,11 @@
     color: var(--sand); font-size: 13px; padding: 7px 12px; text-decoration: none; line-height: 1; white-space: nowrap; }
   .hdr-coffee:hover{ color: var(--gold); border-color: var(--slate); }
   @media (min-width: 480px){ .hdr-coffee{ display:inline-block; } }
+  /* Help / About: opens the README. Hidden on the very narrowest phones; the footer link covers those */
+  .hdr-help{ background: transparent; border: 1px solid var(--line); border-radius: 10px; color: var(--sand);
+    font-size: 15px; font-weight: 600; width: 38px; padding: 6px 0; text-align: center; text-decoration: none; line-height: 1; }
+  .hdr-help:hover{ color: var(--gold); border-color: var(--slate); }
+  @media (max-width: 359px){ .hdr-help{ display:none; } }
   .notif-row{ display:flex; align-items:center; justify-content:space-between; padding: 10px 0; border-bottom: 1px solid var(--line); }
   .notif-row:last-of-type{ border-bottom: none; }
   .notif-row label{ font-size: 14px; }
@@ -265,9 +270,10 @@
 <div class="wrap">
 
   <header>
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.1d</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.1e</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
+      <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">?</a>
       <button id="notifBtn" title="Notifications" aria-label="Notifications">🔔</button>
       <button id="locBtn">···</button>
     </div>
@@ -277,7 +283,7 @@
 
   <footer>
     Built for golden hour. Forecasts via Open&#8209;Meteo · not a substitute for checking the sky yourself.<br>
-    <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener">Buy me a coffee ☕</a> if this helped you catch an epic sky.
+    <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener">Buy me a coffee ☕</a> if this helped you catch an epic sky.
   </footer>
 </div>
 
