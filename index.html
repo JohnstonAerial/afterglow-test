@@ -1,4 +1,4 @@
-<!-- Afterglow v1.1e -->
+<!-- Afterglow v1.1f -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -51,17 +51,20 @@
   .wrap{ max-width: 720px; margin: 0 auto; padding: 28px 20px 0; }
 
   /* ---------- Header ---------- */
-  header{ display:flex; align-items:baseline; justify-content:space-between; gap: 12px; margin-bottom: 22px; }
+  header{ margin-bottom: 22px; }
+  .hdr-top{ display:flex; align-items:center; justify-content:space-between; gap: 12px; }
   .brand{ font-family: Georgia, 'Times New Roman', serif; font-size: 22px; letter-spacing: 0.02em; font-weight: 600; line-height: 1.1; }
   .brand em{ font-style: italic; color: var(--gold); font-weight: 500;}
   .brand .version{ display:block; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.04em; font-weight: 400; color: var(--slate-dim); margin-top: 2px; }
   .brand .version.test{ color: var(--ember); font-weight: 600; }
   #locBtn{
-    background: none; border: 1px solid var(--line); color: var(--slate);
-    font-size: 12px; padding: 7px 12px; border-radius: 20px; cursor: pointer;
-    font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.02em;
+    display:flex; align-items:center; gap:10px; width:100%; margin-top:16px; text-align:left;
+    background: rgba(255,255,255,0.04); border: 1px solid var(--line); color: var(--sand);
+    font-family: inherit; font-size: 15px; padding: 11px 14px; border-radius: 12px; cursor: pointer;
   }
-  #locBtn:hover{ color: var(--sand); border-color: var(--slate); }
+  #locBtn .loc-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #locBtn .loc-change{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color: var(--gold); white-space:nowrap; }
+  #locBtn:hover{ border-color: var(--slate); }
   #locBtn:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
   /* ---------- Hero: tonight's swatch ---------- */
@@ -230,11 +233,10 @@
     color: var(--sand); font-size: 13px; padding: 7px 12px; text-decoration: none; line-height: 1; white-space: nowrap; }
   .hdr-coffee:hover{ color: var(--gold); border-color: var(--slate); }
   @media (min-width: 480px){ .hdr-coffee{ display:inline-block; } }
-  /* Help / About: opens the README. Hidden on the very narrowest phones; the footer link covers those */
+  /* About: opens the README */
   .hdr-help{ background: transparent; border: 1px solid var(--line); border-radius: 10px; color: var(--sand);
-    font-size: 15px; font-weight: 600; width: 38px; padding: 6px 0; text-align: center; text-decoration: none; line-height: 1; }
+    font-size: 13px; padding: 7px 12px; text-decoration: none; line-height: 1; white-space: nowrap; }
   .hdr-help:hover{ color: var(--gold); border-color: var(--slate); }
-  @media (max-width: 359px){ .hdr-help{ display:none; } }
   .notif-row{ display:flex; align-items:center; justify-content:space-between; padding: 10px 0; border-bottom: 1px solid var(--line); }
   .notif-row:last-of-type{ border-bottom: none; }
   .notif-row label{ font-size: 14px; }
@@ -270,13 +272,15 @@
 <div class="wrap">
 
   <header>
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.1e</span></div>
+    <div class="hdr-top">
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.1f</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
-      <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">?</a>
+      <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
       <button id="notifBtn" title="Notifications" aria-label="Notifications">🔔</button>
-      <button id="locBtn">···</button>
     </div>
+    </div>
+    <button id="locBtn" aria-label="Change location"><span aria-hidden="true">📍</span><span class="loc-name" id="locName">Choose location</span><span class="loc-change">Change ▾</span></button>
   </header>
 
   <div id="app"><div class="loading">Reading the sky…</div></div>
@@ -1316,7 +1320,7 @@ function renderToday(app, tabsHtml){
   html += `<div class="hero">
     <div class="hero-swatch" style="background:${gradient}"></div>
     <div class="hero-content">
-      <div class="eyebrow">${loc.name} · ${parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { weekday:'long', month:'short', day:'numeric' })}</div>
+      <div class="eyebrow">${parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { weekday:'long', month:'short', day:'numeric' })}</div>
       <div class="score-row">
         <div class="score-num">${s.score}</div>
         <div class="score-label">${label(s.score)} ${mode === "evening" ? "sunset" : "sunrise"}</div>
@@ -1698,6 +1702,7 @@ function pickInitialView(daily, lat, lon){
 }
 
 async function boot(loc){
+  $("locName").textContent = loc.name || "Choose location";
   state.loc = loc;
   state.stale = null;
   const esc = (t) => String(t).replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
