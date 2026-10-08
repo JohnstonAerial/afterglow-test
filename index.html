@@ -1,4 +1,4 @@
-<!-- Afterglow v1.1f -->
+<!-- Afterglow v1.2a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -39,6 +39,7 @@
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
+  html{ background: #0d0f1e; }
   body{
     background: radial-gradient(120% 90% at 50% -10%, #262b4d 0%, var(--ink) 45%, #0d0f1e 100%);
     color: var(--sand);
@@ -48,7 +49,7 @@
     padding-bottom: 60px;
   }
   a { color: inherit; }
-  .wrap{ max-width: 720px; margin: 0 auto; padding: 28px 20px 0; }
+  .wrap{ max-width: 720px; margin: 0 auto; padding: calc(28px + env(safe-area-inset-top)) 20px 0; }
 
   /* ---------- Header ---------- */
   header{ margin-bottom: 22px; }
@@ -273,7 +274,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.1f</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.2a</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
