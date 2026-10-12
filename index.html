@@ -1,4 +1,4 @@
-<!-- Afterglow v1.2.1a -->
+<!-- Afterglow v1.3a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -274,7 +274,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.2.1a</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.3a</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -1971,8 +1971,30 @@ $("useGps").addEventListener("click", () => {
   );
 });
 
+// Opened from another page (the flight checklist's golden hour line) with ?lat=&lon=&name= :
+// show that place. If this device has no saved place yet, remember it like a normal choice;
+// if it already has one, use the link's place for this visit only and leave the saved one alone.
+function linkLoc(){
+  try{
+    const q = new URLSearchParams(location.search);
+    if(!q.has("lat") || !q.has("lon")) return null;
+    const lat = parseFloat(q.get("lat")), lon = parseFloat(q.get("lon"));
+    if(!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+    const name = (q.get("name") || "").replace(/[<>&"'`]/g, "").replace(/\s+/g, " ").trim().slice(0, 60);
+    return { name: name || "Shared location", lat: lat, lon: lon };
+  }catch(e){ return null; }
+}
+
 // Init
 function initLocation(){
+  const fromLink = linkLoc();
+  if(fromLink){
+    // Drop the place from the address bar so a refresh or bookmark doesn't keep it.
+    try{ history.replaceState(null, "", location.pathname); }catch(e){}
+    if(!loadLoc()) saveLoc(fromLink);
+    boot(fromLink);
+    return;
+  }
   const saved = loadLoc();
   if(saved){ boot(saved); return; }
 
