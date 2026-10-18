@@ -1,4 +1,4 @@
-<!-- Afterglow v1.3.1a -->
+<!-- Afterglow v1.3.1b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -274,7 +274,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.3.1a</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.3.1b</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -1049,6 +1049,16 @@ function moonPhaseInfo(date){
   return { illumPct: Math.round(illum * 100), phaseName: found[1], emoji: found[2] };
 }
 
+// Moon rise/set altitude threshold. moonHorizontal() is the Moon's position as
+// seen from the Earth's centre, so the standard almanac cutoff applies:
+// 0.7275 x horizontal parallax - 0.5667 deg (refraction), about +0.12 deg. The
+// old fixed -0.583 deg made the Moon look up ~4 minutes longer at each end.
+function moonH0(date){
+  const { distKm } = moonEclipticPosition(date);
+  const parallax = R2D * Math.asin(6378.14 / distKm);
+  return 0.7275 * parallax - 0.5667;
+}
+
 // Steps through a local calendar day in 10-minute increments looking for the
 // Moon crossing the horizon (rise = altitude going negative -> positive, set
 // = positive -> negative), then linearly interpolates the crossing minute.
@@ -1057,15 +1067,14 @@ function moonPhaseInfo(date){
 // have no rise, no set, or (rarely) both of one and neither of the other,
 // depending on where the Moon's ~24h50m cycle falls relative to midnight.
 function findMoonEvents(dayStart, lat, lon){
-  const H0 = -0.583;
   const stepMin = 10;
   const steps = Math.floor(24 * 60 / stepMin) + 1;
-  let prevT = dayStart, prevAlt = moonHorizontal(prevT, lat, lon).alt - H0;
+  let prevT = dayStart, prevAlt = moonHorizontal(prevT, lat, lon).alt - moonH0(prevT);
   let rise = null, set = null;
 
   for(let i = 1; i <= steps; i++){
     const t = new Date(dayStart.getTime() + i * stepMin * 60000);
-    const alt = moonHorizontal(t, lat, lon).alt - H0;
+    const alt = moonHorizontal(t, lat, lon).alt - moonH0(t);
     if(prevAlt < 0 && alt >= 0 && !rise){
       const f = prevAlt / (prevAlt - alt);
       rise = new Date(prevT.getTime() + f * (t - prevT));
@@ -1083,13 +1092,12 @@ function findMoonEvents(dayStart, lat, lon){
 // Moon that rises this afternoon usually sets after midnight, which the
 // calendar-day search above can't see.
 function findNextMoonSet(from, lat, lon){
-  const H0 = -0.583;
   const stepMin = 10;
   const steps = Math.floor(30 * 60 / stepMin);
-  let prevT = from, prevAlt = moonHorizontal(prevT, lat, lon).alt - H0;
+  let prevT = from, prevAlt = moonHorizontal(prevT, lat, lon).alt - moonH0(prevT);
   for(let i = 1; i <= steps; i++){
     const t = new Date(from.getTime() + i * stepMin * 60000);
-    const alt = moonHorizontal(t, lat, lon).alt - H0;
+    const alt = moonHorizontal(t, lat, lon).alt - moonH0(t);
     if(prevAlt >= 0 && alt < 0){
       const f = prevAlt / (prevAlt - alt);
       return new Date(prevT.getTime() + f * (t - prevT));
@@ -1167,10 +1175,9 @@ function moonCardHTML(m){
 function findMoonUpWindow(dayStart, lat, lon){
   const dayEnd = new Date(dayStart.getTime() + 24 * 3600000);
   const events = findMoonEvents(dayStart, lat, lon);
-  const H0 = -0.583;
 
-  const upAtStart = moonHorizontal(dayStart, lat, lon).alt > H0;
-  const upAtEnd = moonHorizontal(dayEnd, lat, lon).alt > H0;
+  const upAtStart = moonHorizontal(dayStart, lat, lon).alt > moonH0(dayStart);
+  const upAtEnd = moonHorizontal(dayEnd, lat, lon).alt > moonH0(dayEnd);
 
   // Up to two stretches in one day: up from midnight until a morning set, and
   // up again from a later rise until a later set or the end of the day. Use the longer.
