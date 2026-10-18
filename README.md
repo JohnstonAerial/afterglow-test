@@ -33,6 +33,7 @@ Afterglow predicts how good a sunrise or sunset is actually going to look — no
 ## Good to know
 
 - Weather models update a few times a day, so a forecast can change when a new run arrives. Check again closer to the time, especially for sunsets more than a day out.
+- Color often peaks a little after sunset (15–20 minutes) or just before sunrise, so Afterglow shows that window on the main card for Fair and better days.
 - Scores run from Flat to Fair, Good, Great and Epic. Treat them as a guide to the odds, not a promise.
 
 ## Tech

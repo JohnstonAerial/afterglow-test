@@ -1,4 +1,4 @@
-<!-- Afterglow v1.3.1c -->
+<!-- Afterglow v1.3.2a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -274,7 +274,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.3.1c</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.3.2a</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -1028,6 +1028,19 @@ function scoreEvent(hourly, idx, beam){
            beam: hasBeam ? beamF : null, beamLow: hasBeam ? beam.low : null, beamMid: hasBeam ? beam.mid : null };
 }
 
+/* ---------- Afterglow timing tip ----------
+   The color often peaks just after the sun is down (evening) or in the
+   short stretch before it comes up (morning), so the sun-event time alone
+   can send people home too early. Shown for Fair and better. */
+function afterglowTip(eventIso, mode){
+  const t = new Date(eventIso).getTime();
+  const min = 60000;
+  if(mode === "evening"){
+    return `Stay for the afterglow: the color often peaks 15–20 minutes after sunset (${fmt(new Date(t + 15*min))}–${fmt(new Date(t + 20*min))}).`;
+  }
+  return `Arrive early: the glow often peaks 15–20 minutes before sunrise (${fmt(new Date(t - 20*min))}–${fmt(new Date(t - 15*min))}).`;
+}
+
 function label(score){
   if(score >= 85) return "Epic";
   if(score >= 70) return "Great";
@@ -1549,6 +1562,7 @@ function renderToday(app, tabsHtml){
         <div class="score-label">${label(s.score)} ${mode === "evening" ? "sunset" : "sunrise"}</div>
       </div>
       <div class="hero-sub">${blurb(s, mode)}</div>
+      ${s.score >= 26 ? `<div class="hero-sub" style="margin-top:8px;">${afterglowTip(eventIso, mode)}</div>` : ""}
       <div class="hero-times">
         ${(twilight && mode !== "evening") ? `<div class="hero-time-item"><div class="k">${twilightLabel}</div><div class="v">${fmt(twilight)}</div></div>` : ""}
         <div class="hero-time-item"><div class="k">${mode === "evening" ? "Sunset" : "Sunrise"}</div><div class="v">${fmtTime(eventIso)}</div></div>
