@@ -1,4 +1,4 @@
-<!-- Afterglow v1.3a -->
+<!-- Afterglow v1.3.1a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -274,7 +274,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.3a</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.3.1a</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -1040,9 +1040,9 @@ function moonPhaseInfo(date){
   const illum = (1 - dcos(elong)) / 2;
 
   const names = [
-    [15, "New", "🌑"], [75, "Waxing crescent", "🌒"], [105, "First quarter", "🌓"],
-    [165, "Waxing gibbous", "🌔"], [195, "Full", "🌕"], [255, "Waning gibbous", "🌖"],
-    [285, "Last quarter", "🌗"], [345, "Waning crescent", "🌘"], [360.1, "New", "🌑"]
+    [15, "New", "🌑"], [83, "Waxing crescent", "🌒"], [97, "First quarter", "🌓"],
+    [165, "Waxing gibbous", "🌔"], [195, "Full", "🌕"], [263, "Waning gibbous", "🌖"],
+    [277, "Last quarter", "🌗"], [345, "Waning crescent", "🌘"], [360.1, "New", "🌑"]
   ];
   const found = names.find(([edge]) => elong < edge) || names[names.length - 1];
 
@@ -1079,6 +1079,26 @@ function findMoonEvents(dayStart, lat, lon){
   return { rise, set };
 }
 
+// The first Moon set after a given moment, looking up to 30 hours ahead. A
+// Moon that rises this afternoon usually sets after midnight, which the
+// calendar-day search above can't see.
+function findNextMoonSet(from, lat, lon){
+  const H0 = -0.583;
+  const stepMin = 10;
+  const steps = Math.floor(30 * 60 / stepMin);
+  let prevT = from, prevAlt = moonHorizontal(prevT, lat, lon).alt - H0;
+  for(let i = 1; i <= steps; i++){
+    const t = new Date(from.getTime() + i * stepMin * 60000);
+    const alt = moonHorizontal(t, lat, lon).alt - H0;
+    if(prevAlt >= 0 && alt < 0){
+      const f = prevAlt / (prevAlt - alt);
+      return new Date(prevT.getTime() + f * (t - prevT));
+    }
+    prevT = t; prevAlt = alt;
+  }
+  return null;
+}
+
 // Ties it together for one calendar day: phase/illumination at midday, rise
 // and set times + compass headings, and whether the Moon lines up with
 // sunrise/sunset closely enough to matter for a shot — a moonrise near
@@ -1089,7 +1109,12 @@ function computeMoonInfo(dayStart, lat, lon, sunriseIso, sunsetIso){
   const phase = moonPhaseInfo(new Date(dayStart.getTime() + 12 * 3600000));
 
   const riseAz = events.rise ? moonHorizontal(events.rise, lat, lon).az : null;
-  const setAz  = events.set  ? moonHorizontal(events.set, lat, lon).az  : null;
+  // Shown moonset = the set that follows this day's moonrise (it may land after
+  // midnight). If the Moon doesn't rise today, use today's set. The alignment
+  // check below still uses today's own set, for a moonset near sunrise.
+  const shownSet = events.rise ? findNextMoonSet(events.rise, lat, lon) : events.set;
+  const setAz  = shownSet ? moonHorizontal(shownSet, lat, lon).az : null;
+  const setNextDay = !!(shownSet && shownSet.getTime() >= dayStart.getTime() + 24 * 3600000);
 
   let alignment = null;
   const sunset = new Date(sunsetIso), sunrise = new Date(sunriseIso);
@@ -1105,14 +1130,14 @@ function computeMoonInfo(dayStart, lat, lon, sunriseIso, sunsetIso){
   return {
     ...phase,
     moonrise: events.rise, moonriseAz: riseAz,
-    moonset: events.set, moonsetAz: setAz,
+    moonset: shownSet, moonsetAz: setAz, moonsetNextDay: setNextDay,
     alignment
   };
 }
 
 function moonCardHTML(m){
   const riseStr = m.moonrise ? `${fmt(m.moonrise)} <small>${compassDir(m.moonriseAz)}</small>` : `<small>Doesn't rise today</small>`;
-  const setStr  = m.moonset  ? `${fmt(m.moonset)} <small>${compassDir(m.moonsetAz)}</small>`   : `<small>Doesn't set today</small>`;
+  const setStr  = m.moonset  ? `${fmt(m.moonset)} <small>${compassDir(m.moonsetAz)}${m.moonsetNextDay ? ' · tomorrow' : ''}</small>`   : `<small>Doesn't set today</small>`;
   const alignNote = m.alignment
     ? (m.alignment.type === "moonrise-sunset"
         ? `Moonrise lands within ${m.alignment.minutes} min of sunset — good odds of a big, warm Moon low over the horizon.`
@@ -1147,15 +1172,19 @@ function findMoonUpWindow(dayStart, lat, lon){
   const upAtStart = moonHorizontal(dayStart, lat, lon).alt > H0;
   const upAtEnd = moonHorizontal(dayEnd, lat, lon).alt > H0;
 
-  let start = null, end = null;
+  // Up to two stretches in one day: up from midnight until a morning set, and
+  // up again from a later rise until a later set or the end of the day. Use the longer.
+  const segs = [];
   if(upAtStart){
-    start = dayStart;
-    end = events.set || (upAtEnd ? dayEnd : null);
-  } else if(events.rise){
-    start = events.rise;
-    end = events.set || (upAtEnd ? dayEnd : null);
+    const e = events.set || (upAtEnd ? dayEnd : null);
+    if(e) segs.push({ start: dayStart, end: e });
   }
-  return (start && end) ? { start, end } : null;
+  if(events.rise){
+    const e = (events.set && events.set > events.rise) ? events.set : (upAtEnd ? dayEnd : null);
+    if(e) segs.push({ start: events.rise, end: e });
+  }
+  segs.sort((a, b) => (b.end - b.start) - (a.end - a.start));
+  return segs.length ? segs[0] : null;
 }
 
 function timelapseHourScore(cloudPct, windMph){
