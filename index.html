@@ -1,4 +1,4 @@
-<!-- Afterglow v1.3.2a -->
+<!-- Afterglow v1.3.2b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -274,7 +274,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.3.2a</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.3.2b</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -982,8 +982,21 @@ function scoreEvent(hourly, idx, beam){
   // its four components measured the ABSENCE of cloud and all maxed out at once.)
   // Asymmetric falloff — a full cirrus deck is a better bet than an empty sky,
   // because at least it has something that can glow.
-  const sigma = high < CANVAS_PEAK ? CANVAS_SIGMA_LOW : CANVAS_SIGMA_HIGH;
-  let canvas = Math.exp(-Math.pow(high - CANVAS_PEAK, 2) / (2 * sigma * sigma));
+  // Thin-to-moderate MID cloud (altocumulus and the like) catches color too, so it
+  // counts as partial canvas alongside the high cloud. Heavy mid deck stops
+  // counting (it tapers to nothing by ~90%), because a solid deck just blocks.
+  // Mid cloud still carries its own clarity penalty below, so this nudges the
+  // canvas, it doesn't make mid cloud free.
+  const MID_CANVAS_WEIGHT = 0.5;
+  const MID_CANVAS_FULL   = 50;   // % mid cloud where the canvas credit peaks
+  const MID_CANVAS_ZERO   = 90;   // % mid cloud where it has tapered to zero
+  const midBand = mid <= MID_CANVAS_FULL
+    ? mid
+    : Math.max(0, MID_CANVAS_FULL * (MID_CANVAS_ZERO - mid) / (MID_CANVAS_ZERO - MID_CANVAS_FULL));
+  const midCanvas = MID_CANVAS_WEIGHT * midBand;
+  const cover = high + midCanvas * (100 - high) / 100; // fills the gap high cloud leaves, never past 100
+  const sigma = cover < CANVAS_PEAK ? CANVAS_SIGMA_LOW : CANVAS_SIGMA_HIGH;
+  let canvas = Math.exp(-Math.pow(cover - CANVAS_PEAK, 2) / (2 * sigma * sigma));
 
   // Dry-air credit: a near-clear sky with exceptional visibility can still
   // produce clean, saturated horizon color via Rayleigh scattering, even with
@@ -1023,7 +1036,7 @@ function scoreEvent(hourly, idx, beam){
 
   const score = Math.round(Math.max(2, Math.min(98, 100 * canvas * clarity * beamF * ceiling)));
 
-  return { score, low, mid, high, hum, precip, vis, hazeFactor, hazeFromVis: vis != null,
+  return { score, low, mid, high, midCanvas, hum, precip, vis, hazeFactor, hazeFromVis: vis != null,
            murk: murkFactor < 1, canvas, clarity,
            beam: hasBeam ? beamF : null, beamLow: hasBeam ? beam.low : null, beamMid: hasBeam ? beam.mid : null };
 }
@@ -1059,7 +1072,7 @@ function blurb(s, mode){
   if(s.beam != null && s.beam < 0.35) return `Cloud is sitting between you and the ${horizon} horizon, roughly ${SUN_PATH_SAMPLE_KM}km out along the sun's line. The low sun's light will likely be blocked before it ever reaches the sky above you — the limiting factor here is over there, not overhead.`;
   if(s.high < 12 && s.mid < 20 && s.low < 20) return `Essentially clear overhead — there's very little up there for the light to catch. Expect a clean gradient near the horizon rather than real color, though air this dry usually makes for a deep blue hour.`;
   if(s.low > 65) return `Low cloud is thick enough to block the ${horizon} horizon, so even if there's color higher up, the light that makes it may not reach you.`;
-  if(s.high < 20) return `Not much high cloud to work with — the color that does show will be confined close to the horizon.`;
+  if(s.high < 20 && s.midCanvas < 15) return `Not much high cloud to work with — the color that does show will be confined close to the horizon.`;
   if(s.high > 75 && s.mid < 30 && s.low < 30) return `A near-solid high deck with clear air beneath it. It'll either light up spectacularly or sit there as a gray lid — depends entirely on whether there's a gap at the ${horizon} horizon for light to get underneath, which the forecast can't tell us.`;
 
   // Score-driven cases: safe to generalise from here, since the specific
@@ -1604,7 +1617,7 @@ function renderToday(app, tabsHtml){
         var2color(Math.max(s.beamLow, s.beamMid), 100, 45, true)) : ``}
     ${statCard("High cloud", s.high, "%", "Catches & scatters color — 30–60% is ideal", var2color(s.high, 45, 60))}
     ${statCard("Low cloud", s.low, "%", "Blocks the horizon view when high", var2color(s.low, 100, 40, true))}
-    ${statCard("Mid cloud", s.mid, "%", "Moderate blocker at higher amounts", var2color(s.mid, 100, 50, true))}
+    ${statCard("Mid cloud", s.mid, "%", "Thin to moderate mid cloud also catches color; a heavy deck blocks", var2color(s.mid, 100, 50, true))}
     ${s.hazeFromVis
       ? statCard("Visibility", Math.round(s.vis / 1609), " mi", "Direct haze reading — under ~9mi starts flattening color", var2color(Math.min(100, (s.vis / 15000) * 100), 100, 70))
       : statCard("Humidity", s.hum, "%", "Fallback haze proxy — visibility unavailable", var2color(s.hum, 100, 80, true))}
