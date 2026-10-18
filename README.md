@@ -26,6 +26,7 @@ Afterglow predicts how good a sunrise or sunset is actually going to look — no
 - New to Afterglow? The [how-to guide](HOW-TO.md) covers installing, notifications and reading the score.
 
 - Forecast data comes from [Open-Meteo](https://open-meteo.com/) — free, no API key required.
+- Moon phase, moonrise and moonset are calculated on your device with [Astronomy Engine](https://github.com/cosinekitty/astronomy) (MIT licence, by Don Cross). Nothing about your location is sent anywhere for this, and it works offline. Checked against the US Naval Observatory, rise and set times agree to within a minute.
 - Cloud cover is sampled along the sun's actual azimuth (not just overhead) using great-circle geometry, to judge whether direct light can actually reach the horizon.
 - Notifications run on a Cloudflare Worker with a scheduled check every 5 minutes, using Web Push — no app store, no third-party notification service.
 
