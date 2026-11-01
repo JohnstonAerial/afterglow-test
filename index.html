@@ -1,4 +1,4 @@
-<!-- Afterglow v1.4.9a -->
+<!-- Afterglow v1.4.9b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -329,7 +329,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.9a</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.9b</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -1683,6 +1683,8 @@ function render(){
   document.querySelectorAll(".view-tab").forEach(b => b.addEventListener("click", () => {
     state.view = b.dataset.view; render();
   }));
+  // The Plan tab has its own place box, so the saved-location box is hidden there (two boxes looked like two places to set).
+  const lb = $("locBtn"); if(lb) lb.style.display = state.view === "plan" ? "none" : "";
   saveUi();
 }
 
