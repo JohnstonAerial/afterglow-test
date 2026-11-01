@@ -1,4 +1,4 @@
-<!-- Afterglow v1.4.0d -->
+<!-- Afterglow v1.4.0e -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -303,7 +303,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.0d</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.0e</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -1973,6 +1973,69 @@ function computePlan(p){
   return { t0, t1, sun, moon, sunPts, moonPts };
 }
 
+// ---- Share link: the whole plan rides inside the address, nothing is stored on a server.
+function planLink(p){
+  const q = new URLSearchParams({ lat: p.loc.lat.toFixed(5), lon: p.loc.lon.toFixed(5), name: p.loc.name, view: "plan", d: p.date });
+  if(p.loc.tz) q.set("tz", p.loc.tz);
+  if(p.subject){ q.set("sl", p.subject.lat.toFixed(5)); q.set("so", p.subject.lon.toFixed(5)); q.set("sn", p.subject.name || "Subject"); }
+  return location.origin + location.pathname + "?" + q.toString();
+}
+function planFromLink(){
+  try{
+    const q = new URLSearchParams(location.search);
+    if(q.get("view") !== "plan") return null;
+    const lat = parseFloat(q.get("lat")), lon = parseFloat(q.get("lon"));
+    if(!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+    const clean = t => String(t || "").replace(/[<>&"'`]/g, "").replace(/\s+/g, " ").trim();
+    const tz = q.get("tz"), d = q.get("d");
+    const plan = { loc: { name: clean(q.get("name")).slice(0, 60) || "Shared place", lat: lat, lon: lon, tz: (tz && planZoneOk(tz)) ? tz : null },
+      date: /^\d{4}-\d{2}-\d{2}$/.test(d || "") ? d : null, searching: false, results: [], msg: "" };
+    const sl = parseFloat(q.get("sl")), so = parseFloat(q.get("so"));
+    if(isFinite(sl) && isFinite(so) && Math.abs(sl) <= 90 && Math.abs(so) <= 180) plan.subject = { name: clean(q.get("sn")).slice(0, 40) || "Subject", lat: sl, lon: so };
+    return plan;
+  }catch(e){ return null; }
+}
+// Sky forecast for the planning place. Uses the app's own forecast when the plan is at the saved place.
+async function loadPlanSky(p){
+  const key = p.loc.lat.toFixed(3) + "," + p.loc.lon.toFixed(3);
+  if(p.sky && p.sky.key === key) return;
+  p.sky = { key, loading: true };
+  const near = state.loc && Math.abs(state.loc.lat - p.loc.lat) < 0.02 && Math.abs(state.loc.lon - p.loc.lon) < 0.02;
+  try{
+    if(near && state.daily && state.hourly){
+      p.sky = { key, daily: state.daily, hourly: state.hourly, sample: state.sample };
+    } else {
+      const data = await fetchCore(p.loc);
+      let sample = { morning: null, evening: null };
+      try{ sample = await fetchSunPathSamples(p.loc, data.daily); }catch(e){}
+      p.sky = { key, daily: data.daily, hourly: data.hourly, sample };
+    }
+  }catch(e){ p.sky = { key, error: true }; }
+  if(state.view === "plan" && state.plan === p) render();
+}
+function skyCardHtml(p, sun, esc){
+  const sk = p.sky;
+  if(!sk || sk.loading) return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky outlook</div><div class="note">Reading the sky…</div></div>`;
+  if(sk.error) return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky outlook</div><div class="note">The sky forecast didn't load. Directions and times above don't need it.</div></div>`;
+  const i = sk.daily.time.indexOf(p.date);
+  if(i < 0){
+    const last = sk.daily.time[sk.daily.time.length - 1];
+    const msg = p.date < sk.daily.time[0]
+      ? "That date has passed. Pick a later date for a sky forecast."
+      : `Too far out for a sky forecast. It becomes available <b>${planDayLabel(planShift(p.date, -(sk.daily.time.length - 1)))}</b>, about ten days before. Directions and times above are exact now.`;
+    return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky outlook · ${planDayLabel(p.date)}</div><div class="note" style="font-size:13px;">${msg}</div></div>`;
+  }
+  const rows = [];
+  [["evening", "Sunset", sk.daily.sunset[i], sun.set], ["morning", "Sunrise", sk.daily.sunrise[i], sun.rise]].forEach(([mode, name, evt, t]) => {
+    if(!evt) return;
+    const j = nearestHourIdx(sk.hourly.time, evt), sc = scoreEvent(sk.hourly, j, sampleAt(sk.sample && sk.sample[mode], evt));
+    if(!sc) return;
+    rows.push(`<div class="plan-row2"><span>${name}${t ? " " + fmtZ(t, p.loc.tz) : ""}</span><b class="${sc.score >= 44 ? "plan-good" : ""}">${label(sc.score)} · ${sc.score}</b></div>`);
+  });
+  const nearToday = i === 0 ? "" : "";
+  return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky outlook · ${planDayLabel(p.date)} · inside the forecast</div>${rows.join("") || '<div class="note">No sunrise or sunset score for this date.</div>'}<div class="note" style="margin-top:6px;">Same score as Today and Outlook. Forecasts shift, so check again closer to the day.</div></div>`;
+}
+
 function bearingDist(lat1, lon1, lat2, lon2){
   const r = Math.PI / 180, p1 = lat1 * r, p2 = lat2 * r, dl = (lon2 - lon1) * r;
   const y = Math.sin(dl) * Math.cos(p2), x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
@@ -2159,6 +2222,9 @@ function renderPlan(app, tabsHtml){
     try{ fin = planFinder(p, bd.brg, p.finder); }catch(e){ console.error("Finder failed:", e); fin = '<div class="note">Couldn\'t search the dates.</div>'; }
     html += `<div class="card" style="margin-bottom:12px;"><div class="label">Find the dates it lines up</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.finder === "sun" ? "on" : ""}" data-finder="sun">Sun</button><button class="plan-seg-b ${p.finder === "moon" ? "on" : ""}" data-finder="moon">Moon</button></div>${fin}<div class="note" style="margin-top:8px;">Direction only: it doesn't know how tall the subject is or what stands in between.</div></div>`;
   }
+  html += skyCardHtml(p, sun, esc);
+  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Share this plan</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b" id="planCopy">🔗 Copy link</button>${navigator.share ? '<button class="plan-seg-b" id="planShare">Share…</button>' : ""}</div>${p.shareMsg ? `<div class="note" style="margin-bottom:6px;color:var(--gold);">${esc(p.shareMsg)}</div>` : ""}<div class="note">Reopens this place${p.subject ? ', the subject pin' : ''} and date in AfterGlow on any phone. No account, and nothing is stored on a server: the plan is inside the link.</div></div>`;
+  loadPlanSky(p);
   const sunRise = sun.rise ? `${fmtZ(sun.rise, tz)} <small>${Math.round(sun.riseAz)}° ${compassDir(sun.riseAz)}</small>` : `<small>${sun.polar === "up" ? "Sun stays up all day" : "Sun stays down all day"}</small>`;
   const sunSet = sun.set ? `${fmtZ(sun.set, tz)} <small>${Math.round(sun.setAz)}° ${compassDir(sun.setAz)}</small>` : `<small>${sun.polar === "up" ? "Sun doesn't set" : "No sunset"}</small>`;
   const gm = sun.gMorn && sun.rise ? fmtRangeZ(sun.rise, sun.gMorn, tz) : "—";
@@ -2229,6 +2295,15 @@ function renderPlan(app, tabsHtml){
   document.querySelectorAll(".plan-seg-b[data-finder]").forEach(b => b.addEventListener("click", () => { p.finder = b.dataset.finder; render(); }));
   const sn = $("planSubjName");
   if(sn) sn.addEventListener("change", () => { p.subject.name = sn.value.trim().slice(0, 40) || "Subject"; render(); });
+  const doShare = async (mode) => {
+    const url = planLink(p);
+    if(mode === "share"){ try{ await navigator.share({ title: "AfterGlow plan", text: p.loc.name + " · " + planDayLabel(p.date), url }); return; }catch(e){ if(e && e.name === "AbortError") return; } }
+    try{ await navigator.clipboard.writeText(url); p.shareMsg = "Link copied."; }
+    catch(e){ p.shareMsg = "Couldn't copy. Select and copy: " + url; }
+    render();
+  };
+  const cb = $("planCopy"); if(cb) cb.addEventListener("click", () => doShare("copy"));
+  const sb = $("planShare"); if(sb) sb.addEventListener("click", () => doShare("share"));
   const go = (d) => { if(/^\d{4}-\d{2}-\d{2}$/.test(d)){ p.date = d; p.msg = ""; render(); } };
   $("planPrev").addEventListener("click", () => go(planShift(p.date, -1)));
   $("planNext").addEventListener("click", () => go(planShift(p.date, 1)));
@@ -2711,6 +2786,15 @@ function linkLoc(){
 // Init
 function initLocation(){
   const fromLink = linkLoc();
+  const planLinkData = planFromLink();
+  if(planLinkData){
+    try{ history.replaceState(null, "", location.pathname); }catch(e){}
+    state.view = "plan";
+    state.plan = planLinkData;
+    const base = loadLoc() || { name: planLinkData.loc.name, lat: planLinkData.loc.lat, lon: planLinkData.loc.lon };
+    boot(base);
+    return;
+  }
   if(fromLink){
     // Drop the place from the address bar so a refresh or bookmark doesn't keep it.
     try{ history.replaceState(null, "", location.pathname); }catch(e){}
