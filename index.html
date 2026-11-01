@@ -1,4 +1,4 @@
-<!-- Afterglow v1.4.0a -->
+<!-- Afterglow v1.4.0b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -293,7 +293,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.0a</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.0b</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -314,7 +314,7 @@
 <div class="modal-backdrop" id="modalBackdrop">
   <div class="modal">
     <h3>Change location</h3>
-    <input type="text" id="locInput" placeholder="City, state, or ZIP" autocomplete="off">
+    <input type="text" id="locInput" placeholder="City, state, ZIP, or lat, lon" autocomplete="off">
     <div class="modal-results" id="locResults"></div>
     <div class="modal-actions">
       <button class="gps" id="useGps">Use current location</button>
@@ -857,6 +857,20 @@ async function fetchForecast(loc){
   return data;
 }
 
+// Coordinates as Google Maps copies them ("35.7672209, -78.6630545"), with or without
+// brackets, degree signs or N/S/E/W letters. Returns {lat, lon}, or null if it isn't a pair
+// of coordinates in range.
+function parseLatLon(q){
+  const t = String(q).replace(/[()\[\]°]/g, " ").replace(/\s+/g, " ").trim();
+  const m = t.match(/^(-?\d+(?:\.\d+)?)\s*([NS])?\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*([EW])?$/i);
+  if(!m) return null;
+  let lat = parseFloat(m[1]), lon = parseFloat(m[3]);
+  if(m[2] && m[2].toUpperCase() === "S") lat = -Math.abs(lat);
+  if(m[4] && m[4].toUpperCase() === "W") lon = -Math.abs(lon);
+  if(!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+  return { lat: lat, lon: lon };
+}
+function looksLikeCoords(q){ return /^[\s\d.,()\[\]°\-NSEWnsew]+$/.test(q) && (String(q).match(/\d+/g) || []).length >= 2; }
 async function geocode(query){
   const params = new URLSearchParams({ name: query, count: 6, language: "en", format: "json" });
   const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${params}`);
@@ -1998,7 +2012,7 @@ function renderPlan(app, tabsHtml){
   let html = tabsHtml;
   html += `<div class="plan-row"><button class="plan-btn plan-place" id="planPlaceBtn" aria-label="Change planning place">📍 ${esc(p.loc.name)} · Change ▾</button></div>`;
   if(p.searching){
-    html += `<form class="plan-search" id="planForm"><input id="planQ" type="search" placeholder="Town, or lat, lon" autocomplete="off" autocapitalize="words" enterkeyhint="search"><button class="plan-btn" type="submit">Search</button></form>`;
+    html += `<form class="plan-search" id="planForm"><input id="planQ" type="search" placeholder="Town, or paste lat, lon" autocomplete="off" autocapitalize="words" enterkeyhint="search"><button class="plan-btn" type="submit">Search</button></form>`;
     html += p.results.map((r, i) => `<button type="button" class="plan-btn plan-res" data-i="${i}">${esc(r.name)}${r.admin1 ? ", " + esc(r.admin1) : ""}${r.country ? " · " + esc(r.country) : ""}</button>`).join("");
     html += `<button type="button" class="plan-btn plan-res" id="planSaved">Use my saved location (${esc(state.loc.name)})</button>`;
   }
@@ -2077,10 +2091,10 @@ function renderPlan(app, tabsHtml){
     e.preventDefault();
     const q = $("planQ").value.trim();
     if(!q) return;
-    const m = q.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
-    if(m){
-      const la = parseFloat(m[1]), lo = parseFloat(m[2]);
-      if(Math.abs(la) > 90 || Math.abs(lo) > 180){ p.msg = "Latitude is -90 to 90 and longitude is -180 to 180."; render(); return; }
+    const ll = parseLatLon(q);
+    if(!ll && looksLikeCoords(q)){ p.msg = "That doesn't look like coordinates. Latitude is -90 to 90 and longitude is -180 to 180, for example 35.7672, -78.6631."; render(); return; }
+    if(ll){
+      const la = ll.lat, lo = ll.lon;
       p.msg = "Looking up the time zone…"; render();
       const ztz = await planTimeZoneFor(la, lo);
       setPlace({ name: la.toFixed(4) + ", " + lo.toFixed(4), lat: la, lon: lo, tz: ztz });
@@ -2090,7 +2104,7 @@ function renderPlan(app, tabsHtml){
     try{
       const res = await geocode(q);
       p.results = res;
-      p.msg = res.length ? "" : "No matches. Try a nearby town, or type coordinates like 35.50, -78.66.";
+      p.msg = res.length ? "" : "No matches. Try a nearby town, or paste coordinates from Google Maps like 35.7672, -78.6631.";
     }catch(err){ p.results = []; p.msg = "Search didn't go through. Check your connection and try again."; }
     p.searching = true; render();
     const q2 = $("planQ"); if(q2) q2.value = q;
@@ -2457,6 +2471,20 @@ $("locInput").addEventListener("input", (e) => {
   clearTimeout(searchTimeout);
   const q = e.target.value.trim();
   if(q.length < 2){ $("locResults").innerHTML = ""; return; }
+  const ll = parseLatLon(q);
+  if(ll){
+    const nm = ll.lat.toFixed(4) + ", " + ll.lon.toFixed(4);
+    $("locResults").innerHTML = `<div class="modal-result" data-lat="${ll.lat}" data-lon="${ll.lon}" data-name="${nm}">Use these coordinates: ${nm}</div>`;
+    document.querySelectorAll(".modal-result[data-lat]").forEach(el => {
+      el.addEventListener("click", () => {
+        const loc = { name: el.dataset.name, lat: parseFloat(el.dataset.lat), lon: parseFloat(el.dataset.lon) };
+        saveLoc(loc);
+        backdrop.classList.remove("open");
+        boot(loc);
+      });
+    });
+    return;
+  }
   searchTimeout = setTimeout(async () => {
     try{
       const results = await geocode(q);
