@@ -1,4 +1,4 @@
-<!-- Afterglow v1.4.0l -->
+<!-- Afterglow v1.4.1a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -310,7 +310,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.0l</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.1a</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -2064,6 +2064,86 @@ function planGcalUrl(p, pl, mode){
   const withLink = mk(true);
   return withLink.length <= 1900 ? withLink : mk(false);
 }
+// ---- Viewing height and things in the way (trees, buildings, hills) ----
+const FT_M = 0.3048, OBST_KEY = "afterglow_obst";
+function dipDeg(hFt){ return hFt > 0 ? 1.76 * Math.sqrt(hFt * FT_M) / 60 : 0; }
+function obstAngle(o, hFt){ return Math.atan2(o.h - hFt, o.d) * 180 / Math.PI; }
+function inArc(az, a1, a2){ az = ((az % 360) + 360) % 360; return a1 <= a2 ? (az >= a1 && az <= a2) : (az >= a1 || az <= a2); }
+function horizonAt(az, hFt, obs){
+  let m = -0.8333 - dipDeg(hFt), who = null;
+  obs.forEach(o => { if(inArc(az, o.a1, o.a2)){ const a = obstAngle(o, hFt); if(a > m){ m = a; who = o.name; } } });
+  return { m, who };
+}
+function obstKey(loc){ return loc.lat.toFixed(3) + "," + loc.lon.toFixed(3); }
+function loadObst(loc){ try{ const all = JSON.parse(localStorage.getItem(OBST_KEY)) || {}; return Array.isArray(all[obstKey(loc)]) ? all[obstKey(loc)] : []; }catch(e){ return []; } }
+function saveObst(loc, list){ try{ const all = JSON.parse(localStorage.getItem(OBST_KEY)) || {}; if(list.length) all[obstKey(loc)] = list; else delete all[obstKey(loc)]; localStorage.setItem(OBST_KEY, JSON.stringify(all)); }catch(e){} }
+// When the Sun is first lost (evening) or first clear (morning) from a given height, with the given obstructions.
+function planVisibility(p, pl, hFt, mode, obs){
+  const { lat, lon } = p.loc, S = Astronomy.Body.Sun, base = -0.8333 - dipDeg(hFt);
+  const cross = Astronomy.SearchAltitude(S, new Astronomy.Observer(lat, lon, 0), mode === "morning" ? +1 : -1, pl.t0, 1, base);
+  if(!cross || cross.date < pl.t0 || cross.date >= pl.t1) return null;
+  const c = cross.date.getTime(), STEP = 30000;
+  if(mode === "evening"){
+    for(let t = c - 5 * 3600000; t < c; t += STEP){
+      const h = bodyHorizontal(S, new Date(t), lat, lon), hz = horizonAt(h.az, hFt, obs);
+      if(h.alt > base && h.alt <= hz.m) return { t: new Date(t), blocked: true, by: hz.who, clear: cross.date };
+    }
+    return { t: cross.date, blocked: false, clear: cross.date };
+  }
+  for(let t = c; t < c + 5 * 3600000; t += STEP){
+    const h = bodyHorizontal(S, new Date(t), lat, lon), hz = horizonAt(h.az, hFt, obs);
+    if(h.alt > hz.m) return { t: new Date(t), blocked: t - c > 60000, by: hz.who, clear: cross.date };
+  }
+  return null;
+}
+function lenOut(ft, unit){ return unit === "m" ? Math.round(ft * FT_M) + " m" : Math.round(ft) + " ft"; }
+function lenIn(v, unit){ return unit === "m" ? v / FT_M : v; }
+function planViewCardHtml(p, pl, esc){
+  const tz = p.loc.tz, ft = d => fmtZ(d, tz), unit = p.unit || "ft";
+  const drone = p.vmode !== "ground", hFt = drone ? Math.max(0, p.alt == null ? 400 : p.alt) : 0;
+  const obs = loadObst(p.loc);
+  let h = `<div class="card" style="margin-bottom:10px;"><div class="label">Viewing from</div>
+    <div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${drone ? "" : "on"}" data-vm="ground">Ground</button><button class="plan-seg-b ${drone ? "on" : ""}" data-vm="drone">Drone</button><button class="plan-seg-b" data-unit="${unit === "ft" ? "m" : "ft"}" aria-label="Switch units">${unit === "ft" ? "Use meters" : "Use feet"}</button></div>`;
+  if(drone){
+    const shown = unit === "m" ? Math.round(hFt * FT_M) : Math.round(hFt);
+    h += `<div class="plan-row"><span style="font-size:13.5px;flex:1;">Height above takeoff</span><input class="plan-date" style="max-width:110px;text-align:right;" type="number" inputmode="decimal" min="0" max="${unit === "m" ? 1000 : 3000}" id="planAlt" value="${shown}" aria-label="Height above takeoff in ${unit === "m" ? "meters" : "feet"}"><span style="font-size:13.5px;">${unit}</span></div>
+    <div class="plan-seg" style="margin:6px 0;">${[100, 200, 300, 400].map(v => `<button class="plan-seg-b" data-altq="${v}">${unit === "m" ? Math.round(v * FT_M) : v}</button>`).join("")}</div>
+    <div class="note" style="font-size:12.5px;">${hFt > 400 ? "Above the usual 400 ft limit. " : "400 ft is the Part 107 limit above the takeoff point. "}Horizon dips ${dipDeg(hFt).toFixed(1)}° at this height.</div>`;
+  }
+  h += `</div>`;
+  const block = (mode, label) => {
+    const flat = planVisibility(p, pl, 0, mode, []);
+    if(!flat) return "";
+    let r = `<div class="plan-row2"><span>Flat ground, as above</span><b>${ft(flat.t)}</b></div>`;
+    if(drone){ const dv = planVisibility(p, pl, hFt, mode, []); if(dv) r += `<div class="plan-row2"><span>From ${lenOut(hFt, unit)}</span><b>${ft(dv.t)}</b></div>`; }
+    if(obs.length){
+      const fmt = (v) => !v ? "no sun" : v.blocked ? `${mode === "evening" ? "sun lost" : "sun clears"} ${ft(v.t)}${v.by ? " (" + esc(v.by) + ")" : ""}` : `not blocked: ${ft(v.t)}`;
+      const g = planVisibility(p, pl, 0, mode, obs), d = drone ? planVisibility(p, pl, hFt, mode, obs) : null;
+      r += `<div class="plan-row2"><span>With what's in the way, from the ground</span><b class="${g && g.blocked ? "plan-warn" : "plan-good"}">${fmt(g)}</b></div>`;
+      if(drone) r += `<div class="plan-row2"><span>With what's in the way, from ${lenOut(hFt, unit)}</span><b class="${d && d.blocked ? "plan-warn" : "plan-good"}">${fmt(d)}</b></div>`;
+      if(g && d){ const mins = Math.round(Math.abs(d.t - g.t) / 60000); if(mins >= 2) r += `<div class="note" style="font-size:12.5px;margin-top:6px;">${mode === "evening" ? "From the drone you get about " + mins + " more minutes of direct sun here." : "From the drone the sun is clear about " + mins + " minutes " + (d.t < g.t ? "earlier" : "later") + "."}</div>`; }
+    }
+    return `<div class="label" style="margin-top:8px;">${label}</div>${r}`;
+  };
+  h += `<div class="card" style="margin-bottom:10px;"><div class="label">Sun at the horizon, ${planDayLabel(p.date)}</div>${block("evening", "Sunset") + block("morning", "Sunrise") || '<div class="note" style="font-size:12.5px;">The Sun doesn\'t rise or set on this date here.</div>'}</div>`;
+  h += `<div class="card" style="margin-bottom:12px;"><div class="label">Things in the way at this spot</div>`;
+  if(!obs.length) h += `<div class="note" style="font-size:12.5px;margin-bottom:8px;">Trees, buildings or a hill that block the Sun. You've seen them; the app can't. Enter what you know, and the times above allow for it.</div>`;
+  obs.forEach((o, i) => {
+    h += `<div class="plan-row2"><span><b>${esc(o.name)}</b> · ${Math.round(o.a1)}° to ${Math.round(o.a2)}°<br><span style="color:var(--slate);font-size:12.5px;">${lenOut(o.h, unit)} tall, ${lenOut(o.d, unit)} away</span></span><b>${Math.max(0, obstAngle(o, 0)).toFixed(0)}° from the ground${drone ? `<br><span style="color:var(--slate);font-weight:400;font-size:12.5px;">${Math.max(0, obstAngle(o, hFt)).toFixed(0)}° at ${lenOut(hFt, unit)}</span>` : ""}<br><button class="plan-seg-b" data-delobs="${i}" style="margin-top:4px;padding:3px 10px;font-size:12px;">Remove</button></b></div>`;
+  });
+  if(p.addObs){
+    h += `<div style="margin-top:8px;"><input class="plan-name" id="obName" maxlength="30" placeholder="What is it? (trees, building, hill)">
+      <div class="plan-row"><span style="font-size:13px;">From</span><input class="plan-date" type="number" inputmode="decimal" id="obA1" placeholder="240" aria-label="From compass degrees"><span style="font-size:13px;">to</span><input class="plan-date" type="number" inputmode="decimal" id="obA2" placeholder="260" aria-label="To compass degrees"><span style="font-size:13px;">°</span></div>
+      <div class="plan-row"><span style="font-size:13px;">Height</span><input class="plan-date" type="number" inputmode="decimal" id="obH" placeholder="70" aria-label="Height"><span style="font-size:13px;">${unit}</span><span style="font-size:13px;">Distance</span><input class="plan-date" type="number" inputmode="decimal" id="obD" placeholder="700" aria-label="Distance"><span style="font-size:13px;">${unit}</span></div>
+      ${p.obMsg ? `<div class="plan-msg">${esc(p.obMsg)}</div>` : ""}
+      <div class="plan-seg"><button class="plan-seg-b on" id="obSave">Save</button><button class="plan-seg-b" id="obCancel">Cancel</button></div>
+      <div class="note" style="font-size:12.5px;">Compass degrees: north 0, east 90, south 180, west 270. Height is above the ground you stand on.</div></div>`;
+  } else if(obs.length < 12){
+    h += `<button class="plan-seg-b" id="obAdd" style="margin-top:8px;">＋ Add something in the way</button>`;
+  }
+  h += `<div class="note" style="font-size:12.5px;margin-top:8px;">Saved on this device with this spot.</div></div>`;
+  return h;
+}
 function planEventTitle(p){ return (p.calTitle || "").trim() || "Shoot: " + ((p.subject && p.subject.name) || p.loc.name); }
 function planShootWindow(pl, mode){
   const { sun } = pl, HR = 3600000;
@@ -2126,7 +2206,7 @@ function saveUi(){
   try{
     const o = { view: state.view };
     const p = state.plan;
-    if(p && p.loc) o.plan = { loc: p.loc, date: p.date || null, subject: p.subject || null, min: p.min == null ? null : p.min, minSet: !!p.minSet, tap: p.tap, finder: p.finder, calMode: p.calMode, calTitle: p.calTitle || "", calNotes: p.calNotes || "" };
+    if(p && p.loc) o.plan = { loc: p.loc, date: p.date || null, subject: p.subject || null, min: p.min == null ? null : p.min, minSet: !!p.minSet, tap: p.tap, finder: p.finder, calMode: p.calMode, calTitle: p.calTitle || "", calNotes: p.calNotes || "", vmode: p.vmode, alt: p.alt, unit: p.unit };
     localStorage.setItem(UI_KEY, JSON.stringify(o));
   }catch(e){}
 }
@@ -2139,7 +2219,7 @@ function restoreUi(){
     if(q && q.loc && isFinite(q.loc.lat) && isFinite(q.loc.lon)){
       const stale = q.date && q.date < planToday(q.loc.tz);
       state.plan = { loc: q.loc, date: stale ? null : (q.date || null), subject: q.subject && isFinite(q.subject.lat) ? q.subject : null,
-        min: q.min, minKey: q.loc.lat.toFixed(3) + "," + q.loc.lon.toFixed(3), minSet: stale ? false : !!q.minSet, tap: q.tap, finder: q.finder, calMode: q.calMode, calTitle: q.calTitle || "", calNotes: q.calNotes || "", searching: false, results: [], msg: "" };
+        min: q.min, minKey: q.loc.lat.toFixed(3) + "," + q.loc.lon.toFixed(3), minSet: stale ? false : !!q.minSet, tap: q.tap, finder: q.finder, calMode: q.calMode, calTitle: q.calTitle || "", calNotes: q.calNotes || "", vmode: q.vmode, alt: q.alt, unit: q.unit, searching: false, results: [], msg: "" };
     }
   }catch(e){}
 }
@@ -2351,6 +2431,7 @@ function renderPlan(app, tabsHtml){
     try{ fin = planFinder(p, bd.brg, p.finder); }catch(e){ console.error("Finder failed:", e); fin = '<div class="note">Couldn\'t search the dates.</div>'; }
     html += `<div class="card" style="margin-bottom:12px;"><div class="label">Find the dates it lines up</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.finder === "sun" ? "on" : ""}" data-finder="sun">Sun</button><button class="plan-seg-b ${p.finder === "moon" ? "on" : ""}" data-finder="moon">Moon</button></div>${fin}<div class="note" style="margin-top:8px;">Direction only: it doesn't know how tall the subject is or what stands in between.</div></div>`;
   }
+  try{ html += planViewCardHtml(p, pl, esc); }catch(e){ console.error('View card failed:', e); }
   html += skyCardHtml(p, sun, esc);
   html += `<div class="card" style="margin-bottom:12px;"><div class="label">Share this plan</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b" id="planCopy">🔗 Copy link</button>${navigator.share ? '<button class="plan-seg-b" id="planShare">Share…</button>' : ""}</div>${p.shareMsg ? `<div class="note" style="margin-bottom:6px;color:var(--gold);">${esc(p.shareMsg)}</div>` : ""}<div class="note">Reopens this place${p.subject ? ', the subject pin' : ''} and date in AfterGlow on any phone. No account, and nothing is stored on a server: the plan is inside the link.</div></div>`;
   if(!p.calMode) p.calMode = "evening";
@@ -2479,6 +2560,22 @@ function renderPlan(app, tabsHtml){
     render();
   };
   document.querySelectorAll(".plan-seg-b[data-cal]").forEach(b => b.addEventListener("click", () => { p.calMode = b.dataset.cal; render(); }));
+  document.querySelectorAll("[data-vm]").forEach(b => b.addEventListener("click", () => { p.vmode = b.dataset.vm; if(p.alt == null) p.alt = 400; saveUi(); render(); }));
+  document.querySelectorAll("[data-unit]").forEach(b => b.addEventListener("click", () => { p.unit = b.dataset.unit; saveUi(); render(); }));
+  document.querySelectorAll("[data-altq]").forEach(b => b.addEventListener("click", () => { p.alt = +b.dataset.altq; saveUi(); render(); }));
+  const altIn = $("planAlt");
+  if(altIn) altIn.addEventListener("change", () => { const v = parseFloat(altIn.value); if(isFinite(v) && v >= 0) p.alt = lenIn(v, p.unit || "ft"); saveUi(); render(); });
+  const oAdd = $("obAdd"); if(oAdd) oAdd.addEventListener("click", () => { p.addObs = true; p.obMsg = ""; render(); });
+  const oCan = $("obCancel"); if(oCan) oCan.addEventListener("click", () => { p.addObs = false; p.obMsg = ""; render(); });
+  const oSave = $("obSave");
+  if(oSave) oSave.addEventListener("click", () => {
+    const u = p.unit || "ft", n = ($("obName").value || "").replace(/[<>&"]/g, "").trim().slice(0, 30) || "Obstruction";
+    const a1 = parseFloat($("obA1").value), a2 = parseFloat($("obA2").value), hh = parseFloat($("obH").value), dd = parseFloat($("obD").value);
+    if(![a1, a2, hh, dd].every(isFinite) || a1 < 0 || a1 > 360 || a2 < 0 || a2 > 360 || hh <= 0 || dd <= 0){ p.obMsg = "Fill in the compass range (0 to 360), the height and the distance, all above zero."; render(); return; }
+    const list = loadObst(p.loc); list.push({ name: n, a1: a1 % 360, a2: a2 % 360, h: lenIn(hh, u), d: lenIn(dd, u) });
+    saveObst(p.loc, list); p.addObs = false; p.obMsg = ""; render();
+  });
+  document.querySelectorAll("[data-delobs]").forEach(b => b.addEventListener("click", () => { const list = loadObst(p.loc); list.splice(+b.dataset.delobs, 1); saveObst(p.loc, list); render(); }));
   const ct = $("planCalTitle"), cn = $("planCalNotes");
   if(ct) ct.addEventListener("input", () => { p.calTitle = ct.value; saveUi(); });
   if(cn) cn.addEventListener("input", () => { p.calNotes = cn.value; saveUi(); });
