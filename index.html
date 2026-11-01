@@ -1,4 +1,4 @@
-<!-- Afterglow v1.4.0k -->
+<!-- Afterglow v1.4.0l -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -310,7 +310,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.0k</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.0l</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -2058,12 +2058,13 @@ function icsStamp(d){ return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{
 function planGcalUrl(p, pl, mode){
   const w = planShootWindow(pl, mode); if(!w) return null;
   const name = (p.subject && p.subject.name) || p.loc.name, L = planShootLines(p, pl, mode, w);
-  const mk = (extra) => "https://calendar.google.com/calendar/render?" + new URLSearchParams({ action: "TEMPLATE", text: "Shoot: " + name,
+  const mk = (extra) => "https://calendar.google.com/calendar/render?" + new URLSearchParams({ action: "TEMPLATE", text: planEventTitle(p),
     dates: icsStamp(w.start) + "/" + icsStamp(w.end), location: p.loc.name + " (" + p.loc.lat.toFixed(5) + ", " + p.loc.lon.toFixed(5) + ")",
     details: L.concat(extra ? ["Plan: " + planLink(p)] : []).join("\n") }).toString();
   const withLink = mk(true);
   return withLink.length <= 1900 ? withLink : mk(false);
 }
+function planEventTitle(p){ return (p.calTitle || "").trim() || "Shoot: " + ((p.subject && p.subject.name) || p.loc.name); }
 function planShootWindow(pl, mode){
   const { sun } = pl, HR = 3600000;
   if(mode === "morning"){
@@ -2088,6 +2089,7 @@ function saveIcs(ics, fname){
 function planShootLines(p, pl, mode, w){
   const { sun, moon } = pl, tz = p.loc.tz, ft = d => fmtZ(d, tz);
   const L = [];
+  if((p.calNotes || "").trim()){ L.push(p.calNotes.trim().slice(0, 600)); L.push(""); }
   L.push((mode === "morning" ? "Sunrise" : "Sunset") + " shoot window: " + ft(w.start) + " to " + ft(w.end) + (tz ? " (" + tz + ")" : ""));
   if(sun.gMorn && sun.rise) L.push("Golden hour AM: " + ft(sun.rise) + " to " + ft(sun.gMorn));
   if(sun.gEve && sun.set) L.push("Golden hour PM: " + ft(sun.gEve) + " to " + ft(sun.set));
@@ -2111,10 +2113,10 @@ function planIcs(p, pl, mode){
   const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Johnston Aerial//AfterGlow//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "BEGIN:VEVENT",
     "UID:" + icsStamp(w.start) + "-" + p.loc.lat.toFixed(4) + "-" + p.loc.lon.toFixed(4) + "@afterglow.johnstonaerial.com",
     "DTSTAMP:" + icsStamp(new Date()), "DTSTART:" + icsStamp(w.start), "DTEND:" + icsStamp(w.end),
-    "SUMMARY:" + icsEsc("Shoot: " + name),
+    "SUMMARY:" + icsEsc(planEventTitle(p)),
     "LOCATION:" + icsEsc(p.loc.name), "GEO:" + p.loc.lat.toFixed(6) + ";" + p.loc.lon.toFixed(6),
     "DESCRIPTION:" + icsEsc(L.join("\n")),
-    "BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + icsEsc("Shoot: " + name), "TRIGGER:-PT2H", "END:VALARM", "END:VEVENT", "END:VCALENDAR"];
+    "BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + icsEsc(planEventTitle(p)), "TRIGGER:-PT2H", "END:VALARM", "END:VEVENT", "END:VCALENDAR"];
   return lines.map(icsFold).join("\r\n") + "\r\n";
 }
 
@@ -2124,7 +2126,7 @@ function saveUi(){
   try{
     const o = { view: state.view };
     const p = state.plan;
-    if(p && p.loc) o.plan = { loc: p.loc, date: p.date || null, subject: p.subject || null, min: p.min == null ? null : p.min, minSet: !!p.minSet, tap: p.tap, finder: p.finder, calMode: p.calMode };
+    if(p && p.loc) o.plan = { loc: p.loc, date: p.date || null, subject: p.subject || null, min: p.min == null ? null : p.min, minSet: !!p.minSet, tap: p.tap, finder: p.finder, calMode: p.calMode, calTitle: p.calTitle || "", calNotes: p.calNotes || "" };
     localStorage.setItem(UI_KEY, JSON.stringify(o));
   }catch(e){}
 }
@@ -2137,7 +2139,7 @@ function restoreUi(){
     if(q && q.loc && isFinite(q.loc.lat) && isFinite(q.loc.lon)){
       const stale = q.date && q.date < planToday(q.loc.tz);
       state.plan = { loc: q.loc, date: stale ? null : (q.date || null), subject: q.subject && isFinite(q.subject.lat) ? q.subject : null,
-        min: q.min, minKey: q.loc.lat.toFixed(3) + "," + q.loc.lon.toFixed(3), minSet: stale ? false : !!q.minSet, tap: q.tap, finder: q.finder, calMode: q.calMode, searching: false, results: [], msg: "" };
+        min: q.min, minKey: q.loc.lat.toFixed(3) + "," + q.loc.lon.toFixed(3), minSet: stale ? false : !!q.minSet, tap: q.tap, finder: q.finder, calMode: q.calMode, calTitle: q.calTitle || "", calNotes: q.calNotes || "", searching: false, results: [], msg: "" };
     }
   }catch(e){}
 }
@@ -2353,7 +2355,7 @@ function renderPlan(app, tabsHtml){
   html += `<div class="card" style="margin-bottom:12px;"><div class="label">Share this plan</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b" id="planCopy">🔗 Copy link</button>${navigator.share ? '<button class="plan-seg-b" id="planShare">Share…</button>' : ""}</div>${p.shareMsg ? `<div class="note" style="margin-bottom:6px;color:var(--gold);">${esc(p.shareMsg)}</div>` : ""}<div class="note">Reopens this place${p.subject ? ', the subject pin' : ''} and date in AfterGlow on any phone. No account, and nothing is stored on a server: the plan is inside the link.</div></div>`;
   if(!p.calMode) p.calMode = "evening";
   const cw = planShootWindow(pl, p.calMode);
-  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Add to calendar</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.calMode === "evening" ? "on" : ""}" data-cal="evening">Sunset shoot</button><button class="plan-seg-b ${p.calMode === "morning" ? "on" : ""}" data-cal="morning">Sunrise shoot</button></div>${cw ? `<div class="note" style="margin-bottom:8px;">${planDayLabel(p.date)}, ${fmtZ(cw.start, tz)} to ${fmtZ(cw.end, tz)}: an hour before golden hour through ${p.calMode === "morning" ? "the end of golden hour" : "sunset"}.</div><div class="plan-seg" style="margin:0;"><button class="plan-seg-b" id="planIcs">📅 Add to calendar</button><button class="plan-seg-b" id="planGcal">Google Calendar</button></div>` : `<div class="note">The Sun doesn't ${p.calMode === "morning" ? "rise" : "set"} on this date here, so there's no window to add.</div>`}<div class="note" style="margin-top:8px;">The light times go in the event notes, with a link back to this plan. Times are calculated and exact. The sky score is a snapshot of the forecast today.</div></div>`;
+  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Add to calendar</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.calMode === "evening" ? "on" : ""}" data-cal="evening">Sunset shoot</button><button class="plan-seg-b ${p.calMode === "morning" ? "on" : ""}" data-cal="morning">Sunrise shoot</button></div><input class="plan-name" id="planCalTitle" value="${esc(p.calTitle || "")}" maxlength="80" placeholder="${esc(planEventTitle({ loc: p.loc, subject: p.subject }))}" aria-label="Event title"><textarea class="plan-name" id="planCalNotes" rows="3" maxlength="600" placeholder="Your notes (optional): gear, who is coming, a reminder" aria-label="Your notes" style="resize:vertical;">${esc(p.calNotes || "")}</textarea>${cw ? `<div class="note" style="margin-bottom:8px;">${planDayLabel(p.date)}, ${fmtZ(cw.start, tz)} to ${fmtZ(cw.end, tz)}: an hour before golden hour through ${p.calMode === "morning" ? "the end of golden hour" : "sunset"}.</div><div class="plan-seg" style="margin:0;"><button class="plan-seg-b" id="planIcs">📅 Add to calendar</button><button class="plan-seg-b" id="planGcal">Google Calendar</button></div>` : `<div class="note">The Sun doesn't ${p.calMode === "morning" ? "rise" : "set"} on this date here, so there's no window to add.</div>`}<div class="note" style="margin-top:8px;">The light times go in the event notes, with a link back to this plan. Times are calculated and exact. The sky score is a snapshot of the forecast today.</div></div>`;
   loadPlanSky(p);
   p.live = null;
   const sunRise = sun.rise ? `${fmtZ(sun.rise, tz)} <small>${Math.round(sun.riseAz)}° ${compassDir(sun.riseAz)}</small>` : `<small>${sun.polar === "up" ? "Sun stays up all day" : "Sun stays down all day"}</small>`;
@@ -2477,6 +2479,9 @@ function renderPlan(app, tabsHtml){
     render();
   };
   document.querySelectorAll(".plan-seg-b[data-cal]").forEach(b => b.addEventListener("click", () => { p.calMode = b.dataset.cal; render(); }));
+  const ct = $("planCalTitle"), cn = $("planCalNotes");
+  if(ct) ct.addEventListener("input", () => { p.calTitle = ct.value; saveUi(); });
+  if(cn) cn.addEventListener("input", () => { p.calNotes = cn.value; saveUi(); });
   const gb = $("planGcal");
   if(gb) gb.addEventListener("click", () => { const u = planGcalUrl(p, pl, p.calMode); if(u) window.open(u, "_blank", "noopener"); });
   const ib = $("planIcs");
@@ -2493,7 +2498,7 @@ function renderPlan(app, tabsHtml){
   $("planToday").addEventListener("click", () => go(planToday(p.loc.tz)));
   $("planDate").addEventListener("change", (e) => go(e.target.value));
   $("planPlaceBtn").addEventListener("click", () => { p.searching = !p.searching; p.results = []; p.msg = ""; render(); if(p.searching){ const q = $("planQ"); if(q) q.focus(); } });
-  const setPlace = (loc) => { addRecent(loc); p.loc = loc; p.subject = null; p.view = null; p.scan = null; p.searching = false; p.results = []; p.msg = ""; p.date = p.date || planToday(loc.tz); render(); };
+  const setPlace = (loc) => { addRecent(loc); p.calTitle = ""; p.calNotes = ""; p.loc = loc; p.subject = null; p.view = null; p.scan = null; p.searching = false; p.results = []; p.msg = ""; p.date = p.date || planToday(loc.tz); render(); };
   const saved = $("planSaved");
   if(saved) saved.addEventListener("click", () => setPlace({ name: state.loc.name, lat: state.loc.lat, lon: state.loc.lon, tz: state.tz || null }));
   document.querySelectorAll(".plan-res[data-recent]").forEach(b => b.addEventListener("click", () => {
