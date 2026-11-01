@@ -1,4 +1,4 @@
-<!-- Afterglow v1.4.0j -->
+<!-- Afterglow v1.4.0k -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -310,7 +310,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.0j</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.0k</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -2055,6 +2055,15 @@ function icsFold(line){
   out.push(cur); return out.join("\r\n");
 }
 function icsStamp(d){ return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, ""); }
+function planGcalUrl(p, pl, mode){
+  const w = planShootWindow(pl, mode); if(!w) return null;
+  const name = (p.subject && p.subject.name) || p.loc.name, L = planShootLines(p, pl, mode, w);
+  const mk = (extra) => "https://calendar.google.com/calendar/render?" + new URLSearchParams({ action: "TEMPLATE", text: "Shoot: " + name,
+    dates: icsStamp(w.start) + "/" + icsStamp(w.end), location: p.loc.name + " (" + p.loc.lat.toFixed(5) + ", " + p.loc.lon.toFixed(5) + ")",
+    details: L.concat(extra ? ["Plan: " + planLink(p)] : []).join("\n") }).toString();
+  const withLink = mk(true);
+  return withLink.length <= 1900 ? withLink : mk(false);
+}
 function planShootWindow(pl, mode){
   const { sun } = pl, HR = 3600000;
   if(mode === "morning"){
@@ -2076,10 +2085,8 @@ function saveIcs(ics, fname){
   a.href = URL.createObjectURL(blob); a.download = fname;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
-function planIcs(p, pl, mode){
-  const w = planShootWindow(pl, mode); if(!w) return null;
+function planShootLines(p, pl, mode, w){
   const { sun, moon } = pl, tz = p.loc.tz, ft = d => fmtZ(d, tz);
-  const name = (p.subject && p.subject.name) || p.loc.name;
   const L = [];
   L.push((mode === "morning" ? "Sunrise" : "Sunset") + " shoot window: " + ft(w.start) + " to " + ft(w.end) + (tz ? " (" + tz + ")" : ""));
   if(sun.gMorn && sun.rise) L.push("Golden hour AM: " + ft(sun.rise) + " to " + ft(sun.gMorn));
@@ -2095,7 +2102,12 @@ function planIcs(p, pl, mode){
     if(az != null) L.push("Light on " + p.subject.name + ": " + lightPhrase(az, bd.brg).t);
   }
   const sky = planSkyLine(p, sun, mode); if(sky) L.push("Sky outlook: " + sky + " (forecast can change)");
-  L.push("Plan: " + planLink(p));
+  return L;
+}
+function planIcs(p, pl, mode){
+  const w = planShootWindow(pl, mode); if(!w) return null;
+  const name = (p.subject && p.subject.name) || p.loc.name;
+  const L = planShootLines(p, pl, mode, w); L.push("Plan: " + planLink(p));
   const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Johnston Aerial//AfterGlow//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "BEGIN:VEVENT",
     "UID:" + icsStamp(w.start) + "-" + p.loc.lat.toFixed(4) + "-" + p.loc.lon.toFixed(4) + "@afterglow.johnstonaerial.com",
     "DTSTAMP:" + icsStamp(new Date()), "DTSTART:" + icsStamp(w.start), "DTEND:" + icsStamp(w.end),
@@ -2341,7 +2353,7 @@ function renderPlan(app, tabsHtml){
   html += `<div class="card" style="margin-bottom:12px;"><div class="label">Share this plan</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b" id="planCopy">🔗 Copy link</button>${navigator.share ? '<button class="plan-seg-b" id="planShare">Share…</button>' : ""}</div>${p.shareMsg ? `<div class="note" style="margin-bottom:6px;color:var(--gold);">${esc(p.shareMsg)}</div>` : ""}<div class="note">Reopens this place${p.subject ? ', the subject pin' : ''} and date in AfterGlow on any phone. No account, and nothing is stored on a server: the plan is inside the link.</div></div>`;
   if(!p.calMode) p.calMode = "evening";
   const cw = planShootWindow(pl, p.calMode);
-  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Add to calendar</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.calMode === "evening" ? "on" : ""}" data-cal="evening">Sunset shoot</button><button class="plan-seg-b ${p.calMode === "morning" ? "on" : ""}" data-cal="morning">Sunrise shoot</button></div>${cw ? `<div class="note" style="margin-bottom:8px;">${planDayLabel(p.date)}, ${fmtZ(cw.start, tz)} to ${fmtZ(cw.end, tz)}: an hour before golden hour through ${p.calMode === "morning" ? "the end of golden hour" : "sunset"}.</div><button class="plan-seg-b" id="planIcs">📅 Add to calendar</button>` : `<div class="note">The Sun doesn't ${p.calMode === "morning" ? "rise" : "set"} on this date here, so there's no window to add.</div>`}<div class="note" style="margin-top:8px;">The light times go in the event notes, with a link back to this plan. Times are calculated and exact. The sky score is a snapshot of the forecast today.</div></div>`;
+  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Add to calendar</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.calMode === "evening" ? "on" : ""}" data-cal="evening">Sunset shoot</button><button class="plan-seg-b ${p.calMode === "morning" ? "on" : ""}" data-cal="morning">Sunrise shoot</button></div>${cw ? `<div class="note" style="margin-bottom:8px;">${planDayLabel(p.date)}, ${fmtZ(cw.start, tz)} to ${fmtZ(cw.end, tz)}: an hour before golden hour through ${p.calMode === "morning" ? "the end of golden hour" : "sunset"}.</div><div class="plan-seg" style="margin:0;"><button class="plan-seg-b" id="planIcs">📅 Add to calendar</button><button class="plan-seg-b" id="planGcal">Google Calendar</button></div>` : `<div class="note">The Sun doesn't ${p.calMode === "morning" ? "rise" : "set"} on this date here, so there's no window to add.</div>`}<div class="note" style="margin-top:8px;">The light times go in the event notes, with a link back to this plan. Times are calculated and exact. The sky score is a snapshot of the forecast today.</div></div>`;
   loadPlanSky(p);
   p.live = null;
   const sunRise = sun.rise ? `${fmtZ(sun.rise, tz)} <small>${Math.round(sun.riseAz)}° ${compassDir(sun.riseAz)}</small>` : `<small>${sun.polar === "up" ? "Sun stays up all day" : "Sun stays down all day"}</small>`;
@@ -2465,6 +2477,8 @@ function renderPlan(app, tabsHtml){
     render();
   };
   document.querySelectorAll(".plan-seg-b[data-cal]").forEach(b => b.addEventListener("click", () => { p.calMode = b.dataset.cal; render(); }));
+  const gb = $("planGcal");
+  if(gb) gb.addEventListener("click", () => { const u = planGcalUrl(p, pl, p.calMode); if(u) window.open(u, "_blank", "noopener"); });
   const ib = $("planIcs");
   if(ib) ib.addEventListener("click", () => {
     const ics = planIcs(p, pl, p.calMode); if(!ics) return;
