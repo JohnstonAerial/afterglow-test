@@ -1,4 +1,4 @@
-<!-- Afterglow v1.4.8a -->
+<!-- Afterglow v1.4.9a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -329,7 +329,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.8a</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.9a</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -924,12 +924,101 @@ function parseLatLon(q){
   return { lat: lat, lon: lon };
 }
 function looksLikeCoords(q){ return /^[\s\d.,()\[\]°\-NSEWnsew]+$/.test(q) && (String(q).match(/\d+/g) || []).length >= 2; }
+// Place search (the same logic as the Drone Preflight Checklist's search, from its 4.2.4b):
+//  - "Raleigh NC", "Raleigh, North Carolina", trailing "USA"
+//  - "Toronto ON", "Calgary, Alberta", "Sydney NSW" (restricts to that country, province first)
+//  - "Munich, Germany", "Auckland NZ", about 100 country names and two-letter codes
+//  - local-language names (Wien, Roma, Praha...) search the English name first
+//  - abbreviations: "Mt Pleasant" / "Mount Pleasant", "St Paul" / "Saint Paul", "N Charleston", "Mc Kinney", "O Fallon"
+// The place database only matches place names, so the state, province or country part is
+// peeled off the end, the town is searched, and results from that region are listed first.
+// A plain town name behaves as before. Returns up to 6 Open-Meteo results; throws on a network failure.
+const STATES = {AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',CT:'Connecticut',DE:'Delaware',DC:'District of Columbia',FL:'Florida',GA:'Georgia',HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming'};
+const STATE_ABBR = Object.fromEntries(Object.entries(STATES).map(([a, n]) => [n, a]));
 async function geocode(query){
-  const params = new URLSearchParams({ name: query, count: 6, language: "en", format: "json" });
-  const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${params}`);
-  if(!res.ok) throw new Error("Geocode failed");
-  const data = await res.json();
-  return data.results || [];
+  const q = String(query).trim();
+  const ALIAS = { wien:'Vienna', roma:'Rome', firenze:'Florence', venezia:'Venice', napoli:'Naples', milano:'Milan', torino:'Turin', genova:'Genoa', praha:'Prague', warszawa:'Warsaw', krakow:'Krakow', gdansk:'Gdansk', wroclaw:'Wroclaw', goteborg:'Gothenburg', kobenhavn:'Copenhagen', koeln:'Cologne', koln:'Cologne', munchen:'Munich', muenchen:'Munich', nurnberg:'Nuremberg', nuernberg:'Nuremberg', 'ciudad de mexico':'Mexico City', lisboa:'Lisbon', bruxelles:'Brussels', brussel:'Brussels', geneve:'Geneva', zuerich:'Zurich', 'den haag':'The Hague', antwerpen:'Antwerp', sevilla:'Seville', moskva:'Moscow', athina:'Athens', bucuresti:'Bucharest', beograd:'Belgrade', helsingfors:'Helsinki', 'sankt petersburg':'Saint Petersburg', 'sao paulo':'Sao Paulo', 'rio de janeiro':'Rio de Janeiro', 'nueva york':'New York', londres:'London', parigi:'Paris', napels:'Naples' };
+  const aNorm = (n) => n.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[.']/g, '').trim();
+  // "Angier NC" / "Angier, NC" -> search the town, then prefer that state
+  // Also accepts the full state name ("Ocala Florida", "Ocala, Florida") and a trailing "USA"
+  let name = q, state = null;
+  const qq = q.replace(/[,\s]+(?:USA|US|United States)$/i, '');
+  const m = qq.match(/^(.*?)[,\s]+([A-Za-z]{2})$/);
+  if (m && STATES[m[2].toUpperCase()]) { name = m[1].trim(); state = STATES[m[2].toUpperCase()]; }
+  else {
+    const names = Object.values(STATES).sort((a, b) => b.length - a.length);
+    for (const sn of names) {
+      const fm = qq.match(new RegExp('^(.+?)[,\\s]+' + sn.replace(/ /g, '\\s+') + '$', 'i'));
+      if (fm && fm[1].trim()) { name = fm[1].trim().replace(/,$/, ''); state = sn; break; }
+    }
+  }
+
+  // "Toronto ON" / "Calgary, Alberta" / "Sydney NSW" -> search the city, restrict to that country and keep that province or state first
+  let ccode = '';
+  const wholeAlias = !!ALIAS[aNorm(qq)];
+  if (!state && !wholeAlias) {
+    const REG = { ON:['CA','Ontario'], QC:['CA','Quebec'], BC:['CA','British Columbia'], AB:['CA','Alberta'], MB:['CA','Manitoba'], SK:['CA','Saskatchewan'], NS:['CA','Nova Scotia'], NB:['CA','New Brunswick'], NL:['CA','Newfoundland and Labrador'], PE:['CA','Prince Edward Island'], PEI:['CA','Prince Edward Island'], YT:['CA','Yukon'], NU:['CA','Nunavut'],
+      NSW:['AU','New South Wales'], VIC:['AU','Victoria'], QLD:['AU','Queensland'], TAS:['AU','Tasmania'], ACT:['AU','Australian Capital Territory'], NT:['', ''],
+      ONTARIO:['CA','Ontario'], QUEBEC:['CA','Quebec'], 'BRITISH COLUMBIA':['CA','British Columbia'], ALBERTA:['CA','Alberta'], MANITOBA:['CA','Manitoba'], SASKATCHEWAN:['CA','Saskatchewan'], 'NOVA SCOTIA':['CA','Nova Scotia'], 'NEW BRUNSWICK':['CA','New Brunswick'], NEWFOUNDLAND:['CA','Newfoundland and Labrador'],
+      'NEW SOUTH WALES':['AU','New South Wales'], QUEENSLAND:['AU','Queensland'], TASMANIA:['AU','Tasmania'], 'WESTERN AUSTRALIA':['AU','Western Australia'], 'SOUTH AUSTRALIA':['AU','South Australia'], 'NORTHERN TERRITORY':['AU','Northern Territory'] };
+    const rk = Object.keys(REG).sort((x, y) => y.length - x.length);
+    for (const k of rk) {
+      const rm = qq.match(new RegExp('^(.+?)[,\\s]+' + k.replace(/ /g, '\\s+') + '$', 'i'));
+      if (rm && rm[1].trim()) { name = rm[1].trim().replace(/,$/, ''); if (REG[k][0]) { ccode = REG[k][0]; state = REG[k][1]; } break; }
+    }
+  }
+  // "Munich, Germany" / "Berlin Germany" / "Dublin IE" -> search the city, restrict to that country
+  if (!state && !wholeAlias) {
+    const CN = { germany:'DE', deutschland:'DE', netherlands:'NL', holland:'NL', 'the netherlands':'NL', ireland:'IE', belgium:'BE', belgique:'BE', france:'FR', 'united kingdom':'GB', uk:'GB', england:'GB', scotland:'GB', wales:'GB', 'northern ireland':'GB', canada:'CA', australia:'AU', austria:'AT', switzerland:'CH', italy:'IT', spain:'ES', portugal:'PT', denmark:'DK', sweden:'SE', norway:'NO', finland:'FI', poland:'PL', 'new zealand':'NZ', mexico:'MX', japan:'JP', argentina:'AR', brazil:'BR', brasil:'BR',
+      czechia:'CZ', 'czech republic':'CZ', slovakia:'SK', hungary:'HU', romania:'RO', bulgaria:'BG', greece:'GR', turkey:'TR', ukraine:'UA', croatia:'HR', slovenia:'SI', serbia:'RS', estonia:'EE', latvia:'LV', lithuania:'LT', iceland:'IS', luxembourg:'LU', malta:'MT', cyprus:'CY', israel:'IL', uae:'AE', 'saudi arabia':'SA', qatar:'QA', egypt:'EG', morocco:'MA', kenya:'KE', nigeria:'NG', 'south africa':'ZA', india:'IN', pakistan:'PK', 'sri lanka':'LK', nepal:'NP', bangladesh:'BD', china:'CN', 'hong kong':'HK', taiwan:'TW', 'south korea':'KR', korea:'KR', thailand:'TH', vietnam:'VN', malaysia:'MY', singapore:'SG', indonesia:'ID', philippines:'PH', chile:'CL', peru:'PE', colombia:'CO', ecuador:'EC', uruguay:'UY', 'costa rica':'CR', panama:'PA', 'dominican republic':'DO', jamaica:'JM', bahamas:'BS',
+      de:'DE', nl:'NL', ie:'IE', be:'BE', fr:'FR', gb:'GB', ca:'CA', au:'AU', at:'AT', ch:'CH', it:'IT', es:'ES', nz:'NZ', mx:'MX', jp:'JP', br:'BR', ar:'AR', dk:'DK', se:'SE', fi:'FI', pl:'PL', cz:'CZ', pt:'PT', gr:'GR', tr:'TR', za:'ZA', sg:'SG', hk:'HK', tw:'TW', kr:'KR', th:'TH', my:'MY', ph:'PH', ae:'AE', il:'IL', ro:'RO', hu:'HU', ua:'UA', is:'IS', lu:'LU' };
+    const cm = qq.match(/^(.+?)[,\s]+((?:the\s+)?[A-Za-z]+(?:\s[A-Za-z]+)?)$/);
+    if (cm) {
+      const key = cm[2].toLowerCase();
+      if (CN[key]) { ccode = CN[key]; name = cm[1].trim().replace(/,$/, ''); }
+      else { const mm = qq.match(/^(.+?)[,\s]+([A-Za-z]+)$/); if (mm && CN[mm[2].toLowerCase()] && !STATES[mm[2].toUpperCase()]) { ccode = CN[mm[2].toLowerCase()]; name = mm[1].trim().replace(/,$/, ''); } }
+    }
+  }
+
+    // 4.2.4a: the place database spells words out ("Saint Paul", "Fort Worth", "Mount Airy") but some towns are filed short ("Mt Pleasant"),
+    // so a search also tries the other spelling: St/Ste/Ft/Pt/Mt/Lk and N/S/E/W up front, Spgs/Hts/Bch... at the end, "Mc Kinney", "O Fallon"
+    name = name.replace(/\b(st|ste|ft|pt|mt|mtn|lk|spgs|spg|hts|bch|hbr|vly|jct)\./gi, '$1');
+    const LEAD = { st: 'Saint', ste: 'Sainte', ft: 'Fort', pt: 'Point', mt: 'Mount', mtn: 'Mountain', lk: 'Lake', n: 'North', s: 'South', e: 'East', w: 'West' };
+    const BACK = { saint: 'St', sainte: 'Ste', fort: 'Ft', point: 'Pt', mount: 'Mt' };
+    const TAIL = { spgs: 'Springs', spg: 'Spring', hts: 'Heights', bch: 'Beach', hbr: 'Harbor', vly: 'Valley', jct: 'Junction' };
+    const variants = (n) => {
+      const out = [], back = [], add = (v, to) => { if (v && v.toLowerCase() !== n.toLowerCase() && ![...out, ...back].some(o => o.toLowerCase() === v.toLowerCase())) (to || out).push(v); };
+      const akey = aNorm(n);
+      if (ALIAS[akey]) add(ALIAS[akey]);
+      const w = n.split(/\s+/);
+      if (w.length > 1) {
+        const f = w[0].toLowerCase(), rest = w.slice(1).join(' ');
+        if (LEAD[f]) add(LEAD[f] + ' ' + rest);
+        if (BACK[f]) add(BACK[f] + ' ' + rest, back);
+        const l = w[w.length - 1].toLowerCase();
+        if (TAIL[l]) add(w.slice(0, -1).join(' ') + ' ' + TAIL[l]);
+        if ((f === 'mc' || f === 'mac') && w.length === 2) add(w[0] + w[1]);
+        if (f === 'o' && w.length === 2) add("O'" + w[1]);
+      }
+      return [...out, n, ...back].slice(0, 3);
+    };
+    const geo = async (n) => {
+      const r = await fetchWithTimeout('https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(n) + '&count=10&language=en&format=json' + (ccode ? '&countryCode=' + ccode : ''), 8000);
+      if (!r.ok) throw new Error('search ' + r.status);
+      return (await r.json()).results || [];
+    };
+    const vs = variants(name);
+    let list;
+    if (vs.length > 1) {
+      const res = await Promise.all(vs.map((v, k) => k ? geo(v).catch(() => []) : geo(v)));
+      const seen = new Set(); list = [];
+      for (let i = 0; i < 10; i++) {
+        // the long spelling first (it is how most places are filed), then what was typed, then the short spelling
+        res.forEach(a => { const r = a && a[i]; if (r && !seen.has(r.id)) { seen.add(r.id); list.push(r); } });
+      }
+    } else list = await geo(name);
+    if (state) { const f = list.filter(r => r.admin1 === state); if (f.length) list = f; }
+  return list.slice(0, 6);
 }
 
 /* ---------- Sun-path sampling ----------
@@ -2390,7 +2479,7 @@ function renderPlan(app, tabsHtml){
   let html = tabsHtml;
   html += `<div class="plan-row"><button class="plan-btn plan-place" id="planPlaceBtn" aria-label="Change planning place">📍 ${esc(p.loc.name)} · Change ▾</button></div>`;
   if(p.searching){
-    html += `<form class="plan-search" id="planForm"><input id="planQ" type="search" placeholder="Town, or paste lat, lon" autocomplete="off" autocapitalize="words" enterkeyhint="search"><button class="plan-btn" type="submit">Search</button></form>`;
+    html += `<form class="plan-search" id="planForm"><input id="planQ" type="search" placeholder="Town, state or country, or lat, lon" autocomplete="off" autocapitalize="words" enterkeyhint="search"><button class="plan-btn" type="submit">Search</button></form>`;
     if(!p.results.length && !p.msg){
       const rl = recentsFor(p.loc);
       if(rl.length) html += `<div class="note" style="margin:8px 0 4px;">Recent places</div>` + rl.map((r, i) => `<button type="button" class="plan-btn plan-res" data-recent="${i}">📍 ${esc(r.name)}</button>`).join("");
@@ -2655,7 +2744,7 @@ function renderPlan(app, tabsHtml){
     try{
       const res = await geocode(q);
       p.results = res;
-      p.msg = res.length ? "" : "No matches. Try a nearby town, or paste coordinates from Google Maps like 35.7672, -78.6631.";
+      p.msg = res.length ? "" : "No matches. Try adding the state or country (for example Raleigh, NC or Toronto, Canada), a nearby town, or paste coordinates from Google Maps like 35.7672, -78.6631.";
     }catch(err){ p.results = []; p.msg = "Search didn't go through. Check your connection and try again."; }
     p.searching = true; render();
     const q2 = $("planQ"); if(q2) q2.value = q;
@@ -3053,7 +3142,7 @@ $("locInput").addEventListener("input", (e) => {
         `<div class="modal-result" data-lat="${r.latitude}" data-lon="${r.longitude}" data-name="${r.name}, ${r.admin1 || r.country}">
           ${r.name}${r.admin1 ? ", " + r.admin1 : ""}${r.country ? " — " + r.country : ""}
         </div>`
-      ).join("") || '<div class="modal-result" style="cursor:default;color:var(--slate)">No matches</div>';
+      ).join("") || '<div class="modal-result" style="cursor:default;color:var(--slate);white-space:normal;">No matches. Try adding the state or country (for example Raleigh, NC or Toronto, Canada), a nearby town, or coordinates like 35.77, -78.64.</div>';
       document.querySelectorAll(".modal-result[data-lat]").forEach(el => {
         el.addEventListener("click", () => {
           const loc = { name: el.dataset.name, lat: parseFloat(el.dataset.lat), lon: parseFloat(el.dataset.lon) };
