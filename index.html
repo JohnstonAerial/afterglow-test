@@ -1,4 +1,4 @@
-<!-- Afterglow v1.4.1a -->
+<!-- Afterglow v1.4.1b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -169,6 +169,22 @@
   .plan-lbl span{ position:absolute; transform: translate(-50%,-50%); white-space:nowrap; font-size:11px; font-weight:600; padding:2px 7px; border-radius:999px; background: rgba(20,23,44,0.88); border:1px solid currentColor; }
   .plan-legend{ display:flex; flex-wrap:wrap; gap:6px 14px; font-size:12px; color: var(--slate); margin: -4px 0 14px; }
   .plan-legend i{ display:inline-block; width:18px; height:0; border-top:3px solid; vertical-align:middle; margin-right:5px; }
+  #printRoot{ display:none; }
+  @media print{
+    @page{ size: letter; margin: 0.5in; }
+    body > *:not(#printRoot){ display:none !important; }
+    html, body{ background:#fff !important; }
+    #printRoot{ display:block !important; color:#111; font:12.5px -apple-system, "Segoe UI", Roboto, sans-serif; }
+    #printRoot h1{ font:700 22px Georgia, serif; margin:0 0 2px; color:#111; }
+    #printRoot h2{ font:700 10.5px monospace; letter-spacing:.08em; text-transform:uppercase; color:#555; margin:12px 0 4px; border-bottom:1px solid #ccc; padding-bottom:3px; }
+    #printRoot .pr-sub{ color:#555; margin-bottom:10px; }
+    #printRoot .pr-two{ display:flex; gap:16px; align-items:flex-start; }
+    #printRoot .pr-row{ display:flex; justify-content:space-between; gap:10px; padding:2px 0; }
+    #printRoot .pr-row b{ text-align:right; }
+    #printRoot .pr-note{ font-size:11px; color:#555; line-height:1.4; }
+    #printRoot .pr-box{ border:1px solid #bbb; border-radius:6px; padding:7px 10px; margin-top:6px; white-space:pre-wrap; }
+    #printRoot .pr-foot{ display:flex; justify-content:space-between; align-items:flex-end; gap:14px; margin-top:14px; padding-top:8px; border-top:1px solid #ccc; font-size:10px; color:#666; }
+  }
   .plan-clock{ font: 600 28px Georgia, serif; color: var(--sand); margin: 2px 0 4px; }
   .plan-range{ -webkit-appearance:none; appearance:none; width:100%; height:38px; background:transparent; margin:4px 0 0; }
   .plan-range::-webkit-slider-runnable-track{ height:8px; border-radius:4px; background: var(--track); }
@@ -310,7 +326,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.1a</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.1b</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -2055,6 +2071,85 @@ function icsFold(line){
   out.push(cur); return out.join("\r\n");
 }
 function icsStamp(d){ return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, ""); }
+// ---- Printable one-page shoot card (the phone's own Print command, Save as PDF) ----
+let qrLoading = null;
+function loadQrLib(){
+  if(window.qrcode) return Promise.resolve(true);
+  if(qrLoading) return qrLoading;
+  qrLoading = new Promise(res => {
+    const sc = document.createElement("script"); sc.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js";
+    sc.onload = () => res(!!window.qrcode); sc.onerror = () => { qrLoading = null; res(false); };
+    document.head.appendChild(sc); setTimeout(() => res(!!window.qrcode), 6000);
+  });
+  return qrLoading;
+}
+function planQrSvg(text){
+  try{
+    const q = window.qrcode(0, "L"); q.addData(text); q.make();
+    return q.createSvgTag({ cellSize: 3, margin: 12, scalable: true });
+  }catch(e){ return ""; }
+}
+function planCompassSvg(p, pl){
+  const { sun, moon } = pl, cx = 200, cy = 180, R = 150;
+  const pt = (az, L) => [cx + L * Math.sin(az * Math.PI / 180), cy - L * Math.cos(az * Math.PI / 180)];
+  const ray = (az, L, col, w, dash) => { if(az == null) return ""; const [x, y] = pt(az, L); return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(0)}" y2="${y.toFixed(0)}" stroke="${col}" stroke-width="${w}"${dash ? ` stroke-dasharray="${dash}"` : ""}/>`; };
+  const lab = (az, L, t, col, dy) => { if(az == null) return ""; const [x, y] = pt(az, L); return `<text x="${x.toFixed(0)}" y="${(y + (dy || 0)).toFixed(0)}" font-size="11.5" font-weight="700" fill="${col}" text-anchor="${Math.sin(az * Math.PI / 180) > 0.2 ? "start" : Math.sin(az * Math.PI / 180) < -0.2 ? "end" : "middle"}">${t}</text>`; };
+  let sub = "";
+  if(p.subject){
+    const bd = bearingDist(p.loc.lat, p.loc.lon, p.subject.lat, p.subject.lon), [x, y] = pt(bd.brg, R * 0.9);
+    sub = `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(0)}" y2="${y.toFixed(0)}" stroke="#d63a22" stroke-width="3" stroke-dasharray="8 6"/><circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="7" fill="#d63a22"/>` + lab(bd.brg, R * 0.9 + 12, ((p.subject.name || "Subject").replace(/[<>&]/g, "")) + " " + Math.round(bd.brg) + "°", "#b8321a");
+  }
+  return `<svg viewBox="-50 0 500 360" width="100%"><circle cx="${cx}" cy="${cy}" r="${R + 12}" fill="none" stroke="#999" stroke-width="1.5"/><circle cx="${cx}" cy="${cy}" r="${(R + 12) * 2 / 3}" fill="none" stroke="#ccc" stroke-dasharray="3 4"/><circle cx="${cx}" cy="${cy}" r="${(R + 12) / 3}" fill="none" stroke="#ccc" stroke-dasharray="3 4"/>
+    <line x1="${cx}" y1="18" x2="${cx}" y2="342" stroke="#ddd"/><line x1="26" y1="${cy}" x2="374" y2="${cy}" stroke="#ddd"/>
+    <text x="${cx}" y="12" font-size="13" font-weight="700" text-anchor="middle">N</text><text x="404" y="${cy + 5}" font-size="13" font-weight="700" text-anchor="middle">E</text><text x="${cx}" y="356" font-size="13" font-weight="700" text-anchor="middle">S</text><text x="-4" y="${cy + 5}" font-size="13" font-weight="700" text-anchor="middle">W</text>
+    ${ray(sun.riseAz, R, "#c98a00", 4)}${ray(sun.setAz, R, "#e0541c", 4)}${ray(moon.moonriseAz, R * 0.8, "#4f6fc0", 3, "3 6")}${ray(moon.moonsetAz, R * 0.8, "#4f6fc0", 3, "3 6")}${sub}
+    ${sun.riseAz != null ? lab(sun.riseAz, R + 4, "Sunrise " + Math.round(sun.riseAz) + "°", "#8a5f00") : ""}${sun.setAz != null ? lab(sun.setAz, R + 4, "Sunset " + Math.round(sun.setAz) + "°", "#b8400f") : ""}
+    ${moon.moonriseAz != null ? lab(moon.moonriseAz, R * 0.8 + 4, "Moonrise " + Math.round(moon.moonriseAz) + "°", "#3a56a0", 16) : ""}${moon.moonsetAz != null ? lab(moon.moonsetAz, R * 0.8 + 4, "Moonset " + Math.round(moon.moonsetAz) + "°", "#3a56a0", 16) : ""}
+    <circle cx="${cx}" cy="${cy}" r="6" fill="#111"/></svg>`;
+}
+function planPrintHtml(p, pl, qr){
+  const esc = t => String(t).replace(/[<>&"]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
+  const { sun, moon } = pl, tz = p.loc.tz, ft = d => fmtZ(d, tz), mode = p.calMode || "evening", w = planShootWindow(pl, mode);
+  const row = (a, b) => `<div class="pr-row"><span>${a}</span><b>${b}</b></div>`;
+  const az = (d, a) => d ? ft(d) + " · " + Math.round(a) + "° " + compassDir(a) : null;
+  let light = "";
+  if(w) light += row("Shoot window", ft(w.start) + " – " + ft(w.end));
+  if(sun.gEve && sun.set) light += row("Golden hour PM", ft(sun.gEve) + " – " + ft(sun.set));
+  if(sun.set) light += row("Sunset", az(sun.set, sun.setAz));
+  if(sun.gMorn && sun.rise) light += row("Golden hour AM", ft(sun.rise) + " – " + ft(sun.gMorn));
+  if(sun.rise) light += row("Sunrise", az(sun.rise, sun.riseAz));
+  if(moon.moonrise) light += row("Moonrise", ft(moon.moonrise) + " · " + Math.round(moon.moonriseAz) + "°");
+  if(moon.moonset) light += row("Moonset", ft(moon.moonset) + " · " + Math.round(moon.moonsetAz) + "°");
+  light += `<div class="pr-note">${esc(moon.phaseName || "")}${moon.illumPct != null ? ", " + moon.illumPct + "% lit" : ""}. Times are for ${esc(tz || "your phone's time zone")}, calculated.</div>`;
+  let subj = "";
+  if(p.subject){
+    const bd = bearingDist(p.loc.lat, p.loc.lon, p.subject.lat, p.subject.lon);
+    subj = `<h2>The subject</h2>${row(esc(p.subject.name || "Subject"), Math.round(bd.brg) + "° " + compassDir(bd.brg) + " · " + fmtDist(bd.km).split(" · ")[0])}`;
+    if(sun.setAz != null) subj += row("At sunset", lightPhrase(sun.setAz, bd.brg).t);
+    if(sun.riseAz != null) subj += row("At sunrise", lightPhrase(sun.riseAz, bd.brg).t);
+  }
+  const drone = p.vmode !== "ground", hFt = drone ? (p.alt == null ? 400 : p.alt) : 0, obs = loadObst(p.loc), unit = p.unit || "ft";
+  let fly = "";
+  if(drone || obs.length){
+    const m = mode, flat = planVisibility(p, pl, 0, m, []), dv = drone ? planVisibility(p, pl, hFt, m, []) : null;
+    const ev = m === "morning" ? "Sunrise" : "Sunset";
+    fly = `<h2>${drone ? "Flying from " + lenOut(hFt, unit) : "On the ground"}</h2>`;
+    if(flat && dv) fly += row(ev + ", drone at " + lenOut(hFt, unit), ft(dv.t) + " (flat ground " + ft(flat.t) + ")");
+    obs.forEach(o => {
+      const g = planVisibility(p, pl, 0, m, [o]), d = drone ? planVisibility(p, pl, hFt, m, [o]) : null;
+      const f = v => !v ? "" : v.blocked ? (m === "evening" ? "sun lost " : "sun clears ") + ft(v.t) : "not blocked";
+      fly += row(`${esc(o.name)} ${Math.round(o.a1)}°–${Math.round(o.a2)}°, ${lenOut(o.h, unit)} tall, ${lenOut(o.d, unit)} away`, "ground: " + f(g) + (d ? " · " + lenOut(hFt, unit) + ": " + f(d) : ""));
+    });
+  }
+  const sk = [["evening", "Sunset"], ["morning", "Sunrise"]].map(([m, n]) => { const t = planSkyLine(p, sun, m); return t ? n + " " + t : ""; }).filter(Boolean);
+  const sky = `<h2>Sky outlook</h2><div class="pr-note" style="font-size:12px;">${sk.length ? esc(sk.join(" · ")) + ". A snapshot of the forecast on " + esc(planDayLabel(new Date().toISOString().slice(0, 10))) + "; it can change." : "This date is outside the forecast window, so there is no sky score. Directions and times above are still exact."}</div>`;
+  const notes = (p.calNotes || "").trim() ? `<h2>My notes</h2><div class="pr-box">${esc(p.calNotes.trim())}</div>` : "";
+  const title = planEventTitle(p);
+  return `<h1>${esc(title)}</h1><div class="pr-sub">${esc(planDateLabel(p.date))} · ${esc(p.loc.name)}${p.loc.name === p.loc.lat.toFixed(4) + ", " + p.loc.lon.toFixed(4) ? "" : " (" + p.loc.lat.toFixed(4) + ", " + p.loc.lon.toFixed(4) + ")"}</div>
+    <div class="pr-two"><div style="flex:1.2">${planCompassSvg(p, pl)}</div><div style="flex:1"><h2 style="margin-top:0">The light</h2>${light}${subj}</div></div>
+    ${fly}${sky}${notes}
+    <div class="pr-foot"><div>AfterGlow · afterglow.johnstonaerial.com<br>Printed from the Plan tab. Directions and times are calculated. The height of the subject, and anything in the way that you haven't entered, are not known.</div>${qr ? `<div style="width:92px;flex:none;text-align:center;">${qr}<div>Open this plan</div></div>` : ""}</div>`;
+}
 function planGcalUrl(p, pl, mode){
   const w = planShootWindow(pl, mode); if(!w) return null;
   const name = (p.subject && p.subject.name) || p.loc.name, L = planShootLines(p, pl, mode, w);
@@ -2437,6 +2532,7 @@ function renderPlan(app, tabsHtml){
   if(!p.calMode) p.calMode = "evening";
   const cw = planShootWindow(pl, p.calMode);
   html += `<div class="card" style="margin-bottom:12px;"><div class="label">Add to calendar</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.calMode === "evening" ? "on" : ""}" data-cal="evening">Sunset shoot</button><button class="plan-seg-b ${p.calMode === "morning" ? "on" : ""}" data-cal="morning">Sunrise shoot</button></div><input class="plan-name" id="planCalTitle" value="${esc(p.calTitle || "")}" maxlength="80" placeholder="${esc(planEventTitle({ loc: p.loc, subject: p.subject }))}" aria-label="Event title"><textarea class="plan-name" id="planCalNotes" rows="3" maxlength="600" placeholder="Your notes (optional): gear, who is coming, a reminder" aria-label="Your notes" style="resize:vertical;">${esc(p.calNotes || "")}</textarea>${cw ? `<div class="note" style="margin-bottom:8px;">${planDayLabel(p.date)}, ${fmtZ(cw.start, tz)} to ${fmtZ(cw.end, tz)}: an hour before golden hour through ${p.calMode === "morning" ? "the end of golden hour" : "sunset"}.</div><div class="plan-seg" style="margin:0;"><button class="plan-seg-b" id="planIcs">📅 Add to calendar</button><button class="plan-seg-b" id="planGcal">Google Calendar</button></div>` : `<div class="note">The Sun doesn't ${p.calMode === "morning" ? "rise" : "set"} on this date here, so there's no window to add.</div>`}<div class="note" style="margin-top:8px;">The light times go in the event notes, with a link back to this plan. Times are calculated and exact. The sky score is a snapshot of the forecast today.</div></div>`;
+  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Print a shoot card</div><div class="note" style="margin-bottom:8px;font-size:12.5px;">One page with the compass, light times, subject, drone height, what's in the way, your notes and a code that reopens this plan. Choose Save as PDF in the print screen to keep it as a file.</div><button class="plan-seg-b" id="planPrint">🖨 Print / Save as PDF</button></div>`;
   loadPlanSky(p);
   p.live = null;
   const sunRise = sun.rise ? `${fmtZ(sun.rise, tz)} <small>${Math.round(sun.riseAz)}° ${compassDir(sun.riseAz)}</small>` : `<small>${sun.polar === "up" ? "Sun stays up all day" : "Sun stays down all day"}</small>`;
@@ -2579,6 +2675,18 @@ function renderPlan(app, tabsHtml){
   const ct = $("planCalTitle"), cn = $("planCalNotes");
   if(ct) ct.addEventListener("input", () => { p.calTitle = ct.value; saveUi(); });
   if(cn) cn.addEventListener("input", () => { p.calNotes = cn.value; saveUi(); });
+  const pb = $("planPrint");
+  if(pb) pb.addEventListener("click", async () => {
+    pb.textContent = "Preparing…";
+    const ok = await loadQrLib();
+    const qr = ok ? planQrSvg(planLink(p)) : "";
+    let root = $("printRoot"); if(!root){ root = document.createElement("div"); root.id = "printRoot"; document.body.appendChild(root); }
+    root.innerHTML = planPrintHtml(p, pl, qr);
+    pb.textContent = "🖨 Print / Save as PDF";
+    const done = () => { window.removeEventListener("afterprint", done); const r = $("printRoot"); if(r) r.innerHTML = ""; };
+    window.addEventListener("afterprint", done);
+    setTimeout(() => window.print(), 50);
+  });
   const gb = $("planGcal");
   if(gb) gb.addEventListener("click", () => { const u = planGcalUrl(p, pl, p.calMode); if(u) window.open(u, "_blank", "noopener"); });
   const ib = $("planIcs");
