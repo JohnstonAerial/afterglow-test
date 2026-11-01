@@ -1,4 +1,4 @@
-<!-- Afterglow v1.4.3a -->
+<!-- Afterglow v1.4.4a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -326,7 +326,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.3a</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.4a</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -1384,11 +1384,13 @@ function moonPhaseInfo(date){
 // First Moon rise and first Moon set within one local calendar day (the day
 // is a 24-hour window from dayStart). Some days have no rise or no set,
 // depending on where the Moon's ~24h50m cycle falls relative to midnight.
-function findMoonEvents(dayStart, lat, lon){
+function findMoonEvents(dayStart, lat, lon, endAt){
   const obs = moonObserver(lat, lon);
-  const dayEnd = dayStart.getTime() + 24 * 3600000;
-  const r = Astronomy.SearchRiseSet(Astronomy.Body.Moon, obs, +1, dayStart, 1);
-  const st = Astronomy.SearchRiseSet(Astronomy.Body.Moon, obs, -1, dayStart, 1);
+  // endAt lets the Plan tab pass the real next midnight, so a 25-hour day
+  // (clocks fall back) doesn't lose an event in its last hour.
+  const dayEnd = endAt ? endAt.getTime() : dayStart.getTime() + 24 * 3600000;
+  const r = Astronomy.SearchRiseSet(Astronomy.Body.Moon, obs, +1, dayStart, 1.1);
+  const st = Astronomy.SearchRiseSet(Astronomy.Body.Moon, obs, -1, dayStart, 1.1);
   return {
     rise: (r && r.date.getTime() < dayEnd) ? r.date : null,
     set: (st && st.date.getTime() < dayEnd) ? st.date : null
@@ -1408,8 +1410,8 @@ function findNextMoonSet(from, lat, lon){
 // sunrise/sunset closely enough to matter for a shot — a moonrise near
 // sunset (or moonset near sunrise) is the classic "big, warm Moon low over
 // the horizon" window that's worth being in position for.
-function computeMoonInfo(dayStart, lat, lon, sunriseIso, sunsetIso){
-  const events = findMoonEvents(dayStart, lat, lon);
+function computeMoonInfo(dayStart, lat, lon, sunriseIso, sunsetIso, endAt){
+  const events = findMoonEvents(dayStart, lat, lon, endAt);
   const phase = moonPhaseInfo(new Date(dayStart.getTime() + 12 * 3600000));
 
   const riseAz = events.rise ? moonHorizontal(events.rise, lat, lon).az : null;
@@ -1987,7 +1989,7 @@ function computePlan(p){
     set: ss, setAz: ss ? bodyHorizontal(Sun, ss, lat, lon).az : null,
     gMorn, gEve, polar
   };
-  const moon = computeMoonInfo(t0, lat, lon, (sr || t0).toISOString(), (ss || t0).toISOString());
+  const moon = computeMoonInfo(t0, lat, lon, (sr || t0).toISOString(), (ss || t0).toISOString(), t1);
   const sunPts = [], moonPts = [];
   for(let ms = t0.getTime(); ms < t1.getTime(); ms += 10 * 60000){
     const dt = new Date(ms);
@@ -2358,7 +2360,7 @@ function scanDays(p, body, days){
     const ds = planShift(p.date, i), [y, m, d] = ds.split("-").map(Number);
     const t0 = zonedMidnight(y, m, d, tz), t1 = zonedMidnight(y, m, d + 1, tz);
     const inDay = r => (r && r.date >= t0 && r.date < t1) ? r.date : null;
-    const rise = inDay(Astronomy.SearchRiseSet(body, obs, +1, t0, 1)), set = inDay(Astronomy.SearchRiseSet(body, obs, -1, t0, 1));
+    const rise = inDay(Astronomy.SearchRiseSet(body, obs, +1, t0, 1.1)), set = inDay(Astronomy.SearchRiseSet(body, obs, -1, t0, 1.1));
     out.push({ ds, rise: rise ? { t: rise, az: bodyHorizontal(body, rise, lat, lon).az } : null, set: set ? { t: set, az: bodyHorizontal(body, set, lat, lon).az } : null });
   }
   return out;
