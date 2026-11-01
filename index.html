@@ -1,4 +1,4 @@
-<!-- Afterglow v1.4.7a -->
+<!-- Afterglow v1.4.8a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -320,7 +320,7 @@
   }
 </style>
 <!-- Leaflet: free, keyless map tiles for the Map tab's sun-direction view.
-     Loaded synchronously so `L` is guaranteed defined before renderMap() runs. -->
+     Loaded synchronously so `L` is guaranteed defined before renderPlan() runs. -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 </head>
@@ -329,7 +329,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.7a</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.8a</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -687,8 +687,7 @@ let state = {
   hourly: null,
   activeDay: 0,
   mode: "morning", // or "evening"
-  view: "today", // or "outlook" / "map" — which top-level screen is showing
-  mapSliderPct: null, // 0–1 position between sunrise and sunset on the Map tab; null = not yet set for this day
+  view: "today", // or "outlook" / "plan" — which top-level screen is showing
   sample: { morning: null, evening: null }, // sun-path cloud readings
   stale: null // set when showing a cached forecast we couldn't refresh
 };
@@ -1579,17 +1578,14 @@ function render(){
   const tabsHtml = `<div class="view-tabs">
     <button class="view-tab ${state.view==='today'?'active':''}" data-view="today">Today</button>
     <button class="view-tab ${state.view==='outlook'?'active':''}" data-view="outlook">Outlook</button>
-    <button class="view-tab ${state.view==='map'?'active':''}" data-view="map">Map</button>
     <button class="view-tab ${state.view==='plan'?'active':''}" data-view="plan">Plan</button>
   </div>`;
   // The Leaflet instance is tied to a DOM node that app.innerHTML is about to
-  // replace or discard, so tear it down whenever we're not rendering the Map
+  // replace or discard, so tear it down whenever we're not rendering the Plan
   // tab — otherwise Leaflet keeps handles to elements that no longer exist.
-  if(state.view !== "map" && state.view !== "plan") destroySunMap();
+  if(state.view !== "plan") destroySunMap();
   if(state.view === "outlook"){
     renderOutlook(app, tabsHtml);
-  } else if(state.view === "map"){
-    renderMap(app, tabsHtml);
   } else if(state.view === "plan"){
     renderPlan(app, tabsHtml);
   } else {
@@ -1788,13 +1784,9 @@ function renderOutlook(app, tabsHtml){
   }));
 }
 
-/* ---------- Map (sun direction) ----------
-   A free, keyless alternative to a native MapKit sun-direction view: an
-   OpenStreetMap tile layer (via Leaflet) centered on the forecast location,
-   with a compass overlay whose line points along the sun's azimuth at a
-   time chosen by the slider. Altitude/azimuth come from solarHorizontal()
-   above — same solar math the rest of the app already relies on, just
-   evaluated at an arbitrary time-of-day instead of only at sunrise/sunset. */
+/* ---------- Map helpers ----------
+   The Plan tab's map is a free, keyless OpenStreetMap tile layer (via Leaflet).
+   The separate Map tab was folded into Plan in v1.4.8. */
 let sunMapInstance = null;
 
 // Touch screens: one finger scrolls the page, two fingers move or zoom the map
@@ -1822,125 +1814,6 @@ function touchMapMode(map, el){
 
 function destroySunMap(){
   if(sunMapInstance){ sunMapInstance.remove(); sunMapInstance = null; }
-}
-
-// Draws the compass ring + sun-direction line into the overlay SVG. Standalone
-// so both the initial render and every slider "input" event can call it
-// without re-running the rest of renderMap()'s DOM setup.
-function drawCompass(azDeg){
-  const svg = $("mapCompass");
-  if(!svg) return;
-  const cx = 50, cy = 50, r = 42;
-  const rad = azDeg * Math.PI / 180;
-  const x2 = cx + r * Math.sin(rad);
-  const y2 = cy - r * Math.cos(rad);
-  const dirLabels = [["N", 0], ["E", 90], ["S", 180], ["W", 270]].map(([txt, deg]) => {
-    const dr = deg * Math.PI / 180;
-    const lx = cx + (r + 8) * Math.sin(dr);
-    const ly = cy - (r + 8) * Math.cos(dr) + 2.5;
-    return `<text x="${lx}" y="${ly}" font-size="7" fill="#F5E6D3" text-anchor="middle" font-family="'IBM Plex Mono', monospace">${txt}</text>`;
-  }).join("");
-  svg.innerHTML = `
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(245,230,211,0.35)" stroke-width="1"/>
-    <line x1="${cx}" y1="${cy}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="#FF6B35" stroke-width="2.5" stroke-linecap="round"/>
-    <circle cx="${cx}" cy="${cy}" r="3" fill="#F5E6D3"/>
-    ${dirLabels}`;
-}
-
-function renderMap(app, tabsHtml){
-  const { daily, loc, activeDay } = state;
-  const sunrise = new Date(daily.sunrise[activeDay]);
-  const sunset = new Date(daily.sunset[activeDay]);
-  const dayLabel = activeDay === 0 ? "Today"
-    : parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" });
-
-  // Slider spans the daylight window for the active day. Defaults to whichever
-  // event the person was last looking at on the Today tab (sunrise vs sunset),
-  // so switching to Map picks up where they left off rather than always
-  // starting at sunrise.
-  const spanMin = (sunset - sunrise) / 60000;
-  if(state.mapSliderPct == null){
-    state.mapSliderPct = state.mode === "evening" ? 1 : 0;
-  }
-  const curTime = new Date(sunrise.getTime() + state.mapSliderPct * spanMin * 60000);
-  const { alt, az } = solarHorizontal(curTime, loc.lat, loc.lon);
-
-  let html = tabsHtml;
-  html += `<div class="map-nav">
-    <button id="mapPrevDay" ${activeDay === 0 ? "disabled" : ""}>‹</button>
-    <div class="map-date">${dayLabel}</div>
-    <button id="mapNextDay" ${activeDay >= daily.time.length - 1 ? "disabled" : ""}>›</button>
-  </div>`;
-  html += `<div class="map-wrap"><div id="sunMap"></div><svg class="map-compass" id="mapCompass" viewBox="0 0 100 100"></svg><button type="button" class="map-center-btn" id="mapCenterBtn" title="Center on location">⌖</button></div>`;
-  html += `<div class="map-slider-row">
-    <span class="map-slider-icon">🌅</span>
-    <input type="range" id="mapSlider" min="0" max="100" step="1" value="${Math.round(state.mapSliderPct * 100)}">
-    <span class="map-slider-icon">🌇</span>
-  </div>`;
-  html += `<div class="map-readout">
-    <div class="card"><div class="label">Time</div><div class="value" id="mapTimeVal">${fmt(curTime)}</div></div>
-    <div class="card"><div class="label">Azimuth</div><div class="value" id="mapAzVal">${Math.round(az)}° ${compassDir(az)}</div></div>
-    <div class="card"><div class="label">Altitude</div><div class="value" id="mapAltVal">${alt.toFixed(1)}°</div></div>
-  </div>`;
-  html += `<div class="map-note">Drag the slider to see which direction the sun sits at any point between sunrise and sunset. The line points along the sun's compass bearing — it doesn't account for hills, trees, or buildings that might block the actual horizon from where you're standing.</div>`;
-
-  app.innerHTML = html;
-
-  destroySunMap();
-  const mapEl = $("sunMap");
-  if(mapEl && typeof L !== "undefined"){
-    try{
-      sunMapInstance = L.map(mapEl, { attributionControl: true }).setView([loc.lat, loc.lon], 14);
-      touchMapMode(sunMapInstance, mapEl);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      }).addTo(sunMapInstance);
-      L.circleMarker([loc.lat, loc.lon], { radius: 6, color: "#F2B84B", weight: 2, fillColor: "#F2B84B", fillOpacity: 1 }).addTo(sunMapInstance);
-    } catch(e){
-      // A Leaflet init failure here must not take down the rest of this
-      // function — the slider, day nav, and center button below still need
-      // their listeners attached even if the map itself couldn't come up.
-      console.error("Sun map failed to initialize:", e);
-      sunMapInstance = null;
-      mapEl.innerHTML = '<div class="loading" style="padding-top:40%;">Map couldn\'t load — the compass below still works.</div>';
-    }
-  } else if(mapEl){
-    // Leaflet failed to load (blocked script, offline, ad blocker) — degrade
-    // to just the compass, rather than an empty box with no explanation.
-    mapEl.innerHTML = '<div class="loading" style="padding-top:40%;">Map tiles unavailable — the compass below still works.</div>';
-  }
-  drawCompass(az);
-
-  const centerBtn = $("mapCenterBtn");
-  if(centerBtn){
-    centerBtn.addEventListener("click", () => {
-      if(sunMapInstance){
-        // Keep whatever zoom the person has set — recenter, don't reset the view.
-        sunMapInstance.setView([loc.lat, loc.lon], sunMapInstance.getZoom());
-      }
-    });
-  }
-
-  const slider = $("mapSlider");
-  if(slider){
-    slider.addEventListener("input", () => {
-      state.mapSliderPct = slider.value / 100;
-      const t = new Date(sunrise.getTime() + state.mapSliderPct * spanMin * 60000);
-      const pos = solarHorizontal(t, loc.lat, loc.lon);
-      $("mapTimeVal").textContent = fmt(t);
-      $("mapAzVal").textContent = `${Math.round(pos.az)}° ${compassDir(pos.az)}`;
-      $("mapAltVal").textContent = `${pos.alt.toFixed(1)}°`;
-      drawCompass(pos.az);
-    });
-  }
-  const prevBtn = $("mapPrevDay"), nextBtn = $("mapNextDay");
-  if(prevBtn) prevBtn.addEventListener("click", () => {
-    if(state.activeDay > 0){ state.activeDay--; state.mapSliderPct = null; render(); }
-  });
-  if(nextBtn) nextBtn.addEventListener("click", () => {
-    if(state.activeDay < daily.time.length - 1){ state.activeDay++; state.mapSliderPct = null; render(); }
-  });
 }
 
 /* ---------- Plan tab (v1.4.0) ----------
@@ -2349,7 +2222,8 @@ function restoreUi(){
   try{
     const o = JSON.parse(localStorage.getItem(UI_KEY));
     if(!o) return;
-    if(["today", "outlook", "map", "plan"].includes(o.view)) state.view = o.view;
+    if(["today", "outlook", "plan"].includes(o.view)) state.view = o.view;
+    else if(o.view === "map") state.view = "plan"; // the old Map tab was folded into Plan
     const q = o.plan;
     if(q && q.loc && isFinite(q.loc.lat) && isFinite(q.loc.lon)){
       const stale = q.date && q.date < planToday(q.loc.tz);
