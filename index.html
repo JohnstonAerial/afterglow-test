@@ -1,4 +1,4 @@
-<!-- Afterglow v1.4.0f -->
+<!-- Afterglow v1.4.0g -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -310,7 +310,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.0f</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.0g</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -2046,6 +2046,60 @@ function skyCardHtml(p, sun, esc){
   return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky outlook · ${planDayLabel(p.date)} · inside the forecast</div>${rows.join("") || '<div class="note">No sunrise or sunset score for this date.</div>'}<div class="note" style="margin-top:6px;">Same score as Today and Outlook. Forecasts shift, so check again closer to the day.</div></div>`;
 }
 
+// ---- Calendar file (.ics): the shoot window plus the light times, in the event notes.
+function icsEsc(t){ return String(t).replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n"); }
+function icsFold(line){
+  const out = []; let cur = "";
+  for(const ch of line){ if(new TextEncoder().encode(cur + ch).length > 73){ out.push(cur); cur = " " + ch; } else cur += ch; }
+  out.push(cur); return out.join("\r\n");
+}
+function icsStamp(d){ return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, ""); }
+function planShootWindow(pl, mode){
+  const { sun } = pl, HR = 3600000;
+  if(mode === "morning"){
+    if(!sun.rise) return null;
+    return { start: new Date(sun.rise.getTime() - HR), end: sun.gMorn || new Date(sun.rise.getTime() + 45 * 60000) };
+  }
+  if(!sun.set) return null;
+  return { start: new Date((sun.gEve || new Date(sun.set.getTime() - 45 * 60000)).getTime() - HR), end: sun.set };
+}
+function planSkyLine(p, sun, mode){
+  const sk = p.sky; if(!sk || !sk.daily) return "";
+  const i = sk.daily.time.indexOf(p.date); if(i < 0) return "";
+  const evt = mode === "morning" ? sk.daily.sunrise[i] : sk.daily.sunset[i]; if(!evt) return "";
+  const sc = scoreEvent(sk.hourly, nearestHourIdx(sk.hourly.time, evt), sampleAt(sk.sample && sk.sample[mode], evt));
+  return sc ? label(sc.score) + " (" + sc.score + ")" : "";
+}
+function planIcs(p, pl, mode){
+  const w = planShootWindow(pl, mode); if(!w) return null;
+  const { sun, moon } = pl, tz = p.loc.tz, ft = d => fmtZ(d, tz);
+  const name = (p.subject && p.subject.name) || p.loc.name;
+  const L = [];
+  L.push((mode === "morning" ? "Sunrise" : "Sunset") + " shoot window: " + ft(w.start) + " to " + ft(w.end) + (tz ? " (" + tz + ")" : ""));
+  if(sun.gMorn && sun.rise) L.push("Golden hour AM: " + ft(sun.rise) + " to " + ft(sun.gMorn));
+  if(sun.gEve && sun.set) L.push("Golden hour PM: " + ft(sun.gEve) + " to " + ft(sun.set));
+  if(sun.rise) L.push("Sunrise " + ft(sun.rise) + " at " + Math.round(sun.riseAz) + "° " + compassDir(sun.riseAz));
+  if(sun.set) L.push("Sunset " + ft(sun.set) + " at " + Math.round(sun.setAz) + "° " + compassDir(sun.setAz));
+  if(moon.moonrise) L.push("Moonrise " + ft(moon.moonrise) + " at " + Math.round(moon.moonriseAz) + "°");
+  if(moon.moonset) L.push("Moonset " + ft(moon.moonset) + " at " + Math.round(moon.moonsetAz) + "°");
+  if(p.subject){
+    const bd = bearingDist(p.loc.lat, p.loc.lon, p.subject.lat, p.subject.lon);
+    L.push(p.subject.name + ": " + Math.round(bd.brg) + "° " + compassDir(bd.brg) + ", " + fmtDist(bd.km));
+    const az = mode === "morning" ? sun.riseAz : sun.setAz;
+    if(az != null) L.push("Light on " + p.subject.name + ": " + lightPhrase(az, bd.brg).t);
+  }
+  const sky = planSkyLine(p, sun, mode); if(sky) L.push("Sky outlook: " + sky + " (forecast can change)");
+  L.push("Plan: " + planLink(p));
+  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Johnston Aerial//AfterGlow//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "BEGIN:VEVENT",
+    "UID:" + icsStamp(w.start) + "-" + p.loc.lat.toFixed(4) + "-" + p.loc.lon.toFixed(4) + "@afterglow.johnstonaerial.com",
+    "DTSTAMP:" + icsStamp(new Date()), "DTSTART:" + icsStamp(w.start), "DTEND:" + icsStamp(w.end),
+    "SUMMARY:" + icsEsc("Shoot: " + name),
+    "LOCATION:" + icsEsc(p.loc.name), "GEO:" + p.loc.lat.toFixed(6) + ";" + p.loc.lon.toFixed(6),
+    "DESCRIPTION:" + icsEsc(L.join("\n")),
+    "BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + icsEsc("Shoot: " + name), "TRIGGER:-PT2H", "END:VALARM", "END:VEVENT", "END:VCALENDAR"];
+  return lines.map(icsFold).join("\r\n") + "\r\n";
+}
+
 function bearingDist(lat1, lon1, lat2, lon2){
   const r = Math.PI / 180, p1 = lat1 * r, p2 = lat2 * r, dl = (lon2 - lon1) * r;
   const y = Math.sin(dl) * Math.cos(p2), x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
@@ -2255,6 +2309,9 @@ function renderPlan(app, tabsHtml){
   }
   html += skyCardHtml(p, sun, esc);
   html += `<div class="card" style="margin-bottom:12px;"><div class="label">Share this plan</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b" id="planCopy">🔗 Copy link</button>${navigator.share ? '<button class="plan-seg-b" id="planShare">Share…</button>' : ""}</div>${p.shareMsg ? `<div class="note" style="margin-bottom:6px;color:var(--gold);">${esc(p.shareMsg)}</div>` : ""}<div class="note">Reopens this place${p.subject ? ', the subject pin' : ''} and date in AfterGlow on any phone. No account, and nothing is stored on a server: the plan is inside the link.</div></div>`;
+  if(!p.calMode) p.calMode = "evening";
+  const cw = planShootWindow(pl, p.calMode);
+  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Add to calendar</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.calMode === "evening" ? "on" : ""}" data-cal="evening">Sunset shoot</button><button class="plan-seg-b ${p.calMode === "morning" ? "on" : ""}" data-cal="morning">Sunrise shoot</button></div>${cw ? `<div class="note" style="margin-bottom:8px;">${planDayLabel(p.date)}, ${fmtZ(cw.start, tz)} to ${fmtZ(cw.end, tz)}: an hour before golden hour through ${p.calMode === "morning" ? "the end of golden hour" : "sunset"}.</div><button class="plan-seg-b" id="planIcs">📅 Add to calendar</button>` : `<div class="note">The Sun doesn't ${p.calMode === "morning" ? "rise" : "set"} on this date here, so there's no window to add.</div>`}<div class="note" style="margin-top:8px;">The light times go in the event notes, with a link back to this plan. Times are calculated and exact. The sky score is a snapshot of the forecast today.</div></div>`;
   loadPlanSky(p);
   p.live = null;
   const sunRise = sun.rise ? `${fmtZ(sun.rise, tz)} <small>${Math.round(sun.riseAz)}° ${compassDir(sun.riseAz)}</small>` : `<small>${sun.polar === "up" ? "Sun stays up all day" : "Sun stays down all day"}</small>`;
@@ -2376,6 +2433,14 @@ function renderPlan(app, tabsHtml){
     catch(e){ p.shareMsg = "Couldn't copy. Select and copy: " + url; }
     render();
   };
+  document.querySelectorAll(".plan-seg-b[data-cal]").forEach(b => b.addEventListener("click", () => { p.calMode = b.dataset.cal; render(); }));
+  const ib = $("planIcs");
+  if(ib) ib.addEventListener("click", () => {
+    const ics = planIcs(p, pl, p.calMode); if(!ics) return;
+    const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" }), a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "afterglow-shoot-" + p.date + ".ics";
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
   const cb = $("planCopy"); if(cb) cb.addEventListener("click", () => doShare("copy"));
   const sb = $("planShare"); if(sb) sb.addEventListener("click", () => doShare("share"));
   const go = (d) => { if(/^\d{4}-\d{2}-\d{2}$/.test(d)){ p.date = d; p.msg = ""; render(); } };
