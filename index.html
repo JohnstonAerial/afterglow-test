@@ -1,4 +1,4 @@
-<!-- Afterglow v1.4.0c -->
+<!-- Afterglow v1.4.0d -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -303,7 +303,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.0c</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.0d</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -677,6 +677,24 @@ function loadLoc(){
 function saveLoc(loc){
   state.loc = loc;
   localStorage.setItem("afterglow_loc", JSON.stringify(loc));
+  addRecent(loc);
+}
+// Recent places, newest first, shared by the Change-location box and the Plan tab.
+const RECENT_KEY = "afterglow_recent", RECENT_MAX = 6;
+function loadRecents(){
+  try{ const a = JSON.parse(localStorage.getItem(RECENT_KEY)); if(Array.isArray(a)) return a.filter(x => x && isFinite(x.lat) && isFinite(x.lon) && x.name); }catch(e){}
+  return [];
+}
+function addRecent(loc){
+  if(!loc || !isFinite(loc.lat) || !isFinite(loc.lon) || !loc.name || loc.name === "Current location") return;
+  try{
+    const keep = loadRecents().filter(x => Math.abs(x.lat - loc.lat) > 0.002 || Math.abs(x.lon - loc.lon) > 0.002);
+    keep.unshift({ name: String(loc.name).slice(0, 80), lat: loc.lat, lon: loc.lon, tz: loc.tz || null });
+    localStorage.setItem(RECENT_KEY, JSON.stringify(keep.slice(0, RECENT_MAX)));
+  }catch(e){}
+}
+function recentsFor(exceptLoc){
+  return loadRecents().filter(x => !exceptLoc || Math.abs(x.lat - exceptLoc.lat) > 0.002 || Math.abs(x.lon - exceptLoc.lon) > 0.002);
 }
 
 // Open-Meteo occasionally stalls on the 700hPa pressure-level field while serving
@@ -2112,6 +2130,10 @@ function renderPlan(app, tabsHtml){
   html += `<div class="plan-row"><button class="plan-btn plan-place" id="planPlaceBtn" aria-label="Change planning place">📍 ${esc(p.loc.name)} · Change ▾</button></div>`;
   if(p.searching){
     html += `<form class="plan-search" id="planForm"><input id="planQ" type="search" placeholder="Town, or paste lat, lon" autocomplete="off" autocapitalize="words" enterkeyhint="search"><button class="plan-btn" type="submit">Search</button></form>`;
+    if(!p.results.length && !p.msg){
+      const rl = recentsFor(p.loc);
+      if(rl.length) html += `<div class="note" style="margin:8px 0 4px;">Recent places</div>` + rl.map((r, i) => `<button type="button" class="plan-btn plan-res" data-recent="${i}">📍 ${esc(r.name)}</button>`).join("");
+    }
     html += p.results.map((r, i) => `<button type="button" class="plan-btn plan-res" data-i="${i}">${esc(r.name)}${r.admin1 ? ", " + esc(r.admin1) : ""}${r.country ? " · " + esc(r.country) : ""}</button>`).join("");
     html += `<button type="button" class="plan-btn plan-res" id="planSaved">Use my saved location (${esc(state.loc.name)})</button>`;
   }
@@ -2213,9 +2235,16 @@ function renderPlan(app, tabsHtml){
   $("planToday").addEventListener("click", () => go(planToday(p.loc.tz)));
   $("planDate").addEventListener("change", (e) => go(e.target.value));
   $("planPlaceBtn").addEventListener("click", () => { p.searching = !p.searching; p.results = []; p.msg = ""; render(); if(p.searching){ const q = $("planQ"); if(q) q.focus(); } });
-  const setPlace = (loc) => { p.loc = loc; p.subject = null; p.view = null; p.scan = null; p.searching = false; p.results = []; p.msg = ""; p.date = p.date || planToday(loc.tz); render(); };
+  const setPlace = (loc) => { addRecent(loc); p.loc = loc; p.subject = null; p.view = null; p.scan = null; p.searching = false; p.results = []; p.msg = ""; p.date = p.date || planToday(loc.tz); render(); };
   const saved = $("planSaved");
   if(saved) saved.addEventListener("click", () => setPlace({ name: state.loc.name, lat: state.loc.lat, lon: state.loc.lon, tz: state.tz || null }));
+  document.querySelectorAll(".plan-res[data-recent]").forEach(b => b.addEventListener("click", () => {
+    const r = recentsFor(p.loc)[+b.dataset.recent];
+    if(!r) return;
+    if(r.tz){ setPlace({ name: r.name, lat: r.lat, lon: r.lon, tz: r.tz }); return; }
+    p.msg = "Looking up the time zone…"; render();
+    planTimeZoneFor(r.lat, r.lon).then(z => setPlace({ name: r.name, lat: r.lat, lon: r.lon, tz: z }));
+  }));
   document.querySelectorAll(".plan-res[data-i]").forEach(b => b.addEventListener("click", () => {
     const r = p.results[+b.dataset.i];
     setPlace({ name: r.name + (r.admin1 ? ", " + r.admin1 : ""), lat: r.latitude, lon: r.longitude, tz: r.timezone || null });
@@ -2433,7 +2462,7 @@ async function boot(loc){
 
 /* ---------- Location modal ---------- */
 const backdrop = $("modalBackdrop");
-$("locBtn").addEventListener("click", () => { backdrop.classList.add("open"); $("locInput").focus(); });
+$("locBtn").addEventListener("click", () => { backdrop.classList.add("open"); $("locInput").value = ""; showRecentPlaces(); $("locInput").focus(); });
 $("closeModal").addEventListener("click", () => backdrop.classList.remove("open"));
 backdrop.addEventListener("click", (e) => { if(e.target === backdrop) backdrop.classList.remove("open"); });
 
@@ -2601,10 +2630,20 @@ $("notifSave").addEventListener("click", async () => {
 updateNotifButtonIndicator();
 
 let searchTimeout;
+function showRecentPlaces(){
+  const esc = t => String(t).replace(/[<>&"]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
+  const list = recentsFor(state.loc);
+  $("locResults").innerHTML = list.length ? '<div class="modal-result" style="cursor:default;color:var(--slate);font-size:12px;">Recent places</div>' + list.map((r, i) =>
+    `<div class="modal-result" data-recent="${i}">📍 ${esc(r.name)}</div>`).join("") : "";
+  document.querySelectorAll(".modal-result[data-recent]").forEach(el => el.addEventListener("click", () => {
+    const r = list[+el.dataset.recent], loc = { name: r.name, lat: r.lat, lon: r.lon };
+    saveLoc(loc); backdrop.classList.remove("open"); boot(loc);
+  }));
+}
 $("locInput").addEventListener("input", (e) => {
   clearTimeout(searchTimeout);
   const q = e.target.value.trim();
-  if(q.length < 2){ $("locResults").innerHTML = ""; return; }
+  if(q.length < 2){ showRecentPlaces(); return; }
   const ll = parseLatLon(q);
   if(ll){
     const nm = ll.lat.toFixed(4) + ", " + ll.lon.toFixed(4);
