@@ -1,4 +1,4 @@
-<!-- Afterglow v1.3.2b -->
+<!-- Afterglow v1.4.0a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -154,6 +154,25 @@
   .map-readout .card{ flex: 1; text-align: center; }
   .map-note{ font-size: 12px; line-height: 1.5; color: var(--slate-dim); }
 
+  /* ---------- Plan tab ---------- */
+  .plan-row{ display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+  .plan-row .grow{ flex:1; min-width:0; }
+  .plan-btn{ background: var(--card); border:1px solid var(--line); color: var(--sand); border-radius: 12px; padding: 9px 12px; font-size: 14px; cursor:pointer; font-family: inherit; }
+  .plan-btn.round{ width:36px; height:36px; padding:0; border-radius:50%; font-size:16px; }
+  .plan-place{ flex:1; min-width:0; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .plan-date{ flex:1; min-width:0; background: var(--card); border:1px solid var(--line); color: var(--sand); border-radius:12px; padding:8px 10px; font-size:15px; font-family: inherit; color-scheme: dark; }
+  .plan-search{ display:flex; gap:8px; margin-bottom:8px; }
+  .plan-search input{ flex:1; min-width:0; background: var(--card); border:1px solid var(--line); color: var(--sand); border-radius:12px; padding:9px 12px; font-size:16px; font-family: inherit; }
+  .plan-res{ display:block; width:100%; text-align:left; margin-bottom:6px; }
+  .plan-msg{ font-size:12.5px; color: var(--slate); margin: 0 0 10px; line-height:1.5; }
+  .plan-lbl{ background:none; border:none; }
+  .plan-lbl span{ position:absolute; transform: translate(-50%,-50%); white-space:nowrap; font-size:11px; font-weight:600; padding:2px 7px; border-radius:999px; background: rgba(20,23,44,0.88); border:1px solid currentColor; }
+  .plan-legend{ display:flex; flex-wrap:wrap; gap:6px 14px; font-size:12px; color: var(--slate); margin: -4px 0 14px; }
+  .plan-legend i{ display:inline-block; width:18px; height:0; border-top:3px solid; vertical-align:middle; margin-right:5px; }
+  .plan-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px; }
+  .plan-dial{ width:100%; max-width:340px; display:block; margin: 0 auto 6px; }
+  .plan-dial text{ font-family: 'IBM Plex Mono', monospace; }
+
   /* ---------- 7-day strip ---------- */
   .section-title{ font-family: Georgia, serif; font-size: 15px; color: var(--slate); text-transform: uppercase; letter-spacing: 0.1em; margin: 26px 0 12px; }
   .days{ display:flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
@@ -274,7 +293,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.3.2b</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.0a</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -1491,15 +1510,18 @@ function render(){
     <button class="view-tab ${state.view==='today'?'active':''}" data-view="today">Today</button>
     <button class="view-tab ${state.view==='outlook'?'active':''}" data-view="outlook">Outlook</button>
     <button class="view-tab ${state.view==='map'?'active':''}" data-view="map">Map</button>
+    <button class="view-tab ${state.view==='plan'?'active':''}" data-view="plan">Plan</button>
   </div>`;
   // The Leaflet instance is tied to a DOM node that app.innerHTML is about to
   // replace or discard, so tear it down whenever we're not rendering the Map
   // tab — otherwise Leaflet keeps handles to elements that no longer exist.
-  if(state.view !== "map") destroySunMap();
+  if(state.view !== "map" && state.view !== "plan") destroySunMap();
   if(state.view === "outlook"){
     renderOutlook(app, tabsHtml);
   } else if(state.view === "map"){
     renderMap(app, tabsHtml);
+  } else if(state.view === "plan"){
+    renderPlan(app, tabsHtml);
   } else {
     renderToday(app, tabsHtml);
   }
@@ -1826,6 +1848,255 @@ function renderMap(app, tabsHtml){
   });
 }
 
+/* ---------- Plan tab (v1.4.0) ----------
+   Sun and Moon directions for ANY date and ANY place, with no weather involved:
+   it is all geometry (Astronomy Engine, already loaded for the Moon card), so it
+   is exact years ahead. The planning place is separate from the saved location,
+   so planning a shoot elsewhere never touches the place your alerts use. Times
+   are shown in the planning place's own time zone, not the phone's. */
+function planZoneOk(tz){ try{ new Intl.DateTimeFormat([], { timeZone: tz }); return !!tz; }catch(e){ return false; } }
+function tzOffsetMs(tz, utcMs){
+  const t = utcMs - (utcMs % 1000);
+  const f = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const p = {};
+  f.formatToParts(new Date(t)).forEach(x => { p[x.type] = x.value; });
+  return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - t;
+}
+// The instant a calendar day starts in a given time zone (falls back to the phone's zone).
+function zonedMidnight(y, m, d, tz){
+  if(!planZoneOk(tz)) return new Date(y, m - 1, d);
+  const guess = Date.UTC(y, m - 1, d);
+  let t = guess - tzOffsetMs(tz, guess);
+  t = guess - tzOffsetMs(tz, t);
+  return new Date(t);
+}
+function fmtZ(d, tz){
+  const o = { hour: "numeric", minute: "2-digit" };
+  if(planZoneOk(tz)) o.timeZone = tz;
+  return d.toLocaleTimeString([], o);
+}
+function localHM(d, tz){
+  const o = { hourCycle: "h23", hour: "2-digit", minute: "2-digit" };
+  if(planZoneOk(tz)) o.timeZone = tz;
+  const p = {};
+  new Intl.DateTimeFormat("en-US", o).formatToParts(d).forEach(x => { p[x.type] = x.value; });
+  return { h: +p.hour % 24, m: +p.minute };
+}
+function planToday(tz){
+  const o = planZoneOk(tz) ? { timeZone: tz } : {};
+  return new Date().toLocaleDateString("en-CA", o);
+}
+function planShift(str, n){
+  const [y, m, d] = str.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+}
+function planDateLabel(str){
+  const [y, m, d] = str.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString([], { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+}
+function bodyHorizontal(body, date, lat, lon){
+  const obs = new Astronomy.Observer(lat, lon, 0);
+  const eq = Astronomy.Equator(body, date, obs, true, true);
+  const hor = Astronomy.Horizon(date, obs, eq.ra, eq.dec, "normal");
+  return { alt: hor.altitude, az: hor.azimuth };
+}
+function computePlan(p){
+  const { lat, lon, tz } = p.loc;
+  const [y, m, d] = p.date.split("-").map(Number);
+  const t0 = zonedMidnight(y, m, d, tz), t1 = zonedMidnight(y, m, d + 1, tz);
+  const obs = new Astronomy.Observer(lat, lon, 0);
+  const inDay = r => (r && r.date >= t0 && r.date < t1) ? r.date : null;
+  const Sun = Astronomy.Body.Sun;
+  const sr = inDay(Astronomy.SearchRiseSet(Sun, obs, +1, t0, 1));
+  const ss = inDay(Astronomy.SearchRiseSet(Sun, obs, -1, t0, 1));
+  const gMorn = sr ? inDay(Astronomy.SearchAltitude(Sun, obs, +1, t0, 1, 6)) : null;
+  const gEve = ss ? inDay(Astronomy.SearchAltitude(Sun, obs, -1, t0, 1, 6)) : null;
+  let polar = null;
+  if(!sr && !ss){
+    const noon = new Date((t0.getTime() + t1.getTime()) / 2);
+    polar = bodyHorizontal(Sun, noon, lat, lon).alt > 0 ? "up" : "down";
+  }
+  const sun = {
+    rise: sr, riseAz: sr ? bodyHorizontal(Sun, sr, lat, lon).az : null,
+    set: ss, setAz: ss ? bodyHorizontal(Sun, ss, lat, lon).az : null,
+    gMorn, gEve, polar
+  };
+  const moon = computeMoonInfo(t0, lat, lon, (sr || t0).toISOString(), (ss || t0).toISOString());
+  const sunPts = [], moonPts = [];
+  for(let ms = t0.getTime(); ms < t1.getTime(); ms += 10 * 60000){
+    const dt = new Date(ms);
+    sunPts.push({ t: dt, ...bodyHorizontal(Sun, dt, lat, lon) });
+    moonPts.push({ t: dt, ...bodyHorizontal(Astronomy.Body.Moon, dt, lat, lon) });
+  }
+  return { t0, t1, sun, moon, sunPts, moonPts };
+}
+
+function fmtRangeZ(a, b, tz){
+  const x = fmtZ(a, tz), y = fmtZ(b, tz);
+  const sx = x.slice(-2), sy = y.slice(-2);
+  return (sx === sy && /^[AP]M$/i.test(sx) ? x.slice(0, -3).trim() : x) + " – " + y;
+}
+function planDialSVG(pl, tz){
+  const R = 130, cx = 160, cy = 160;
+  const xy = (alt, az) => { const r = (90 - Math.max(alt, 0)) / 90 * R, a = az * Math.PI / 180; return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; };
+  const arc = pts => {
+    let dstr = "", prevUp = false;
+    pts.forEach(p => {
+      if(p.alt >= 0){ const [x, y] = xy(p.alt, p.az); dstr += (prevUp ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1) + " "; prevUp = true; }
+      else prevUp = false;
+    });
+    return dstr;
+  };
+  const ticks = (pts, every, color, dy) => pts.filter(p => p.alt >= 0).map(p => {
+    const hm = localHM(p.t, tz);
+    if(hm.m !== 0 || hm.h % every !== 0) return "";
+    const [x, y] = xy(p.alt, p.az);
+    const lab = (hm.h % 12 || 12) + (hm.h < 12 ? "a" : "p");
+    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="${color}"/><text x="${x.toFixed(1)}" y="${(y + dy).toFixed(1)}" font-size="9" text-anchor="middle" fill="${color}">${lab}</text>`;
+  }).join("");
+  const dirs = [["N", 0, 0, -8], ["E", 90, 11, 4], ["S", 180, 0, 16], ["W", 270, -11, 4]]
+    .map(([t, , dx, dy], i) => { const a = [0, 90, 180, 270][i] * Math.PI / 180; return `<text x="${(cx + (R) * Math.sin(a) + dx).toFixed(1)}" y="${(cy - R * Math.cos(a) + dy).toFixed(1)}" font-size="13" font-weight="700" fill="var(--sand)" text-anchor="middle">${t}</text>`; }).join("");
+  return `<svg class="plan-dial" viewBox="0 0 320 320" role="img" aria-label="Sun and Moon paths across the sky">
+    <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="rgba(245,230,211,0.3)" stroke-width="1.5"/>
+    <circle cx="${cx}" cy="${cy}" r="${R * 2 / 3}" fill="none" stroke="rgba(245,230,211,0.14)" stroke-dasharray="3 4"/>
+    <circle cx="${cx}" cy="${cy}" r="${R / 3}" fill="none" stroke="rgba(245,230,211,0.14)" stroke-dasharray="3 4"/>
+    <line x1="${cx}" y1="${cy - R}" x2="${cx}" y2="${cy + R}" stroke="rgba(245,230,211,0.14)"/><line x1="${cx - R}" y1="${cy}" x2="${cx + R}" y2="${cy}" stroke="rgba(245,230,211,0.14)"/>
+    <text x="${cx + 4}" y="${cy - R / 3 + 11}" font-size="9" fill="var(--slate)">60°</text><text x="${cx + 4}" y="${cy - 2 * R / 3 + 11}" font-size="9" fill="var(--slate)">30°</text>
+    <path d="${arc(pl.moonPts)}" fill="none" stroke="#9db4e8" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 6"/>
+    <path d="${arc(pl.sunPts)}" fill="none" stroke="var(--gold)" stroke-width="3.5" stroke-linecap="round"/>
+    ${ticks(pl.moonPts, 3, "#9db4e8", 13)}${ticks(pl.sunPts, 2, "var(--gold)", -7)}
+    ${dirs}<circle cx="${cx}" cy="${cy}" r="4" fill="var(--sand)"/></svg>`;
+}
+
+async function planTimeZoneFor(lat, lon){
+  try{
+    const res = await fetchWithTimeout(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise&forecast_days=1&timezone=auto`, 6000);
+    if(!res.ok) return null;
+    const j = await res.json();
+    return (j && j.timezone) || null;
+  }catch(e){ return null; }
+}
+
+function renderPlan(app, tabsHtml){
+  if(!state.plan){
+    state.plan = { loc: { name: state.loc.name, lat: state.loc.lat, lon: state.loc.lon, tz: state.tz || null }, date: null, searching: false, results: [], msg: "" };
+  }
+  const p = state.plan;
+  if(!p.date) p.date = planToday(p.loc.tz);
+  const esc = t => String(t).replace(/[<>&"]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
+  const tz = p.loc.tz;
+  let pl;
+  try{ pl = computePlan(p); }
+  catch(e){
+    console.error("Plan failed:", e);
+    app.innerHTML = tabsHtml + '<div class="err-box"><div class="err-head">Couldn\'t work out the Sun and Moon for that date</div><div class="err-body">Try another date or place.</div></div>';
+    return;
+  }
+  const { sun, moon } = pl;
+  const tzNote = planZoneOk(tz) ? "" : " The time zone for this place wasn't found, so times are shown in your phone's zone.";
+
+  let html = tabsHtml;
+  html += `<div class="plan-row"><button class="plan-btn plan-place" id="planPlaceBtn" aria-label="Change planning place">📍 ${esc(p.loc.name)} · Change ▾</button></div>`;
+  if(p.searching){
+    html += `<form class="plan-search" id="planForm"><input id="planQ" type="search" placeholder="Town, or lat, lon" autocomplete="off" autocapitalize="words" enterkeyhint="search"><button class="plan-btn" type="submit">Search</button></form>`;
+    html += p.results.map((r, i) => `<button type="button" class="plan-btn plan-res" data-i="${i}">${esc(r.name)}${r.admin1 ? ", " + esc(r.admin1) : ""}${r.country ? " · " + esc(r.country) : ""}</button>`).join("");
+    html += `<button type="button" class="plan-btn plan-res" id="planSaved">Use my saved location (${esc(state.loc.name)})</button>`;
+  }
+  if(p.msg) html += `<div class="plan-msg">${esc(p.msg)}</div>`;
+  html += `<div class="plan-row"><button class="plan-btn round" id="planPrev" aria-label="Previous day">‹</button><input class="plan-date" type="date" id="planDate" value="${p.date}" min="1900-01-01" max="2100-12-31" aria-label="Date"><button class="plan-btn round" id="planNext" aria-label="Next day">›</button><button class="plan-btn" id="planToday">Today</button></div>`;
+  html += `<div class="map-date" style="margin-bottom:12px;">${planDateLabel(p.date)}</div>`;
+  html += `<div class="map-wrap"><div id="sunMap"></div><button type="button" class="map-center-btn" id="planCenter" title="Center on place">⌖</button></div>`;
+  html += `<div class="plan-legend"><span style="color:var(--gold)"><i></i>Sunrise</span><span style="color:var(--ember)"><i></i>Sunset</span><span style="color:#9db4e8"><i style="border-top-style:dashed"></i>Moonrise / Moonset</span></div>`;
+
+  const sunRise = sun.rise ? `${fmtZ(sun.rise, tz)} <small>${Math.round(sun.riseAz)}° ${compassDir(sun.riseAz)}</small>` : `<small>${sun.polar === "up" ? "Sun stays up all day" : "Sun stays down all day"}</small>`;
+  const sunSet = sun.set ? `${fmtZ(sun.set, tz)} <small>${Math.round(sun.setAz)}° ${compassDir(sun.setAz)}</small>` : `<small>${sun.polar === "up" ? "Sun doesn't set" : "No sunset"}</small>`;
+  const gm = sun.gMorn && sun.rise ? fmtRangeZ(sun.rise, sun.gMorn, tz) : "—";
+  const ge = sun.gEve && sun.set ? fmtRangeZ(sun.gEve, sun.set, tz) : "—";
+  html += `<div class="plan-grid">
+    <div class="card"><div class="label">☀ Sunrise</div><div class="value">${sunRise}</div></div>
+    <div class="card"><div class="label">☀ Sunset</div><div class="value">${sunSet}</div></div>
+    <div class="card"><div class="label">Golden hour AM</div><div class="value" style="font-size:15px;">${gm}</div></div>
+    <div class="card"><div class="label">Golden hour PM</div><div class="value" style="font-size:15px;">${ge}</div></div>
+  </div>`;
+  const mRise = moon.moonrise ? `${fmtZ(moon.moonrise, tz)} <small>${Math.round(moon.moonriseAz)}° ${compassDir(moon.moonriseAz)}</small>` : `<small>Doesn't rise today</small>`;
+  const mSet = moon.moonset ? `${fmtZ(moon.moonset, tz)} <small>${Math.round(moon.moonsetAz)}° ${compassDir(moon.moonsetAz)}${moon.moonsetNextDay ? " · next day" : ""}</small>` : `<small>Doesn't set today</small>`;
+  html += `<div class="card" style="margin-bottom:12px;">
+    <div class="label">${moon.emoji} ${moon.phaseName} · ${moon.illumPct}% lit</div>
+    <div class="plan-grid" style="margin:10px 0 0;"><div><div class="label">Moonrise</div><div class="value">${mRise}</div></div><div><div class="label">Moonset</div><div class="value">${mSet}</div></div></div>
+  </div>`;
+  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Sky view · you are at the center</div>${planDialSVG(pl, tz)}
+    <div class="map-note" style="text-align:center;">North is up. The closer to the center, the higher in the sky; the edge is the horizon. Orange is the Sun with hour marks, dotted blue is the Moon.</div></div>`;
+  html += `<div class="map-note">Directions and times are calculated, so they are exact for any date, but this is geometry only: there is no sky forecast past about ten days. Rise and set times are for a flat horizon; hills and buildings change what you actually see.${esc(tzNote)}</div>`;
+  app.innerHTML = html;
+
+  destroySunMap();
+  const mapEl = $("sunMap");
+  const { lat, lon } = p.loc;
+  if(mapEl && typeof L !== "undefined"){
+    try{
+      sunMapInstance = L.map(mapEl, { attributionControl: true }).setView([lat, lon], 13);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(sunMapInstance);
+      L.circleMarker([lat, lon], { radius: 6, color: "#F2B84B", weight: 2, fillColor: "#F2B84B", fillOpacity: 1 }).addTo(sunMapInstance);
+      const KM = 1.5;
+      const line = (az, color, text, dashed) => {
+        if(az == null) return;
+        const e = projectPoint(lat, lon, az, KM);
+        L.polyline([[lat, lon], [e.lat, e.lon]], { color: color, weight: 4, opacity: 0.95, dashArray: dashed ? "2 8" : null, lineCap: "round" }).addTo(sunMapInstance);
+        L.marker([e.lat, e.lon], { icon: L.divIcon({ className: "plan-lbl", iconSize: [0, 0], html: `<span style="color:${color}">${text}</span>` }), interactive: false }).addTo(sunMapInstance);
+      };
+      line(sun.riseAz, "#F2B84B", `Sunrise ${Math.round(sun.riseAz)}°`, false);
+      line(sun.setAz, "#FF6B35", `Sunset ${Math.round(sun.setAz)}°`, false);
+      line(moon.moonriseAz, "#9db4e8", `Moonrise ${moon.moonriseAz == null ? "" : Math.round(moon.moonriseAz) + "°"}`, true);
+      line(moon.moonsetAz, "#9db4e8", `Moonset ${moon.moonsetAz == null ? "" : Math.round(moon.moonsetAz) + "°"}`, true);
+    }catch(e){
+      console.error("Plan map failed to initialize:", e);
+      sunMapInstance = null;
+      mapEl.innerHTML = '<div class="loading" style="padding-top:40%;">Map couldn\'t load — the sky view below still works.</div>';
+    }
+  } else if(mapEl){
+    mapEl.innerHTML = '<div class="loading" style="padding-top:40%;">Map tiles unavailable — the sky view below still works.</div>';
+  }
+  const center = $("planCenter");
+  if(center) center.addEventListener("click", () => { if(sunMapInstance) sunMapInstance.setView([lat, lon], sunMapInstance.getZoom()); });
+
+  const go = (d) => { if(/^\d{4}-\d{2}-\d{2}$/.test(d)){ p.date = d; p.msg = ""; render(); } };
+  $("planPrev").addEventListener("click", () => go(planShift(p.date, -1)));
+  $("planNext").addEventListener("click", () => go(planShift(p.date, 1)));
+  $("planToday").addEventListener("click", () => go(planToday(p.loc.tz)));
+  $("planDate").addEventListener("change", (e) => go(e.target.value));
+  $("planPlaceBtn").addEventListener("click", () => { p.searching = !p.searching; p.results = []; p.msg = ""; render(); if(p.searching){ const q = $("planQ"); if(q) q.focus(); } });
+  const setPlace = (loc) => { p.loc = loc; p.searching = false; p.results = []; p.msg = ""; p.date = p.date || planToday(loc.tz); render(); };
+  const saved = $("planSaved");
+  if(saved) saved.addEventListener("click", () => setPlace({ name: state.loc.name, lat: state.loc.lat, lon: state.loc.lon, tz: state.tz || null }));
+  document.querySelectorAll(".plan-res[data-i]").forEach(b => b.addEventListener("click", () => {
+    const r = p.results[+b.dataset.i];
+    setPlace({ name: r.name + (r.admin1 ? ", " + r.admin1 : ""), lat: r.latitude, lon: r.longitude, tz: r.timezone || null });
+  }));
+  const form = $("planForm");
+  if(form) form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const q = $("planQ").value.trim();
+    if(!q) return;
+    const m = q.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
+    if(m){
+      const la = parseFloat(m[1]), lo = parseFloat(m[2]);
+      if(Math.abs(la) > 90 || Math.abs(lo) > 180){ p.msg = "Latitude is -90 to 90 and longitude is -180 to 180."; render(); return; }
+      p.msg = "Looking up the time zone…"; render();
+      const ztz = await planTimeZoneFor(la, lo);
+      setPlace({ name: la.toFixed(4) + ", " + lo.toFixed(4), lat: la, lon: lo, tz: ztz });
+      return;
+    }
+    p.msg = "Searching…"; render();
+    try{
+      const res = await geocode(q);
+      p.results = res;
+      p.msg = res.length ? "" : "No matches. Try a nearby town, or type coordinates like 35.50, -78.66.";
+    }catch(err){ p.results = []; p.msg = "Search didn't go through. Check your connection and try again."; }
+    p.searching = true; render();
+    const q2 = $("planQ"); if(q2) q2.value = q;
+  });
+}
+
 function var2color(val, ref, sweetOrMax, inverse){
   // returns a hex for the bar fill
   let pct;
@@ -1900,7 +2171,7 @@ function cacheForecast(loc, data, sample){
     localStorage.setItem(CACHE_KEY, JSON.stringify({
       savedAt: Date.now(),
       loc: { lat: loc.lat, lon: loc.lon, name: loc.name },
-      daily: data.daily, hourly: data.hourly,
+      daily: data.daily, hourly: data.hourly, tz: data.timezone || null,
       windAvailable: !!data.windAvailable,
       sample: sample || { morning: null, evening: null }
     }));
@@ -1971,6 +2242,7 @@ async function boot(loc){
     );
     state.daily = data.daily;
     state.hourly = data.hourly;
+    state.tz = data.timezone || null;
     // Sun-path samples need the sunrise/sunset instants to compute an azimuth,
     // so they go out after core. Both are optional — a failure just falls back
     // to the blind ceiling rather than costing us the forecast.
@@ -1989,6 +2261,7 @@ async function boot(loc){
     if(cached){
       state.daily = cached.daily;
       state.hourly = cached.hourly;
+      state.tz = cached.tz || null;
       state.sample = cached.sample || { morning: null, evening: null };
       const initial = pickInitialView(cached.daily, loc.lat, loc.lon);
       state.activeDay = initial.activeDay;
