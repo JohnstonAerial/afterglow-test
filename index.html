@@ -1,4 +1,4 @@
-<!-- Afterglow v1.4.4a -->
+<!-- Afterglow v1.4.5a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -326,7 +326,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.4a</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.5a</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -2564,7 +2564,8 @@ function renderPlan(app, tabsHtml){
     <div class="label">${moon.emoji} ${moon.phaseName} · ${moon.illumPct}% lit</div>
     <div class="plan-grid" style="margin:10px 0 0;"><div><div class="label">Moonrise</div><div class="value">${mRise}</div></div><div><div class="label">Moonset</div><div class="value">${mSet}</div></div></div>
   </div>`;
-  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Sky view · you are at the center</div>${planDialSVG(pl, tz)}
+  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Sky view · you are at the center</div><div class="plan-clock" id="planTime2" style="margin-top:6px;">&nbsp;</div>
+    <input type="range" class="plan-range" id="planSlider2" min="0" max="${dayMin - 1}" step="1" value="${p.min}" aria-label="Time of day (sky view)" style="--track:${track}">${planDialSVG(pl, tz)}
     <div class="map-note" style="text-align:center;">North is up. The closer to the center, the higher in the sky; the edge is the horizon. Orange is the Sun with hour marks, dotted blue is the Moon.</div></div>`;
   html += `<div class="map-note">Directions and times are calculated, so they are exact for any date, but this is geometry only: there is no sky forecast past about ten days. Rise and set times are for a flat horizon; hills and buildings change what you actually see.${esc(tzNote)}</div>`;
   app.innerHTML = html;
@@ -2625,6 +2626,7 @@ function renderPlan(app, tabsHtml){
     const S = bodyHorizontal(Astronomy.Body.Sun, t, la, lo), M = bodyHorizontal(Astronomy.Body.Moon, t, la, lo);
     const desc = h => h.alt >= 0 ? `${Math.round(h.az)}° ${compassDir(h.az)} · ${Math.round(h.alt)}° up` : "below the horizon";
     const clock = $("planTime"); if(clock) clock.textContent = fmtZ(t, tz);
+    const clock2 = $("planTime2"); if(clock2) clock2.textContent = fmtZ(t, tz);
     const lbl = $("planReadLbl"); if(lbl) lbl.textContent = "At " + fmtZ(t, tz);
     let rows = `<div class="plan-row2"><span>Sun</span><b>${desc(S)}</b></div><div class="plan-row2"><span>Moon</span><b>${desc(M)}</b></div>`;
     if(p.subject){
@@ -2634,6 +2636,7 @@ function renderPlan(app, tabsHtml){
     }
     const ro = $("planReadout"); if(ro) ro.innerHTML = rows;
     const sl = $("planSlider"); if(sl && +sl.value !== min) sl.value = min;
+    const sl2 = $("planSlider2"); if(sl2 && +sl2.value !== min) sl2.value = min;
     if(p.live){
       [["sun", S, "#FF6B35"], ["moon", M, "#9db4e8"]].forEach(([k, h]) => {
         const L1 = p.live[k]; if(!L1) return;
@@ -2652,6 +2655,8 @@ function renderPlan(app, tabsHtml){
   }
   const slider = $("planSlider");
   if(slider) slider.addEventListener("input", () => applyTime(+slider.value, true));
+  const slider2 = $("planSlider2");
+  if(slider2) slider2.addEventListener("input", () => applyTime(+slider2.value, true));
   document.querySelectorAll("[data-jump]").forEach(b => b.addEventListener("click", () => applyTime(+b.dataset.jump, true)));
   applyTime(p.min, false);
   const center = $("planCenter");
