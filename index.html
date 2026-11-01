@@ -1,4 +1,4 @@
-<!-- Afterglow v1.4.0e -->
+<!-- Afterglow v1.4.0f -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -169,6 +169,13 @@
   .plan-lbl span{ position:absolute; transform: translate(-50%,-50%); white-space:nowrap; font-size:11px; font-weight:600; padding:2px 7px; border-radius:999px; background: rgba(20,23,44,0.88); border:1px solid currentColor; }
   .plan-legend{ display:flex; flex-wrap:wrap; gap:6px 14px; font-size:12px; color: var(--slate); margin: -4px 0 14px; }
   .plan-legend i{ display:inline-block; width:18px; height:0; border-top:3px solid; vertical-align:middle; margin-right:5px; }
+  .plan-clock{ font: 600 28px Georgia, serif; color: var(--sand); margin: 2px 0 4px; }
+  .plan-range{ -webkit-appearance:none; appearance:none; width:100%; height:38px; background:transparent; margin:4px 0 0; }
+  .plan-range::-webkit-slider-runnable-track{ height:8px; border-radius:4px; background: var(--track); }
+  .plan-range::-moz-range-track{ height:8px; border-radius:4px; background: var(--track); }
+  .plan-range::-webkit-slider-thumb{ -webkit-appearance:none; width:30px; height:30px; border-radius:50%; background: var(--sand); border:3px solid var(--gold); margin-top:-11px; }
+  .plan-range::-moz-range-thumb{ width:24px; height:24px; border-radius:50%; background: var(--sand); border:3px solid var(--gold); }
+  .plan-ticks{ display:flex; justify-content:space-between; font-size:11.5px; color: var(--slate); }
   .plan-seg{ display:flex; align-items:center; gap:6px; margin: 0 0 10px; flex-wrap:wrap; }
   .plan-seg-l{ font-size:12.5px; color: var(--slate); margin-right:2px; }
   .plan-seg-b{ background: var(--card); border:1px solid var(--line); color: var(--slate); border-radius:999px; padding:6px 14px; font-size:13px; cursor:pointer; font-family: inherit; }
@@ -303,7 +310,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.0e</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.0f</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -1977,6 +1984,7 @@ function computePlan(p){
 function planLink(p){
   const q = new URLSearchParams({ lat: p.loc.lat.toFixed(5), lon: p.loc.lon.toFixed(5), name: p.loc.name, view: "plan", d: p.date });
   if(p.loc.tz) q.set("tz", p.loc.tz);
+  if(p.min != null && p.t0ms){ const hm = localHM(new Date(p.t0ms + p.min * 60000), p.loc.tz); q.set("t", String(hm.h).padStart(2, "0") + String(hm.m).padStart(2, "0")); }
   if(p.subject){ q.set("sl", p.subject.lat.toFixed(5)); q.set("so", p.subject.lon.toFixed(5)); q.set("sn", p.subject.name || "Subject"); }
   return location.origin + location.pathname + "?" + q.toString();
 }
@@ -1990,6 +1998,8 @@ function planFromLink(){
     const tz = q.get("tz"), d = q.get("d");
     const plan = { loc: { name: clean(q.get("name")).slice(0, 60) || "Shared place", lat: lat, lon: lon, tz: (tz && planZoneOk(tz)) ? tz : null },
       date: /^\d{4}-\d{2}-\d{2}$/.test(d || "") ? d : null, searching: false, results: [], msg: "" };
+    const tt = q.get("t");
+    if(/^\d{4}$/.test(tt || "") && +tt.slice(0, 2) < 24 && +tt.slice(2) < 60) plan.linkMin = +tt.slice(0, 2) * 60 + +tt.slice(2);
     const sl = parseFloat(q.get("sl")), so = parseFloat(q.get("so"));
     if(isFinite(sl) && isFinite(so) && Math.abs(sl) <= 90 && Math.abs(so) <= 180) plan.subject = { name: clean(q.get("sn")).slice(0, 40) || "Subject", lat: sl, lon: so };
     return plan;
@@ -2157,7 +2167,8 @@ function planDialSVG(pl, tz){
     <path d="${arc(pl.moonPts)}" fill="none" stroke="#9db4e8" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 6"/>
     <path d="${arc(pl.sunPts)}" fill="none" stroke="var(--gold)" stroke-width="3.5" stroke-linecap="round"/>
     ${ticks(pl.moonPts, 3, "#9db4e8", 13)}${ticks(pl.sunPts, 2, "var(--gold)", -7)}
-    ${dirs}<circle cx="${cx}" cy="${cy}" r="4" fill="var(--sand)"/></svg>`;
+    ${dirs}<circle cx="${cx}" cy="${cy}" r="4" fill="var(--sand)"/>
+    <circle id="planDialMoon" r="7" fill="#dfe8ff" stroke="#9db4e8" stroke-width="2" style="display:none"/><circle id="planDialSun" r="8" fill="var(--gold)" stroke="#fff" stroke-width="2" style="display:none"/></svg>`;
 }
 
 async function planTimeZoneFor(lat, lon){
@@ -2206,6 +2217,26 @@ function renderPlan(app, tabsHtml){
   html += `<div class="map-wrap"><div id="sunMap"></div><button type="button" class="map-center-btn" id="planCenter" title="Center on place">⌖</button></div>`;
   html += `<div class="plan-legend"><span style="color:var(--gold)"><i></i>Sunrise</span><span style="color:var(--ember)"><i></i>Sunset</span><span style="color:#9db4e8"><i style="border-top-style:dashed"></i>Moonrise / Moonset</span></div>`;
 
+  const dayMin = Math.max(60, Math.round((pl.t1 - pl.t0) / 60000));
+  const plKey = p.loc.lat.toFixed(3) + "," + p.loc.lon.toFixed(3);
+  if(p.minKey !== plKey){ p.minKey = plKey; p.minSet = false; }
+  if(p.linkMin != null){ p.min = p.linkMin; p.minSet = true; p.linkMin = null; }
+  if(!p.minSet){
+    p.min = (p.date === planToday(tz)) ? Math.round((Date.now() - pl.t0.getTime()) / 60000)
+          : sun.set ? Math.round((sun.set - pl.t0) / 60000) : Math.round(dayMin / 2);
+  }
+  p.min = Math.max(0, Math.min(dayMin - 1, p.min)); p.t0ms = pl.t0.getTime();
+  const fr = d => d ? Math.max(0, Math.min(1, (d - pl.t0) / (pl.t1 - pl.t0))) : null;
+  const pc = x => (x * 100).toFixed(1) + "%", fR = fr(sun.rise), fS = fr(sun.set), D = "#1b2040", B = "#7fb0e8";
+  const track = (fR != null && fS != null)
+    ? `linear-gradient(90deg, ${D} 0%, ${D} ${pc(Math.max(0, fR - 0.03))}, #F2B84B ${pc(fR)}, ${B} ${pc(Math.min(1, fR + 0.06))}, ${B} ${pc(Math.max(0, fS - 0.06))}, #FF6B35 ${pc(fS)}, ${D} ${pc(Math.min(1, fS + 0.03))}, ${D} 100%)`
+    : (sun.polar === "up" ? B : D);
+  const jumps = [["Sunrise", sun.rise], ["Golden hr", sun.gEve], ["Sunset", sun.set], ["Moonrise", moon.moonrise]].filter(j => j[1]);
+  html += `<div class="card" style="margin-bottom:10px;"><div class="label">Time of day</div><div class="plan-clock" id="planTime">&nbsp;</div>
+    <input type="range" class="plan-range" id="planSlider" min="0" max="${dayMin - 1}" step="1" value="${p.min}" aria-label="Time of day" style="--track:${track}">
+    <div class="plan-ticks"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>12a</span></div>
+    ${jumps.length ? `<div class="plan-seg" style="margin:10px 0 4px;">${jumps.map(j => `<button class="plan-seg-b" data-jump="${Math.round((j[1] - pl.t0) / 60000)}">${j[0]}</button>`).join("")}</div>` : ""}
+    <div class="label" style="margin-top:8px;" id="planReadLbl"></div><div id="planReadout"></div></div>`;
   html += `<div class="plan-seg"><span class="plan-seg-l">Tap the map to place:</span><button class="plan-seg-b ${p.tap === "subject" ? "on" : ""}" data-tap="subject">Subject</button><button class="plan-seg-b ${p.tap === "you" ? "on" : ""}" data-tap="you">My spot</button></div>`;
   if(!p.subject){
     html += `<div class="plan-msg">Tap the map to drop a pin on what you want to shoot: a skyline, a tower, a barn. You'll see its direction, the light on it, and the dates the Sun or Moon lines up with it.</div>`;
@@ -2225,6 +2256,7 @@ function renderPlan(app, tabsHtml){
   html += skyCardHtml(p, sun, esc);
   html += `<div class="card" style="margin-bottom:12px;"><div class="label">Share this plan</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b" id="planCopy">🔗 Copy link</button>${navigator.share ? '<button class="plan-seg-b" id="planShare">Share…</button>' : ""}</div>${p.shareMsg ? `<div class="note" style="margin-bottom:6px;color:var(--gold);">${esc(p.shareMsg)}</div>` : ""}<div class="note">Reopens this place${p.subject ? ', the subject pin' : ''} and date in AfterGlow on any phone. No account, and nothing is stored on a server: the plan is inside the link.</div></div>`;
   loadPlanSky(p);
+  p.live = null;
   const sunRise = sun.rise ? `${fmtZ(sun.rise, tz)} <small>${Math.round(sun.riseAz)}° ${compassDir(sun.riseAz)}</small>` : `<small>${sun.polar === "up" ? "Sun stays up all day" : "Sun stays down all day"}</small>`;
   const sunSet = sun.set ? `${fmtZ(sun.set, tz)} <small>${Math.round(sun.setAz)}° ${compassDir(sun.setAz)}</small>` : `<small>${sun.polar === "up" ? "Sun doesn't set" : "No sunset"}</small>`;
   const gm = sun.gMorn && sun.rise ? fmtRangeZ(sun.rise, sun.gMorn, tz) : "—";
@@ -2279,6 +2311,12 @@ function renderPlan(app, tabsHtml){
       line(sun.riseAz, "#F2B84B", `Sunrise ${Math.round(sun.riseAz)}°`, false);
       line(sun.setAz, "#FF6B35", `Sunset ${Math.round(sun.setAz)}°`, false);
       line(moon.moonriseAz, "#9db4e8", `Moonrise ${moon.moonriseAz == null ? "" : Math.round(moon.moonriseAz) + "°"}`, true);
+      p.live = {};
+      [["sun", "#FF6B35", "#F2B84B"], ["moon", "#6f8fd8", "#dfe8ff"]].forEach(([k, lc, fc]) => {
+        const ln = L.polyline([[lat, lon], [lat, lon]], { interactive: false, color: lc, weight: 4, opacity: 0, lineCap: "round" }).addTo(sunMapInstance);
+        const mk = L.circleMarker([lat, lon], { radius: 11, color: "#fff", weight: 2, fillColor: fc, fillOpacity: 0, opacity: 0, interactive: false }).addTo(sunMapInstance);
+        p.live[k] = { ln, mk };
+      });
       line(moon.moonsetAz, "#9db4e8", `Moonset ${moon.moonsetAz == null ? "" : Math.round(moon.moonsetAz) + "°"}`, true);
     }catch(e){
       console.error("Plan map failed to initialize:", e);
@@ -2288,6 +2326,42 @@ function renderPlan(app, tabsHtml){
   } else if(mapEl){
     mapEl.innerHTML = '<div class="loading" style="padding-top:40%;">Map tiles unavailable — the sky view below still works.</div>';
   }
+  function applyTime(min, touched){
+    if(touched) p.minSet = true;
+    p.min = min;
+    const t = new Date(pl.t0.getTime() + min * 60000), la = p.loc.lat, lo = p.loc.lon;
+    const S = bodyHorizontal(Astronomy.Body.Sun, t, la, lo), M = bodyHorizontal(Astronomy.Body.Moon, t, la, lo);
+    const desc = h => h.alt >= 0 ? `${Math.round(h.az)}° ${compassDir(h.az)} · ${Math.round(h.alt)}° up` : "below the horizon";
+    const clock = $("planTime"); if(clock) clock.textContent = fmtZ(t, tz);
+    const lbl = $("planReadLbl"); if(lbl) lbl.textContent = "At " + fmtZ(t, tz);
+    let rows = `<div class="plan-row2"><span>Sun</span><b>${desc(S)}</b></div><div class="plan-row2"><span>Moon</span><b>${desc(M)}</b></div>`;
+    if(p.subject){
+      const bd = bearingDist(la, lo, p.subject.lat, p.subject.lon);
+      const lp = S.alt >= 0 ? lightPhrase(S.az, bd.brg) : null;
+      rows += `<div class="plan-row2"><span>Light on ${esc(p.subject.name || "Subject")}</span><b class="${lp ? lp.c : ""}">${lp ? lp.t : "the Sun is below the horizon"}</b></div>`;
+    }
+    const ro = $("planReadout"); if(ro) ro.innerHTML = rows;
+    const sl = $("planSlider"); if(sl && +sl.value !== min) sl.value = min;
+    if(p.live){
+      [["sun", S, "#FF6B35"], ["moon", M, "#9db4e8"]].forEach(([k, h]) => {
+        const L1 = p.live[k]; if(!L1) return;
+        const vis = h.alt >= 0, e = projectPoint(la, lo, h.az, 1.2);
+        L1.ln.setLatLngs([[la, lo], [e.lat, e.lon]]); L1.mk.setLatLng([e.lat, e.lon]);
+        L1.ln.setStyle({ opacity: vis ? 0.95 : 0 }); L1.mk.setStyle({ opacity: vis ? 1 : 0, fillOpacity: vis ? 1 : 0 });
+      });
+    }
+    const dial = (id, h) => {
+      const c = $(id); if(!c) return;
+      if(h.alt < 0){ c.style.display = "none"; return; }
+      const r = (90 - h.alt) / 90 * 130, a = h.az * Math.PI / 180;
+      c.setAttribute("cx", (160 + r * Math.sin(a)).toFixed(1)); c.setAttribute("cy", (160 - r * Math.cos(a)).toFixed(1)); c.style.display = "";
+    };
+    dial("planDialSun", S); dial("planDialMoon", M);
+  }
+  const slider = $("planSlider");
+  if(slider) slider.addEventListener("input", () => applyTime(+slider.value, true));
+  document.querySelectorAll("[data-jump]").forEach(b => b.addEventListener("click", () => applyTime(+b.dataset.jump, true)));
+  applyTime(p.min, false);
   const center = $("planCenter");
   if(center) center.addEventListener("click", () => { if(sunMapInstance) sunMapInstance.setView([lat, lon], sunMapInstance.getZoom()); });
 
