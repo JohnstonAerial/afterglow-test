@@ -1,4 +1,4 @@
-<!-- Afterglow v1.4.0g -->
+<!-- Afterglow v1.4.0h -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -310,7 +310,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.0g</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.0h</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -1577,6 +1577,7 @@ function render(){
   document.querySelectorAll(".view-tab").forEach(b => b.addEventListener("click", () => {
     state.view = b.dataset.view; render();
   }));
+  saveUi();
 }
 
 function renderToday(app, tabsHtml){
@@ -2100,6 +2101,30 @@ function planIcs(p, pl, mode){
   return lines.map(icsFold).join("\r\n") + "\r\n";
 }
 
+// ---- Remember the tab and the Plan across a refresh (this device only).
+const UI_KEY = "afterglow_ui";
+function saveUi(){
+  try{
+    const o = { view: state.view };
+    const p = state.plan;
+    if(p && p.loc) o.plan = { loc: p.loc, date: p.date || null, subject: p.subject || null, min: p.min == null ? null : p.min, minSet: !!p.minSet, tap: p.tap, finder: p.finder, calMode: p.calMode };
+    localStorage.setItem(UI_KEY, JSON.stringify(o));
+  }catch(e){}
+}
+function restoreUi(){
+  try{
+    const o = JSON.parse(localStorage.getItem(UI_KEY));
+    if(!o) return;
+    if(["today", "outlook", "map", "plan"].includes(o.view)) state.view = o.view;
+    const q = o.plan;
+    if(q && q.loc && isFinite(q.loc.lat) && isFinite(q.loc.lon)){
+      const stale = q.date && q.date < planToday(q.loc.tz);
+      state.plan = { loc: q.loc, date: stale ? null : (q.date || null), subject: q.subject && isFinite(q.subject.lat) ? q.subject : null,
+        min: q.min, minKey: q.loc.lat.toFixed(3) + "," + q.loc.lon.toFixed(3), minSet: stale ? false : !!q.minSet, tap: q.tap, finder: q.finder, calMode: q.calMode, searching: false, results: [], msg: "" };
+    }
+  }catch(e){}
+}
+
 function bearingDist(lat1, lon1, lat2, lon2){
   const r = Math.PI / 180, p1 = lat1 * r, p2 = lat2 * r, dl = (lon2 - lon1) * r;
   const y = Math.sin(dl) * Math.cos(p2), x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
@@ -2386,6 +2411,7 @@ function renderPlan(app, tabsHtml){
   function applyTime(min, touched){
     if(touched) p.minSet = true;
     p.min = min;
+    if(touched) saveUi();
     const t = new Date(pl.t0.getTime() + min * 60000), la = p.loc.lat, lo = p.loc.lon;
     const S = bodyHorizontal(Astronomy.Body.Sun, t, la, lo), M = bodyHorizontal(Astronomy.Body.Moon, t, la, lo);
     const desc = h => h.alt >= 0 ? `${Math.round(h.az)}° ${compassDir(h.az)} · ${Math.round(h.alt)}° up` : "below the horizon";
@@ -2924,6 +2950,7 @@ function linkLoc(){
 
 // Init
 function initLocation(){
+  restoreUi();
   const fromLink = linkLoc();
   const planLinkData = planFromLink();
   if(planLinkData){
