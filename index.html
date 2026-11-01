@@ -1,4 +1,4 @@
-<!-- Afterglow v1.4.0i -->
+<!-- Afterglow v1.4.0j -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -310,7 +310,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.0i</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.0j</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -2341,7 +2341,7 @@ function renderPlan(app, tabsHtml){
   html += `<div class="card" style="margin-bottom:12px;"><div class="label">Share this plan</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b" id="planCopy">🔗 Copy link</button>${navigator.share ? '<button class="plan-seg-b" id="planShare">Share…</button>' : ""}</div>${p.shareMsg ? `<div class="note" style="margin-bottom:6px;color:var(--gold);">${esc(p.shareMsg)}</div>` : ""}<div class="note">Reopens this place${p.subject ? ', the subject pin' : ''} and date in AfterGlow on any phone. No account, and nothing is stored on a server: the plan is inside the link.</div></div>`;
   if(!p.calMode) p.calMode = "evening";
   const cw = planShootWindow(pl, p.calMode);
-  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Add to calendar</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.calMode === "evening" ? "on" : ""}" data-cal="evening">Sunset shoot</button><button class="plan-seg-b ${p.calMode === "morning" ? "on" : ""}" data-cal="morning">Sunrise shoot</button></div>${cw ? `<div class="note" style="margin-bottom:8px;">${planDayLabel(p.date)}, ${fmtZ(cw.start, tz)} to ${fmtZ(cw.end, tz)}: an hour before golden hour through ${p.calMode === "morning" ? "the end of golden hour" : "sunset"}.</div><div class="plan-seg" style="margin:0;"><button class="plan-seg-b" id="planIcs">📅 Add to calendar</button><button class="plan-seg-b" id="planIcsSave">Save file</button></div>` : `<div class="note">The Sun doesn't ${p.calMode === "morning" ? "rise" : "set"} on this date here, so there's no window to add.</div>`}<div class="note" style="margin-top:8px;">The light times go in the event notes, with a link back to this plan. Times are calculated and exact. The sky score is a snapshot of the forecast today.</div></div>`;
+  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Add to calendar</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.calMode === "evening" ? "on" : ""}" data-cal="evening">Sunset shoot</button><button class="plan-seg-b ${p.calMode === "morning" ? "on" : ""}" data-cal="morning">Sunrise shoot</button></div>${cw ? `<div class="note" style="margin-bottom:8px;">${planDayLabel(p.date)}, ${fmtZ(cw.start, tz)} to ${fmtZ(cw.end, tz)}: an hour before golden hour through ${p.calMode === "morning" ? "the end of golden hour" : "sunset"}.</div><button class="plan-seg-b" id="planIcs">📅 Add to calendar</button>` : `<div class="note">The Sun doesn't ${p.calMode === "morning" ? "rise" : "set"} on this date here, so there's no window to add.</div>`}<div class="note" style="margin-top:8px;">The light times go in the event notes, with a link back to this plan. Times are calculated and exact. The sky score is a snapshot of the forecast today.</div></div>`;
   loadPlanSky(p);
   p.live = null;
   const sunRise = sun.rise ? `${fmtZ(sun.rise, tz)} <small>${Math.round(sun.riseAz)}° ${compassDir(sun.riseAz)}</small>` : `<small>${sun.polar === "up" ? "Sun stays up all day" : "Sun stays down all day"}</small>`;
@@ -2469,19 +2469,8 @@ function renderPlan(app, tabsHtml){
   if(ib) ib.addEventListener("click", () => {
     const ics = planIcs(p, pl, p.calMode); if(!ics) return;
     const fname = "afterglow-shoot-" + p.date + ".ics";
-    // On a phone, hand the file to the share sheet: its Calendar option adds the event directly.
-    // A plain download lands in Files as a text file on iOS.
-    try{
-      const f = new File([ics], fname, { type: "text/calendar" });
-      if(navigator.canShare && navigator.canShare({ files: [f] })){
-        navigator.share({ files: [f], title: "Shoot: " + ((p.subject && p.subject.name) || p.loc.name) }).catch(() => {});
-        return;
-      }
-    }catch(e){}
     saveIcs(ics, fname);
   });
-  const ib2 = $("planIcsSave");
-  if(ib2) ib2.addEventListener("click", () => { const ics = planIcs(p, pl, p.calMode); if(ics) saveIcs(ics, "afterglow-shoot-" + p.date + ".ics"); });
   const cb = $("planCopy"); if(cb) cb.addEventListener("click", () => doShare("copy"));
   const sb = $("planShare"); if(sb) sb.addEventListener("click", () => doShare("share"));
   const go = (d) => { if(/^\d{4}-\d{2}-\d{2}$/.test(d)){ p.date = d; p.msg = ""; render(); } };
