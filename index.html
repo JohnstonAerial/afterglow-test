@@ -1,4 +1,4 @@
-<!-- Afterglow v1.4.1b -->
+<!-- Afterglow v1.4.1c -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -326,7 +326,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.1b</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.1c</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -2683,9 +2683,9 @@ function renderPlan(app, tabsHtml){
     let root = $("printRoot"); if(!root){ root = document.createElement("div"); root.id = "printRoot"; document.body.appendChild(root); }
     root.innerHTML = planPrintHtml(p, pl, qr);
     pb.textContent = "🖨 Print / Save as PDF";
-    const done = () => { window.removeEventListener("afterprint", done); const r = $("printRoot"); if(r) r.innerHTML = ""; };
-    window.addEventListener("afterprint", done);
-    setTimeout(() => window.print(), 50);
+    // The card stays in the page (hidden on screen) and is rebuilt on every tap. iOS Safari can fire
+    // "afterprint" before the print preview is drawn, so clearing it there printed a blank page.
+    requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => window.print(), 150)));
   });
   const gb = $("planGcal");
   if(gb) gb.addEventListener("click", () => { const u = planGcalUrl(p, pl, p.calMode); if(u) window.open(u, "_blank", "noopener"); });
