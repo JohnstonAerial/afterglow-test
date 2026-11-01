@@ -1,4 +1,4 @@
-<!-- Afterglow v1.4.6b -->
+<!-- Afterglow v1.4.7a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -139,6 +139,9 @@
     height: 360px; margin-bottom: 14px; background: var(--card);
   }
   #sunMap{ width: 100%; height: 100%; }
+  .map-hint{ position:absolute; left:50%; bottom:34px; transform:translateX(-50%); z-index:1002; padding:8px 14px; border-radius:999px; background:rgba(10,11,22,0.85); color:var(--sand); font-size:14px; pointer-events:none; opacity:0; transition:opacity .2s; white-space:nowrap; }
+  .map-hint.show{ opacity:1; }
+  .leaflet-marker-draggable{ touch-action:none; }
   .map-compass{ position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1000; }
   .map-center-btn{
     position: absolute; right: 12px; top: 12px; z-index: 1001;
@@ -326,7 +329,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.6b</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.7a</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -1794,6 +1797,29 @@ function renderOutlook(app, tabsHtml){
    evaluated at an arbitrary time-of-day instead of only at sunrise/sunset. */
 let sunMapInstance = null;
 
+// Touch screens: one finger scrolls the page, two fingers move or zoom the map
+// (a one-finger swipe over a big map used to grab the map instead of the page).
+// A small hint shows when someone swipes with one finger. Mouse use is unchanged.
+function touchMapMode(map, el){
+  let touchy = false;
+  try{ touchy = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches) || (navigator.maxTouchPoints || 0) > 1 && /Mobi|Android|iPad|iPhone/.test(navigator.userAgent || ""); }catch(e){}
+  if(!touchy || !map || !el) return;
+  map.dragging.disable();
+  el.style.touchAction = "pan-x pan-y";
+  const wrap = el.parentElement;
+  if(!wrap) return;
+  const hint = document.createElement("div");
+  hint.className = "map-hint"; hint.textContent = "Use two fingers to move the map";
+  wrap.appendChild(hint);
+  let sx = 0, sy = 0, t = null;
+  el.addEventListener("touchstart", e => { if(e.touches.length === 1){ sx = e.touches[0].clientX; sy = e.touches[0].clientY; } }, { passive: true });
+  el.addEventListener("touchmove", e => {
+    if(e.touches.length !== 1) return;
+    if(Math.abs(e.touches[0].clientX - sx) + Math.abs(e.touches[0].clientY - sy) < 12) return;
+    hint.classList.add("show"); clearTimeout(t); t = setTimeout(() => hint.classList.remove("show"), 1400);
+  }, { passive: true });
+}
+
 function destroySunMap(){
   if(sunMapInstance){ sunMapInstance.remove(); sunMapInstance = null; }
 }
@@ -1865,6 +1891,7 @@ function renderMap(app, tabsHtml){
   if(mapEl && typeof L !== "undefined"){
     try{
       sunMapInstance = L.map(mapEl, { attributionControl: true }).setView([loc.lat, loc.lon], 14);
+      touchMapMode(sunMapInstance, mapEl);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -2576,6 +2603,7 @@ function renderPlan(app, tabsHtml){
   if(mapEl && typeof L !== "undefined"){
     try{
       sunMapInstance = L.map(mapEl, { attributionControl: true }).setView(p.view ? [p.view.lat, p.view.lng] : [lat, lon], p.view ? p.view.z : 13);
+      touchMapMode(sunMapInstance, mapEl);
       sunMapInstance.on("moveend", () => { const c = sunMapInstance.getCenter(); p.view = { lat: c.lat, lng: c.lng, z: sunMapInstance.getZoom() }; });
       sunMapInstance.on("click", (ev) => {
         if(p.tap === "you"){ p.loc = { name: "Dropped pin", lat: ev.latlng.lat, lon: ev.latlng.lng, tz: p.loc.tz }; p.scan = null; }
