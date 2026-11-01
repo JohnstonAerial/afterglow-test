@@ -1,4 +1,4 @@
-<!-- Afterglow v1.4.6a -->
+<!-- Afterglow v1.4.6b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -299,7 +299,7 @@
   }
   .notif-status{ font-size: 13px; color: var(--slate); margin-top: 12px; min-height: 18px; }
   .switch{ position: relative; display: inline-block; width: 42px; height: 24px; flex-shrink: 0; }
-  .switch input{ opacity: 0; width: 0; height: 0; }
+  .switch input{ position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
   .switch-track{
     position: absolute; inset: 0; background: var(--line); border-radius: 999px;
     transition: background 0.15s; cursor: pointer;
@@ -326,7 +326,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.6a</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.6b</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
