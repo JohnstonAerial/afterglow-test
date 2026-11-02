@@ -235,7 +235,7 @@ async function handleSubscribe(request, env) {
     return jsonResponse({ error: "Invalid JSON body" }, 400);
   }
 
-  const { subscription, lat, lon, notify, minutesBefore } = data;
+  const { subscription, lat, lon, notify, minutesBefore, minScore } = data;
   if (!subscription || !subscription.endpoint || !subscription.keys) {
     return jsonResponse({ error: "Missing subscription details" }, 400);
   }
@@ -254,6 +254,12 @@ async function handleSubscribe(request, env) {
       goldenEvening: !!(notify && notify.goldenEvening),
     },
     minutesBefore: Number.isFinite(minutesBefore) ? minutesBefore : 60,
+    // Only sunrise and sunset can be tied to the sky. Anything missing or not one of
+    // the offered levels counts as 0 = send regardless (the original behavior).
+    minScore: {
+      sunrise: MIN_SCORE_LEVELS.includes(minScore && minScore.sunrise) ? minScore.sunrise : 0,
+      sunset: MIN_SCORE_LEVELS.includes(minScore && minScore.sunset) ? minScore.sunset : 0,
+    },
     lastSent: {}, // e.g. { "2026-09-21-sunset": true }
   };
 
@@ -351,6 +357,235 @@ function sunCrossing(eventDate, lat, lon, which, zenith) {
   return new Date(dayStartUTC + utcMinutes * 60000);
 }
 
+// ---------- Sky score (copied word for word from index.html — keep in sync) ----------
+// The alerts can now say "only if the sky is Good or better", so the Worker has to
+// score the sky itself, with exactly the same math the app uses. These five functions
+// are verbatim copies; parity-test.mjs runs both on the same inputs and fails if the
+// scores differ. If you change scoring in index.html, change it here too.
+const SUN_PATH_SAMPLE_KM = 180;
+
+function projectPoint(lat, lon, bearingDeg, distKm){
+  const R = 6371;
+  const d = distKm / R;
+  const br = bearingDeg * Math.PI / 180;
+  const p1 = lat * Math.PI / 180, l1 = lon * Math.PI / 180;
+  const p2 = Math.asin(Math.sin(p1) * Math.cos(d) + Math.cos(p1) * Math.sin(d) * Math.cos(br));
+  const l2 = l1 + Math.atan2(Math.sin(br) * Math.sin(d) * Math.cos(p1),
+                             Math.cos(d) - Math.sin(p1) * Math.sin(p2));
+  return { lat: p2 * 180 / Math.PI, lon: ((l2 * 180 / Math.PI) + 540) % 360 - 180 };
+}
+
+function beamFactor(sampleLow, sampleMid){
+  const lowF = Math.max(0, 1 - (sampleLow / 100) * 1.05);
+  const midF = Math.max(0.25, 1 - (sampleMid / 100) * 0.55);
+  return lowF * midF;
+}
+
+function scoreEvent(hourly, idx, beam){
+  // idx = the hourly index closest to sunrise/sunset for that day
+  if(idx == null || idx < 0 || idx >= hourly.time.length) return null;
+
+  const low  = hourly.cloud_cover_low[idx]   ?? 0;
+  const mid  = hourly.cloud_cover_mid[idx]   ?? 0;
+  const high = hourly.cloud_cover_high[idx]  ?? 0;
+  const hum  = hourly.relative_humidity_2m[idx] ?? 50;
+  const precip = hourly.precipitation_probability[idx] ?? 0;
+  const vis  = (hourly.visibility && isFinite(hourly.visibility[idx])) ? hourly.visibility[idx] : null;
+
+  // --- Tuning constants (kept together so they're easy to calibrate) ---
+  const CANVAS_PEAK       = 45;   // % high cloud that lights up best
+  const CANVAS_SIGMA_LOW  = 30;   // falloff toward a clear sky
+  const CANVAS_SIGMA_HIGH = 38;   // falloff toward full overcast (gentler on purpose)
+  // When we have no reading toward the sun we can't tell whether there's a gap at
+  // the horizon for light to get under the cloud — the biggest single factor in
+  // whether a deck lights up. Cap the ceiling to reflect that blind spot.
+  // When a sun-path sample IS available that guess is replaced by a measurement,
+  // so the haircut shrinks to a small residual (one sample point, still not the
+  // whole path).
+  const HORIZON_UNKNOWN_CEILING = 0.92;
+  const MEASURED_CEILING = 0.97;
+  const LOW_WEIGHT        = 1.10; // low cloud reaches zero transmission around 91%
+  const MID_WEIGHT        = 0.60; // full mid deck still passes ~40%
+  // Haze. Visibility (metres) is a direct measure of how much the air scatters
+  // light. It replaces the old 2m-relative-humidity proxy, which was
+  // systematically biased against sunrises: overnight radiative cooling pulls
+  // surface air toward its dewpoint on any clear calm night, so dawn RH runs
+  // 85–95% regardless of actual haze while the same sky reads 40% by evening.
+  // Every morning was being penalised for being a morning.
+  const VIS_CLEAR_M       = 15000; // at or above this, no haze penalty
+  const VIS_MURKY_M       = 2000;  // at or below this, the floor applies
+  const HAZE_FLOOR        = 0.35;
+  // Humidity is now only a fallback for when visibility is missing from the
+  // model output. Threshold sits well above the dawn-saturation band so it
+  // flags genuinely muggy air rather than routine overnight cooling.
+  const HUM_WEIGHT        = 0.006;
+  const HUM_FALLBACK_THRESHOLD = 80;
+  const PRECIP_WEIGHT     = 0.65;
+  const MURK_THRESHOLD    = 70;
+  const MURK_WEIGHT       = 0.004;
+
+  // --- Canvas: is there anything up there for the light to catch? ---
+  // High cloud is what actually lights up. This is a MULTIPLIER rather than one
+  // additive term among several: with no canvas, clean air underneath is worth
+  // nothing. (The old additive model gave a dead-clear sky ~70 because three of
+  // its four components measured the ABSENCE of cloud and all maxed out at once.)
+  // Asymmetric falloff — a full cirrus deck is a better bet than an empty sky,
+  // because at least it has something that can glow.
+  // Thin-to-moderate MID cloud (altocumulus and the like) catches color too, so it
+  // counts as partial canvas alongside the high cloud. Heavy mid deck stops
+  // counting (it tapers to nothing by ~90%), because a solid deck just blocks.
+  // Mid cloud still carries its own clarity penalty below, so this nudges the
+  // canvas, it doesn't make mid cloud free.
+  const MID_CANVAS_WEIGHT = 0.5;
+  const MID_CANVAS_FULL   = 50;   // % mid cloud where the canvas credit peaks
+  const MID_CANVAS_ZERO   = 90;   // % mid cloud where it has tapered to zero
+  const midBand = mid <= MID_CANVAS_FULL
+    ? mid
+    : Math.max(0, MID_CANVAS_FULL * (MID_CANVAS_ZERO - mid) / (MID_CANVAS_ZERO - MID_CANVAS_FULL));
+  const midCanvas = MID_CANVAS_WEIGHT * midBand;
+  const cover = high + midCanvas * (100 - high) / 100; // fills the gap high cloud leaves, never past 100
+  const sigma = cover < CANVAS_PEAK ? CANVAS_SIGMA_LOW : CANVAS_SIGMA_HIGH;
+  let canvas = Math.exp(-Math.pow(cover - CANVAS_PEAK, 2) / (2 * sigma * sigma));
+
+  // Dry-air credit: a near-clear sky with exceptional visibility can still
+  // produce clean, saturated horizon color via Rayleigh scattering, even with
+  // nothing up high to catch light directly. This is a small, capped nudge —
+  // not a floor — so an ordinary hazy-but-technically-clear sky (moderate
+  // visibility) still scores low and correctly reads as flat. Only genuinely
+  // exceptional air (well past the existing haze-clear threshold) qualifies.
+  const VIS_EXCEPTIONAL_M = 35000; // meaningfully past the existing 15km "clear" threshold
+  const VIS_PRISTINE_M    = 55000; // full credit ceiling — near the top of what this region sees
+  const DRY_AIR_CREDIT     = 0.25;
+  if (vis != null && vis > VIS_EXCEPTIONAL_M) {
+    const clamp01_local = (v) => Math.max(0, Math.min(1, v));
+    canvas = Math.min(1, canvas + DRY_AIR_CREDIT * clamp01_local((vis - VIS_EXCEPTIONAL_M) / (VIS_PRISTINE_M - VIS_EXCEPTIONAL_M)));
+  }
+
+  // --- Clarity: can the light actually reach that canvas? ---
+  const lowFactor    = Math.max(0,    1 - (low / 100) * LOW_WEIGHT);
+  const midFactor    = Math.max(0,    1 - (mid / 100) * MID_WEIGHT);
+  const clamp01 = (v) => Math.max(0, Math.min(1, v));
+  const hazeFactor = (vis != null)
+    ? HAZE_FLOOR + (1 - HAZE_FLOOR) * clamp01((vis - VIS_MURKY_M) / (VIS_CLEAR_M - VIS_MURKY_M))
+    : Math.max(0.70, 1 - Math.max(0, hum - HUM_FALLBACK_THRESHOLD) * HUM_WEIGHT);
+  const precipFactor = Math.max(0.35, 1 - (precip / 100) * PRECIP_WEIGHT);
+
+  // Murk: saturated mid AND high at once is one thick diffusing deck, not a thin
+  // layer that can glow. A low-cloud reading of 0% otherwise masks this.
+  const murkFactor = (mid > MURK_THRESHOLD && high > MURK_THRESHOLD)
+    ? Math.max(0, 1 - Math.min(mid, high) * MURK_WEIGHT)
+    : 1;
+
+  const clarity = lowFactor * midFactor * hazeFactor * precipFactor * murkFactor;
+
+  // The gate: is there a clear slot toward the sun for light to arrive through?
+  const hasBeam = beam && typeof beam.low === "number" && typeof beam.mid === "number";
+  const beamF = hasBeam ? beamFactor(beam.low, beam.mid) : 1;
+  const ceiling = hasBeam ? MEASURED_CEILING : HORIZON_UNKNOWN_CEILING;
+
+  const score = Math.round(Math.max(2, Math.min(98, 100 * canvas * clarity * beamF * ceiling)));
+
+  return { score, low, mid, high, midCanvas, hum, precip, vis, hazeFactor, hazeFromVis: vis != null,
+           murk: murkFactor < 1, canvas, clarity,
+           beam: hasBeam ? beamF : null, beamLow: hasBeam ? beam.low : null, beamMid: hasBeam ? beam.mid : null };
+}
+
+function label(score){
+  if(score >= 85) return "Epic";
+  if(score >= 70) return "Great";
+  if(score >= 44) return "Good";
+  if(score >= 26) return "Fair";
+  return "Flat";
+}
+
+function solarHorizontal(date, lat, lon){
+  const { decl, eqTime } = solarPosition(date);
+
+  // Note: this assumes the browser's timezone matches the forecast location's
+  // timezone (same assumption the rest of the app makes when it does new Date(iso)
+  // on Open-Meteo's local-time strings). Fine for "check the sky where I am."
+  const utcMinutes = date.getUTCHours() * 60 + date.getUTCMinutes() + date.getUTCSeconds() / 60;
+  let trueSolarTime = (utcMinutes + eqTime + 4 * lon) % 1440;
+  if (trueSolarTime < 0) trueSolarTime += 1440;
+
+  let hourAngle = trueSolarTime / 4 - 180;
+  if (hourAngle < -180) hourAngle += 360;
+  if (hourAngle > 180) hourAngle -= 360;
+
+  const zenith = dacosc(dsin(lat) * dsin(decl) + dcos(lat) * dcos(decl) * dcos(hourAngle));
+  const cosAz = (dsin(lat) * dcos(zenith) - dsin(decl)) / (dcos(lat) * dsin(zenith));
+
+  let az;
+  if (hourAngle > 0) az = (dacosc(cosAz) + 180) % 360;
+  else az = (540 - dacosc(cosAz)) % 360;
+
+  return { alt: 90 - zenith, az };
+}
+
+// Minimum score choices the app offers (0 = any sky, same as before this feature).
+const MIN_SCORE_LEVELS = [0, 44, 70, 85]; // Any, Good, Great, Epic
+
+// Scores the sunrise or sunset at (lat, lon). eventDate is the real instant (UTC).
+// Returns { score, label } or null when the forecast can't be read — the caller
+// then sends nothing, because an alert the person asked to be conditional on the
+// sky shouldn't go out blind.
+async function scoreSkyAt(lat, lon, eventDate) {
+  try {
+    const core = new URLSearchParams({
+      latitude: lat, longitude: lon,
+      hourly: "cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,precipitation_probability,visibility",
+      timezone: "auto", forecast_days: 2,
+    });
+    const az = solarHorizontal(eventDate, lat, lon).az;
+    const pt = projectPoint(lat, lon, az, SUN_PATH_SAMPLE_KM);
+    const samp = new URLSearchParams({
+      latitude: pt.lat.toFixed(4), longitude: pt.lon.toFixed(4),
+      hourly: "cloud_cover_low,cloud_cover_mid",
+      timezone: "auto", forecast_days: 2,
+    });
+    const [coreRes, sampRes] = await Promise.all([
+      fetch(`https://api.open-meteo.com/v1/forecast?${core}`),
+      fetch(`https://api.open-meteo.com/v1/forecast?${samp}`).catch(() => null),
+    ]);
+    if (!coreRes.ok) return null;
+    const data = await coreRes.json();
+    const hourly = data && data.hourly;
+    if (!hourly || !Array.isArray(hourly.time)) return null;
+
+    // Hourly times are the location's wall-clock digits; convert to real instants.
+    const nearest = (times, offsetSec) => {
+      let best = -1, bestDiff = Infinity;
+      times.forEach((s, i) => {
+        const diff = Math.abs(new Date(s + "Z").getTime() - offsetSec * 1000 - eventDate.getTime());
+        if (diff < bestDiff) { bestDiff = diff; best = i; }
+      });
+      return best;
+    };
+    const idx = nearest(hourly.time, data.utc_offset_seconds || 0);
+
+    // The sun-path sample may sit in a different time zone from the spot itself, so it
+    // uses its own offset. If it can't be read, score without it, same as the app.
+    let beam = null;
+    try {
+      if (sampRes && sampRes.ok) {
+        const sd = await sampRes.json();
+        const h = sd && sd.hourly;
+        if (h && Array.isArray(h.time) && Array.isArray(h.cloud_cover_low) && Array.isArray(h.cloud_cover_mid)) {
+          const j = nearest(h.time, sd.utc_offset_seconds || 0);
+          if (j >= 0) beam = { low: h.cloud_cover_low[j] ?? 0, mid: h.cloud_cover_mid[j] ?? 0 };
+        }
+      }
+    } catch { beam = null; }
+
+    const s = scoreEvent(hourly, idx, beam);
+    if (!s) return null;
+    return { score: s.score, label: label(s.score) };
+  } catch (err) {
+    console.error("Afterglow cron: sky score failed", err);
+    return null;
+  }
+}
+
 // ---------- Cron: check every subscription against sun events ----------
 
 async function fetchSunTimes(lat, lon) {
@@ -416,9 +651,29 @@ async function runScheduledCheck(env) {
         // Fire once the trigger time has passed, within a window matching
         // the cron interval, and only once per day per event.
         if (diffMinutes >= 0 && diffMinutes < 5 && !record.lastSent[sentKey]) {
+          let body = `${ev.label} in ${record.minutesBefore} minutes`;
+
+          // Sunrise/sunset can be limited to a minimum forecast. The forecast is only
+          // fetched here, at the moment an alert would go out.
+          const minNeeded = (record.minScore && record.minScore[ev.name]) || 0;
+          if (minNeeded > 0) {
+            const sky = await scoreSkyAt(record.lat, record.lon, ev.time);
+            if (!sky) {
+              console.error(`Afterglow cron: no sky score for ${sentKey} on ${key}; sending nothing`);
+              continue; // not marked, so the next tick inside the window can retry
+            }
+            if (sky.score < minNeeded) {
+              console.log(`Afterglow cron: ${sentKey} for ${key} is ${sky.label} (${sky.score}), below ${minNeeded}; staying quiet`);
+              record.lastSent[sentKey] = "skipped";
+              changed = true;
+              continue;
+            }
+            body += `: ${sky.label} (${sky.score})`;
+          }
+
           const res = await sendPush(record.subscription, {
             title: `Afterglow`,
-            body: `${ev.label} in ${record.minutesBefore} minutes`,
+            body,
             tag: sentKey,
           }, env);
 

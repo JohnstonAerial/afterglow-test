@@ -1,4 +1,4 @@
-<!-- Afterglow v1.4.10a -->
+<!-- Afterglow v1.5.0a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -300,6 +300,11 @@
     background: var(--ink); color: var(--sand); border: 1px solid var(--line);
     border-radius: 8px; padding: 6px 8px; font-size: 14px;
   }
+  .notif-row.has-sub{ border-bottom: none; padding-bottom: 2px; }
+  .notif-sub{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding: 2px 0 10px 14px; border-bottom: 1px solid var(--line); }
+  .notif-sub label{ font-size: 13px; color: var(--slate); }
+  .notif-sub select{ background: var(--ink); color: var(--sand); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 14px; }
+  .notif-sub.off{ opacity: .45; }
   .notif-status{ font-size: 13px; color: var(--slate); margin-top: 12px; min-height: 18px; }
   .switch{ position: relative; display: inline-block; width: 42px; height: 24px; flex-shrink: 0; }
   .switch input{ position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
@@ -329,7 +334,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.4.10a</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.5.0a</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -362,19 +367,37 @@
 <div class="modal-backdrop" id="notifBackdrop">
   <div class="modal">
     <h3>Notifications</h3>
-    <div class="notif-row">
+    <div class="notif-row has-sub">
       <label for="notifSunrise">Alert before sunrise</label>
       <span class="switch">
         <input type="checkbox" id="notifSunrise">
         <span class="switch-track"></span>
       </span>
     </div>
-    <div class="notif-row">
+    <div class="notif-sub off" id="notifMinSunriseRow">
+      <label for="notifMinSunrise">Only if the forecast is</label>
+      <select id="notifMinSunrise">
+        <option value="0">Any sky</option>
+        <option value="44">Good or better</option>
+        <option value="70">Great or better</option>
+        <option value="85">Epic only</option>
+      </select>
+    </div>
+    <div class="notif-row has-sub">
       <label for="notifSunset">Alert before sunset</label>
       <span class="switch">
         <input type="checkbox" id="notifSunset">
         <span class="switch-track"></span>
       </span>
+    </div>
+    <div class="notif-sub off" id="notifMinSunsetRow">
+      <label for="notifMinSunset">Only if the forecast is</label>
+      <select id="notifMinSunset">
+        <option value="0">Any sky</option>
+        <option value="44">Good or better</option>
+        <option value="70">Great or better</option>
+        <option value="85">Epic only</option>
+      </select>
     </div>
     <div class="notif-row">
       <label for="notifGoldenMorning">Alert before morning golden hour</label>
@@ -2963,7 +2986,9 @@ const VAPID_PUBLIC_KEY = "BHxu1_fnBDbRAf7OTVY74Wec1YQ6BnvGtuET7p23LBEW8b6NhE3YTs
 
 // Fill this in once the Worker is deployed (Cloudflare gives you a
 // *.workers.dev URL, or your own custom domain if you set one up).
-const PUSH_WORKER_URL = "https://afterglow-push.fisherofmen58.workers.dev";
+// TEST COPY: points at its own test Worker (set this once the test Worker is deployed),
+// so test subscriptions never land in the real subscribers' list.
+const PUSH_WORKER_URL = "https://REPLACE-WITH-YOUR-WORKER-URL";
 
 const NOTIF_PREFS_KEY = "afterglow_notif_prefs";
 
@@ -2978,9 +3003,12 @@ function urlBase64ToUint8Array(base64String) {
 
 function loadNotifPrefs() {
   try {
-    return JSON.parse(localStorage.getItem(NOTIF_PREFS_KEY)) || { sunrise: false, sunset: false, goldenMorning: false, goldenEvening: false, minutesBefore: 60 };
+    const p = JSON.parse(localStorage.getItem(NOTIF_PREFS_KEY)) || { sunrise: false, sunset: false, goldenMorning: false, goldenEvening: false, minutesBefore: 60 };
+    // Saved before the sky minimum existed: both mean "any sky", the old behavior.
+    p.minScore = { sunrise: (p.minScore && p.minScore.sunrise) || 0, sunset: (p.minScore && p.minScore.sunset) || 0 };
+    return p;
   } catch {
-    return { sunrise: false, sunset: false, goldenMorning: false, goldenEvening: false, minutesBefore: 60 };
+    return { sunrise: false, sunset: false, goldenMorning: false, goldenEvening: false, minutesBefore: 60, minScore: { sunrise: 0, sunset: 0 } };
   }
 }
 function saveNotifPrefs(prefs) {
@@ -3047,6 +3075,7 @@ async function subscribeToPush(prefs) {
         lon: state.loc.lon,
         notify: { sunrise: prefs.sunrise, sunset: prefs.sunset, goldenMorning: prefs.goldenMorning, goldenEvening: prefs.goldenEvening },
         minutesBefore: prefs.minutesBefore,
+        minScore: prefs.minScore,
       }),
     });
 
@@ -3086,9 +3115,19 @@ $("notifBtn").addEventListener("click", () => {
   $("notifGoldenMorning").checked = !!prefs.goldenMorning;
   $("notifGoldenEvening").checked = !!prefs.goldenEvening;
   $("notifMinutes").value = String(prefs.minutesBefore || 60);
+  $("notifMinSunrise").value = String(prefs.minScore.sunrise);
+  $("notifMinSunset").value = String(prefs.minScore.sunset);
+  syncNotifSubs();
   setNotifStatus("");
   notifBackdrop.classList.add("open");
 });
+// The "only if the forecast is" choices are dimmed until their alert is switched on.
+function syncNotifSubs() {
+  $("notifMinSunriseRow").classList.toggle("off", !$("notifSunrise").checked);
+  $("notifMinSunsetRow").classList.toggle("off", !$("notifSunset").checked);
+}
+$("notifSunrise").addEventListener("change", syncNotifSubs);
+$("notifSunset").addEventListener("change", syncNotifSubs);
 $("closeNotifModal").addEventListener("click", () => notifBackdrop.classList.remove("open"));
 notifBackdrop.addEventListener("click", (e) => { if (e.target === notifBackdrop) notifBackdrop.classList.remove("open"); });
 
@@ -3099,6 +3138,7 @@ $("notifSave").addEventListener("click", async () => {
     goldenMorning: $("notifGoldenMorning").checked,
     goldenEvening: $("notifGoldenEvening").checked,
     minutesBefore: parseInt($("notifMinutes").value, 10),
+    minScore: { sunrise: parseInt($("notifMinSunrise").value, 10) || 0, sunset: parseInt($("notifMinSunset").value, 10) || 0 },
   };
 
   if (!prefs.sunrise && !prefs.sunset && !prefs.goldenMorning && !prefs.goldenEvening) {
@@ -3113,7 +3153,15 @@ $("notifSave").addEventListener("click", async () => {
 
   setNotifStatus("Enabling notifications…");
   const ok = await subscribeToPush(prefs);
-  if (ok) saveNotifPrefs(prefs);
+  if (ok) {
+    saveNotifPrefs(prefs);
+    // Say plainly what the sky choices mean, so a quiet evening isn't mistaken for a broken alert.
+    const names = { 44: "Good or better", 70: "Great or better", 85: "Epic" };
+    const bits = [];
+    if (prefs.sunrise && prefs.minScore.sunrise) bits.push(`sunrise only when the forecast is ${names[prefs.minScore.sunrise]}`);
+    if (prefs.sunset && prefs.minScore.sunset) bits.push(`sunset only when the forecast is ${names[prefs.minScore.sunset]}`);
+    if (bits.length) setNotifStatus("Notifications enabled: " + bits.join("; ") + ". On other days you won't get an alert.");
+  }
   updateNotifButtonIndicator();
 });
 
