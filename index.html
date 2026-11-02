@@ -1,4 +1,4 @@
-<!-- Afterglow v1.5.0a -->
+<!-- Afterglow v1.5.0b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -334,7 +334,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.5.0a</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.5.0b</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -2982,13 +2982,13 @@ backdrop.addEventListener("click", (e) => { if(e.target === backdrop) backdrop.c
 /* ---------- Push notifications ---------- */
 // This is the VAPID *public* key only — safe to embed in client code by design.
 // The matching private key lives only in the Cloudflare Worker's environment.
-const VAPID_PUBLIC_KEY = "BHxu1_fnBDbRAf7OTVY74Wec1YQ6BnvGtuET7p23LBEW8b6NhE3YTsF23vrg2m1c9D3lyizR8BhtiEj2O1GiBMc";
+const VAPID_PUBLIC_KEY = "BIPZJKYne3CA8n7CEE2r216Msv6bjgx1svkSp-x3SH83kPU_gAcchAduO85UF_nPTq5tmn1V-KBwKYK-LFMK_os";
 
 // Fill this in once the Worker is deployed (Cloudflare gives you a
 // *.workers.dev URL, or your own custom domain if you set one up).
-// TEST COPY: points at its own test Worker (set this once the test Worker is deployed),
-// so test subscriptions never land in the real subscribers' list.
-const PUSH_WORKER_URL = "https://REPLACE-WITH-YOUR-WORKER-URL";
+// TEST COPY: points at its own test Worker, so test subscriptions never land in the
+// real subscribers' list. (The public app keeps its own Worker and its own key.)
+const PUSH_WORKER_URL = "https://afterglow-push-test.fisherofmen58.workers.dev";
 
 const NOTIF_PREFS_KEY = "afterglow_notif_prefs";
 
