@@ -1,4 +1,4 @@
-<!-- Afterglow v2.0.2a -->
+<!-- Afterglow v2.0.2b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -402,7 +402,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST · v2.0.2a</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST · v2.0.2b</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -2675,7 +2675,7 @@ function renderPlan(app, tabsHtml){
   if(p.msg) html += `<div class="plan-msg">${esc(p.msg)}</div>`;
   html += `<div class="plan-row"><button class="plan-btn round" id="planPrev" aria-label="Previous day">‹</button><input class="plan-date" type="date" id="planDate" value="${p.date}" min="1900-01-01" max="2100-12-31" aria-label="Date"><button class="plan-btn round" id="planNext" aria-label="Next day">›</button><button class="plan-btn" id="planToday">Today</button></div>`;
   html += `<div class="plan-seg plan-tap-row" role="group" aria-label="What a map tap places"><span class="plan-seg-l">Tap the map to place:</span><button class="plan-seg-b ${p.tap === "subject" ? "on" : ""}" data-tap="subject">Subject</button><button class="plan-seg-b ${p.tap === "you" ? "on" : ""}" data-tap="you">Your spot</button></div>`;
-  html += `<div class="map-wrap"><div id="sunMap"></div><button type="button" class="map-center-btn" id="planCenter" title="${p.loc.name === 'Dropped pin' ? 'Back to ' + esc(state.loc.name) : 'Center on place'}" aria-label="${p.loc.name === 'Dropped pin' ? 'Back to ' + esc(state.loc.name) : 'Center on place'}">⌖</button>${p.subject ? "" : '<div class="map-pinhint">Tap to drop a pin on what you want to shoot</div>'}</div>`;
+  html += `<div class="map-wrap"><div id="sunMap"></div><button type="button" class="map-center-btn" id="planCenter" title="${p.loc.name === 'Dropped pin' ? 'Back to ' + esc((p.homeLoc || state.loc).name) : 'Center on place'}" aria-label="${p.loc.name === 'Dropped pin' ? 'Back to ' + esc((p.homeLoc || state.loc).name) : 'Center on place'}">⌖</button>${p.subject ? "" : '<div class="map-pinhint">Tap to drop a pin on what you want to shoot</div>'}</div>`;
 
   const dayMin = Math.max(60, Math.round((pl.t1 - pl.t0) / 60000));
   const plKey = p.loc.lat.toFixed(3) + "," + p.loc.lon.toFixed(3);
@@ -2781,7 +2781,7 @@ function renderPlan(app, tabsHtml){
       touchMapMode(sunMapInstance, mapEl);
       sunMapInstance.on("moveend", () => { const c = sunMapInstance.getCenter(); p.view = { lat: c.lat, lng: c.lng, z: sunMapInstance.getZoom() }; });
       sunMapInstance.on("click", (ev) => {
-        if(p.tap === "you"){ p.loc = { name: "Dropped pin", lat: ev.latlng.lat, lon: ev.latlng.lng, tz: p.loc.tz }; p.scan = null; }
+        if(p.tap === "you"){ if(p.loc.name !== "Dropped pin") p.homeLoc = p.loc; p.loc = { name: "Dropped pin", lat: ev.latlng.lat, lon: ev.latlng.lng, tz: p.loc.tz }; p.scan = null; }
         else p.subject = { name: (p.subject && p.subject.name) || "Subject", lat: ev.latlng.lat, lon: ev.latlng.lng };
         render();
       });
@@ -2872,8 +2872,9 @@ function renderPlan(app, tabsHtml){
   const center = $("planCenter");
   if(center) center.addEventListener("click", () => {
     // On a dropped pin, the crosshair takes you back to your saved place (subject pin stays); otherwise it just centers
-    if(p.loc.name === "Dropped pin" && state.loc){
-      p.loc = { name: state.loc.name, lat: state.loc.lat, lon: state.loc.lon, tz: state.tz || p.loc.tz }; p.scan = null; p.view = null; render(); return;
+    if(p.loc.name === "Dropped pin" && (p.homeLoc || state.loc)){
+      const h = p.homeLoc || { name: state.loc.name, lat: state.loc.lat, lon: state.loc.lon, tz: state.tz || p.loc.tz };
+      p.loc = { name: h.name, lat: h.lat, lon: h.lon, tz: h.tz || p.loc.tz }; p.homeLoc = null; p.scan = null; p.view = null; render(); return;
     }
     if(sunMapInstance) sunMapInstance.setView([lat, lon], sunMapInstance.getZoom());
   });
