@@ -1,4 +1,4 @@
-<!-- Afterglow v1.5.0d -->
+<!-- Afterglow v1.5.0e -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -334,7 +334,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.5.0d</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.5.0e</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -2526,6 +2526,10 @@ function renderPlan(app, tabsHtml){
   if(p.msg) html += `<div class="plan-msg">${esc(p.msg)}</div>`;
   html += `<div class="plan-row"><button class="plan-btn round" id="planPrev" aria-label="Previous day">‹</button><input class="plan-date" type="date" id="planDate" value="${p.date}" min="1900-01-01" max="2100-12-31" aria-label="Date"><button class="plan-btn round" id="planNext" aria-label="Next day">›</button><button class="plan-btn" id="planToday">Today</button></div>`;
   html += `<div class="map-date" style="margin-bottom:12px;">${planDateLabel(p.date)}</div>`;
+  html += `<div class="plan-seg"><span class="plan-seg-l">Tap the map to place:</span><button class="plan-seg-b ${p.tap === "subject" ? "on" : ""}" data-tap="subject">Subject</button><button class="plan-seg-b ${p.tap === "you" ? "on" : ""}" data-tap="you">My spot</button></div>`;
+  if(!p.subject){
+    html += `<div class="plan-msg">Tap the map to drop a pin on what you want to shoot: a skyline, a tower, a barn. You'll see its direction, the light on it, and the dates the Sun or Moon lines up with it.</div>`;
+  }
   html += `<div class="map-wrap"><div id="sunMap"></div><button type="button" class="map-center-btn" id="planCenter" title="Center on place">⌖</button></div>`;
   html += `<div class="plan-legend"><span style="color:var(--gold)"><i></i>Sunrise</span><span style="color:var(--ember)"><i></i>Sunset</span><span style="color:#9db4e8"><i style="border-top-style:dashed"></i>Moonrise / Moonset</span></div>`;
 
@@ -2549,10 +2553,7 @@ function renderPlan(app, tabsHtml){
     <div class="plan-ticks"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>12a</span></div>
     ${jumps.length ? `<div class="plan-seg" style="margin:10px 0 4px;">${jumps.map(j => `<button class="plan-seg-b" data-jump="${Math.round((j[1] - pl.t0) / 60000)}">${j[0]}</button>`).join("")}</div>` : ""}
     <div class="label" style="margin-top:8px;" id="planReadLbl"></div><div id="planReadout"></div></div>`;
-  html += `<div class="plan-seg"><span class="plan-seg-l">Tap the map to place:</span><button class="plan-seg-b ${p.tap === "subject" ? "on" : ""}" data-tap="subject">Subject</button><button class="plan-seg-b ${p.tap === "you" ? "on" : ""}" data-tap="you">My spot</button></div>`;
-  if(!p.subject){
-    html += `<div class="plan-msg">Tap the map to drop a pin on what you want to shoot: a skyline, a tower, a barn. You'll see its direction, the light on it, and the dates the Sun or Moon lines up with it.</div>`;
-  } else {
+  if(p.subject){
     const bd = bearingDist(p.loc.lat, p.loc.lon, p.subject.lat, p.subject.lon), sname = p.subject.name || "Subject";
     html += `<input class="plan-name" id="planSubjName" value="${esc(sname)}" maxlength="40" aria-label="Subject name" placeholder="Name of the subject">`;
     const rows = [];
