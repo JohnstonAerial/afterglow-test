@@ -1,4 +1,4 @@
-<!-- Afterglow v1.5.0e -->
+<!-- Afterglow v1.5.0f -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -334,7 +334,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.5.0e</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.5.0f</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -2551,7 +2551,7 @@ function renderPlan(app, tabsHtml){
   html += `<div class="card" style="margin-bottom:10px;"><div class="label">Time of day</div><div class="plan-clock" id="planTime">&nbsp;</div>
     <input type="range" class="plan-range" id="planSlider" min="0" max="${dayMin - 1}" step="1" value="${p.min}" aria-label="Time of day" style="--track:${track}">
     <div class="plan-ticks"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>12a</span></div>
-    ${jumps.length ? `<div class="plan-seg" style="margin:10px 0 4px;">${jumps.map(j => `<button class="plan-seg-b" data-jump="${Math.round((j[1] - pl.t0) / 60000)}">${j[0]}</button>`).join("")}</div>` : ""}
+    <div class="plan-seg" style="margin:10px 0 4px;"><button class="plan-seg-b" id="planNow">Now</button>${jumps.map(j => `<button class="plan-seg-b" data-jump="${Math.round((j[1] - pl.t0) / 60000)}">${j[0]}</button>`).join("")}</div>
     <div class="label" style="margin-top:8px;" id="planReadLbl"></div><div id="planReadout"></div></div>`;
   if(p.subject){
     const bd = bearingDist(p.loc.lat, p.loc.lon, p.subject.lat, p.subject.lon), sname = p.subject.name || "Subject";
@@ -2686,6 +2686,12 @@ function renderPlan(app, tabsHtml){
   const slider2 = $("planSlider2");
   if(slider2) slider2.addEventListener("input", () => applyTime(+slider2.value, true));
   document.querySelectorAll("[data-jump]").forEach(b => b.addEventListener("click", () => applyTime(+b.dataset.jump, true)));
+  // "Now": back to today's date and the current time, from anywhere
+  $("planNow").addEventListener("click", () => {
+    const today = planToday(p.loc.tz);
+    if(p.date !== today){ p.date = today; p.minSet = false; p.msg = ""; render(); return; }
+    applyTime(Math.max(0, Math.min(dayMin - 1, Math.round((Date.now() - pl.t0.getTime()) / 60000))), true);
+  });
   applyTime(p.min, false);
   const center = $("planCenter");
   if(center) center.addEventListener("click", () => { if(sunMapInstance) sunMapInstance.setView([lat, lon], sunMapInstance.getZoom()); });
