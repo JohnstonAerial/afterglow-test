@@ -1,4 +1,4 @@
-<!-- Afterglow v2.0.0b -->
+<!-- Afterglow v2.0.1a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -196,6 +196,7 @@
   .plan-row .grow{ flex:1; min-width:0; }
   .plan-btn{ background: var(--card); border:1px solid var(--line); color: var(--sand); border-radius: 12px; padding: 9px 12px; font-size: 14px; cursor:pointer; font-family: inherit; }
   .plan-btn.round{ width:36px; height:36px; padding:0; border-radius:50%; font-size:16px; }
+  .plan-saved-note{ margin:0 0 8px; font-size:13px; }
   .plan-place{ flex:1; min-width:0; text-align:left; display:flex; flex-direction:column; align-items:flex-start; gap:1px; }
   .plan-place .pl-from{ font-size:11.5px; color: var(--slate); line-height:1.2; }
   .plan-place .pl-name{ max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -401,7 +402,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST · v2.0.0b</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST · v2.0.1a</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -1781,6 +1782,14 @@ function splitBlurb(t){
   const m = String(t).match(/^([\s\S]*?[.!?])\s+([\s\S]+)$/);
   return m ? [m[1], m[2]] : [t, ""];
 }
+// One place control in the same spot on every tab. On Plan it is "Planning from" (a place that can differ
+// from the saved one); on Today and Outlook it is the saved place.
+function syncLocLabel(){
+  const ln = $("locName"), lb = $("locBtn"); if(!ln) return;
+  const onPlan = state.view === "plan" && state.plan && state.plan.loc;
+  ln.textContent = onPlan ? "Planning from: " + state.plan.loc.name : ((state.loc && state.loc.name) || "Choose location");
+  if(lb) lb.setAttribute("aria-label", onPlan ? "Change planning place" : "Change location");
+}
 function render(){
   const app = $("app");
   if(!state.daily){ app.innerHTML = '<div class="loading">Reading the sky…</div>'; return; }
@@ -1803,8 +1812,7 @@ function render(){
   document.querySelectorAll(".view-tab").forEach(b => b.addEventListener("click", () => {
     state.view = b.dataset.view; render();
   }));
-  // The Plan tab has its own place box, so the saved-location box is hidden there (two boxes looked like two places to set).
-  const lb = $("locBtn"); if(lb) lb.style.display = state.view === "plan" ? "none" : "";
+  syncLocLabel();
   saveUi();
 }
 
@@ -2650,7 +2658,9 @@ function renderPlan(app, tabsHtml){
   const parts = {};
   const cap = (k, i0) => { parts[k] = (parts[k] || "") + html.slice(i0); html = html.slice(0, i0); };
   if(!p.fold) p.fold = {};
-  html += `<div class="plan-row"><button class="plan-btn plan-place" id="planPlaceBtn" aria-label="Change planning place"><small class="pl-from">Planning from</small><span class="pl-name">📍 ${esc(p.loc.name)} · Change ▾</span></button></div>`;
+  syncLocLabel();
+  const sameAsSaved = Math.abs(state.loc.lat - p.loc.lat) < 0.0005 && Math.abs(state.loc.lon - p.loc.lon) < 0.0005;
+  if(!sameAsSaved) html += `<div class="note plan-saved-note">Your saved place is ${esc(state.loc.name)}. Today, Outlook and alerts stay there.</div>`;
   if(p.searching){
     html += `<form class="plan-search" id="planForm"><input id="planQ" type="search" placeholder="Town, state or country, or lat, lon" autocomplete="off" autocapitalize="words" enterkeyhint="search"><button class="plan-btn" type="submit">Search</button></form>`;
     if(!p.results.length && !p.msg){
@@ -2659,7 +2669,6 @@ function renderPlan(app, tabsHtml){
     }
     html += p.results.map((r, i) => `<button type="button" class="plan-btn plan-res" data-i="${i}">${esc(r.name)}${r.admin1 ? ", " + esc(r.admin1) : ""}${r.country ? " · " + esc(r.country) : ""}</button>`).join("");
     html += `<button type="button" class="plan-btn plan-res" id="planGps">📍 ${p.loc.name === MYLOC ? "Update my location" : "My location"}</button>`;
-    const sameAsSaved = Math.abs(state.loc.lat - p.loc.lat) < 0.0005 && Math.abs(state.loc.lon - p.loc.lon) < 0.0005;
     if(!sameAsSaved) html += `<button type="button" class="plan-btn plan-res" id="planSaved">Back to my saved place (${esc(state.loc.name)})</button>`;
   }
   if(p.msg) html += `<div class="plan-msg">${esc(p.msg)}</div>`;
@@ -2929,7 +2938,6 @@ function renderPlan(app, tabsHtml){
   $("planNext").addEventListener("click", () => go(planShift(p.date, 1)));
   $("planToday").addEventListener("click", () => go(planToday(p.loc.tz)));
   $("planDate").addEventListener("change", (e) => go(e.target.value));
-  $("planPlaceBtn").addEventListener("click", () => { p.searching = !p.searching; p.results = []; p.msg = ""; render(); if(p.searching){ const q = $("planQ"); if(q) q.focus(); } });
   const setPlace = (loc) => { addRecent(loc); p.calTitle = ""; p.calNotes = ""; p.loc = loc; p.subject = null; p.view = null; p.scan = null; p.searching = false; p.results = []; p.msg = ""; p.date = p.date || planToday(loc.tz); render(); };
   const gpsBtn = $("planGps");
   if(gpsBtn) gpsBtn.addEventListener("click", () => {
@@ -3176,7 +3184,10 @@ async function boot(loc){
 
 /* ---------- Location modal ---------- */
 const backdrop = $("modalBackdrop");
-$("locBtn").addEventListener("click", () => { backdrop.classList.add("open"); $("locInput").value = ""; showRecentPlaces(); $("locInput").focus(); });
+$("locBtn").addEventListener("click", () => {
+  if(state.view === "plan" && state.plan){ const p = state.plan; p.searching = !p.searching; p.results = []; p.msg = ""; render(); if(p.searching){ const q = $("planQ"); if(q) q.focus(); } return; }
+  backdrop.classList.add("open"); $("locInput").value = ""; showRecentPlaces(); $("locInput").focus();
+});
 $("closeModal").addEventListener("click", () => backdrop.classList.remove("open"));
 backdrop.addEventListener("click", (e) => { if(e.target === backdrop) backdrop.classList.remove("open"); });
 
