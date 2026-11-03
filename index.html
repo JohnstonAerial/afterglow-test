@@ -1,4 +1,4 @@
-<!-- Afterglow v1.5.0l -->
+<!-- Afterglow v1.5.0m -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -401,7 +401,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST · v1.5.0l</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST · v1.5.0m</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -2005,7 +2005,22 @@ let sunMapInstance = null;
 function touchMapMode(map, el){
   let touchy = false;
   try{ touchy = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches) || (navigator.maxTouchPoints || 0) > 1 && /Mobi|Android|iPad|iPhone/.test(navigator.userAgent || ""); }catch(e){}
-  if(!touchy || !map || !el) return;
+  if(!map || !el) return;
+  if(!touchy){
+    // Computers: plain scrolling over the map scrolls the page. Zoom with Ctrl or Cmd + scroll (a trackpad pinch counts).
+    const wrapD = el.parentElement; if(!wrapD) return;
+    const mac = /Mac/.test(navigator.platform || navigator.userAgent || "");
+    const hintD = document.createElement("div");
+    hintD.className = "map-hint"; hintD.textContent = "Hold " + (mac ? "⌘" : "Ctrl") + " and scroll to zoom the map";
+    wrapD.appendChild(hintD);
+    let td = null;
+    wrapD.addEventListener("wheel", e => {
+      if(e.ctrlKey || e.metaKey) return;
+      e.stopPropagation();
+      hintD.classList.add("show"); clearTimeout(td); td = setTimeout(() => hintD.classList.remove("show"), 1400);
+    }, { capture: true, passive: true });
+    return;
+  }
   map.dragging.disable();
   el.style.touchAction = "pan-x pan-y";
   const wrap = el.parentElement;
