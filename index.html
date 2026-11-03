@@ -1,4 +1,4 @@
-<!-- Afterglow v1.5.0h -->
+<!-- Afterglow v1.5.0i -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -32,8 +32,8 @@
     --rose: #E8517A;
     --gold: #F2B84B;
     --sand: #F5E6D3;
-    --slate: #8892a8;
-    --slate-dim: #565d78;
+    --slate: #a2abc1;
+    --slate-dim: #7b849f;
     --line: rgba(245,230,211,0.14);
     --card: rgba(245,230,211,0.05);
   }
@@ -311,6 +311,25 @@
     background:none; border: none; color: var(--slate); font-size: 13px; cursor: pointer; padding: 6px;
   }
   .modal-actions button.gps{ color: var(--gold); }
+
+  /* v1.5.0i: Plan time dock, pin hint on the map, Today/Outlook touches, Larger text */
+  .map-wrap{ height: clamp(190px, 28vh, 235px); }
+  .map-pinhint{ position:absolute; left:52px; right:58px; top:10px; z-index:1001; padding:5px 10px; border-radius:12px; background:rgba(10,11,22,0.82); border:1px solid var(--line); color: var(--sand); font-size:12.5px; line-height:1.3; text-align:center; pointer-events:none; }
+  .plan-dock{ position: sticky; top: env(safe-area-inset-top, 0px); bottom: 0; z-index: 1100; margin: 0 -20px 10px; padding: 8px 20px calc(8px + env(safe-area-inset-bottom)); background: rgba(20,23,44,0.96); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border-top: 1px solid var(--line); box-shadow: 0 0 16px rgba(0,0,0,0.4); }
+  .dock-top{ display:flex; align-items:center; gap:10px; }
+  .dock-lbl{ font-size:12.5px; color: var(--slate); line-height:1.25; }
+  .dock-main{ min-width:0; }
+  .dock-top .plan-clock{ margin:0; font-size:26px; white-space:nowrap; line-height:1.15; }
+  .dock-top .plan-seg-b{ margin-left:auto; }
+  .plan-dock .plan-range{ margin:0; height:34px; }
+  .plan-dock .plan-ticks{ margin-top:-2px; }
+  .day-card .wd{ font-size:11.5px; color: var(--slate); margin-top:2px; }
+  .ag-day{ flex-direction:column; align-items:flex-start; justify-content:center; line-height:1.15; }
+  .ag-day small{ font-family:'IBM Plex Mono', monospace; font-size:11px; font-weight:400; color: var(--slate); }
+  .ag-cell.past{ opacity:0.5; }
+  .ag-hint{ font-size:12.5px; color: var(--slate); margin: -4px 0 10px; }
+  #textBtn{ background: transparent; border: 1px solid var(--line); border-radius: 10px; color: var(--sand); font-size: 15px; padding: 6px 10px; cursor: pointer; line-height: 1; font-family: Georgia, serif; font-weight:600; }
+  #textBtn[aria-pressed="true"]{ border-color: var(--gold); color: var(--gold); }
   .header-actions{ display:flex; align-items:center; gap: 8px; }
   #notifBtn{
     background: transparent; border: 1px solid var(--line); border-radius: 10px;
@@ -368,10 +387,11 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST · v1.5.0h</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST · v1.5.0i</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
+      <button id="textBtn" title="Larger text" aria-label="Larger text" aria-pressed="false">Aa</button>
       <button id="notifBtn" title="Notifications" aria-label="Notifications">🔔</button>
     </div>
     </div>
@@ -1825,6 +1845,11 @@ function renderToday(app, tabsHtml){
     </div>`;
   }
 
+  html += `<div class="toggle-row">
+    <button class="toggle-btn ${mode==='morning'?'active':''}" data-mode="morning">Sunrise</button>
+    <button class="toggle-btn ${mode==='evening'?'active':''}" data-mode="evening">Sunset</button>
+  </div>`;
+
   html += `<div class="hero">
     <div class="hero-swatch" style="background:${gradient}"></div>
     <div class="hero-content">
@@ -1851,11 +1876,6 @@ function renderToday(app, tabsHtml){
     </div>
   </div>`;
 
-  html += `<div class="toggle-row">
-    <button class="toggle-btn ${mode==='morning'?'active':''}" data-mode="morning">Sunrise</button>
-    <button class="toggle-btn ${mode==='evening'?'active':''}" data-mode="evening">Sunset</button>
-  </div>`;
-
   const outlookStart = 7;
 
   html += `<div class="section-title">Next 7 days</div><div class="days">`;
@@ -1868,6 +1888,7 @@ function renderToday(app, tabsHtml){
       <div class="dow">${dow}</div>
       <div class="swatch" style="background:${ds ? swatchGradient(ds, mode) : '#2a3040'}"></div>
       <div class="num">${ds ? ds.score : "–"}</div>
+      <div class="wd">${ds ? label(ds.score) : ""}</div>
     </div>`;
   });
   html += `</div>`;
@@ -1945,22 +1966,24 @@ function renderOutlook(app, tabsHtml){
       let sc = null;
       if(evt){ const j = nearestHourIdx(hourly.time, evt); sc = scoreEvent(hourly, j, sampleAt(state.sample[mode], evt)); }
       cells.push({ i, mode, evt, sc });
-      if(sc && (!best || sc.score > best.sc.score)) best = { i, mode, sc };
+      if(sc && evt && new Date(evt).getTime() >= Date.now() && (!best || sc.score > best.sc.score)) best = { i, mode, sc };
     });
   });
   const cellHtml = c => {
     if(!c.sc) return `<div class="ag-cell" style="cursor:default"><div class="lb">No data</div></div>`;
     const isBest = best && best.sc.score >= 26 && best.i === c.i && best.mode === c.mode;
-    return `<div class="ag-cell${isBest ? " best" : ""}" data-day="${c.i}" data-mode="${c.mode}">
+    const past = c.evt && new Date(c.evt).getTime() < Date.now();
+    return `<div class="ag-cell${isBest ? " best" : ""}${past ? " past" : ""}" data-day="${c.i}" data-mode="${c.mode}">
       <div class="t1"><span class="sc">${c.sc.score}</span><span class="lb">${label(c.sc.score)}</span></div>
       <div class="agenda-bar"><i style="width:${c.sc.score}%; background:${agendaColor(c.sc.score)}"></i></div>
       <div class="tm">${fmtTime(c.evt)}${isBest ? ` <span class="ag-best">· best</span>` : ""}</div>
     </div>`;
   };
+  html += `<div class="ag-hint">Tap a day to open it. Faded ones have already passed.</div>`;
   html += `<div class="ag-head"><span></span><span>Sunrise</span><span>Sunset</span></div>`;
   daily.time.slice(0, 7).forEach((t, i) => {
     const dow = i === 0 ? "Today" : parseLocalDate(t).toLocaleDateString([], { weekday: "short" });
-    html += `<div class="ag-row"><div class="ag-day">${dow}</div>${cellHtml(cells[i * 2])}${cellHtml(cells[i * 2 + 1])}</div>`;
+    html += `<div class="ag-row"><div class="ag-day">${dow}<small>${parseLocalDate(t).toLocaleDateString([], { month: "short", day: "numeric" })}</small></div>${cellHtml(cells[i * 2])}${cellHtml(cells[i * 2 + 1])}</div>`;
   });
   app.innerHTML = html;
 
@@ -2133,15 +2156,15 @@ async function loadPlanSky(p){
 }
 function skyCardHtml(p, sun, esc){
   const sk = p.sky;
-  if(!sk || sk.loading) return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky outlook</div><div class="note">Reading the sky…</div></div>`;
-  if(sk.error) return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky outlook</div><div class="note">The sky forecast didn't load. Directions and times above don't need it.</div></div>`;
+  if(!sk || sk.loading) return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky forecast</div><div class="note">Reading the sky…</div></div>`;
+  if(sk.error) return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky forecast</div><div class="note">The sky forecast didn't load. Directions and times above don't need it.</div></div>`;
   const i = sk.daily.time.indexOf(p.date);
   if(i < 0){
     const last = sk.daily.time[sk.daily.time.length - 1];
     const msg = p.date < sk.daily.time[0]
       ? "That date has passed. Pick a later date for a sky forecast."
       : `Too far out for a sky forecast. It becomes available <b>${planDayLabel(planShift(p.date, -(sk.daily.time.length - 1)))}</b>, about ten days before. Directions and times above are exact now.`;
-    return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky outlook · ${planDayLabel(p.date)}</div><div class="note" style="font-size:13px;">${msg}</div></div>`;
+    return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky forecast · ${planDayLabel(p.date)}</div><div class="note" style="font-size:13px;">${msg}</div></div>`;
   }
   const rows = [];
   [["evening", "Sunset", sk.daily.sunset[i], sun.set], ["morning", "Sunrise", sk.daily.sunrise[i], sun.rise]].forEach(([mode, name, evt, t]) => {
@@ -2151,7 +2174,7 @@ function skyCardHtml(p, sun, esc){
     rows.push(`<div class="plan-row2"><span>${name}${t ? " " + fmtZ(t, p.loc.tz) : ""}</span><b class="${sc.score >= 44 ? "plan-good" : ""}">${label(sc.score)} · ${sc.score}</b></div>`);
   });
   const nearToday = i === 0 ? "" : "";
-  return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky outlook · ${planDayLabel(p.date)} · inside the forecast</div>${rows.join("") || '<div class="note">No sunrise or sunset score for this date.</div>'}<div class="note" style="margin-top:6px;">Same score as Today and Outlook. Forecasts shift, so check again closer to the day.</div></div>`;
+  return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky forecast · ${planDayLabel(p.date)}</div>${rows.join("") || '<div class="note">No sunrise or sunset score for this date.</div>'}<div class="note" style="margin-top:6px;">Same score as Today and Outlook. Forecasts shift, so check again closer to the day.</div></div>`;
 }
 
 // ---- Calendar file (.ics): the shoot window plus the light times, in the event notes.
@@ -2592,9 +2615,7 @@ function renderPlan(app, tabsHtml){
   }
   if(p.msg) html += `<div class="plan-msg">${esc(p.msg)}</div>`;
   html += `<div class="plan-row"><button class="plan-btn round" id="planPrev" aria-label="Previous day">‹</button><input class="plan-date" type="date" id="planDate" value="${p.date}" min="1900-01-01" max="2100-12-31" aria-label="Date"><button class="plan-btn round" id="planNext" aria-label="Next day">›</button><button class="plan-btn" id="planToday">Today</button></div>`;
-  html += `<div class="map-date" style="margin-bottom:12px;">${planDateLabel(p.date)}</div>`;
-  html += `<div class="map-wrap"><div id="sunMap"></div><button type="button" class="map-center-btn" id="planCenter" title="Center on place">⌖</button><div class="map-tap" role="group" aria-label="What a map tap places"><button class="plan-seg-b ${p.tap === "subject" ? "on" : ""}" data-tap="subject">Place subject</button><button class="plan-seg-b ${p.tap === "you" ? "on" : ""}" data-tap="you">Place me</button></div></div>`;
-  if(!p.subject) html += `<div class="plan-msg" style="margin:-4px 0 10px;">Tap the map to drop a pin on what you want to shoot (a skyline, tower, barn) and see its light.</div>`;
+  html += `<div class="map-wrap"><div id="sunMap"></div><button type="button" class="map-center-btn" id="planCenter" title="Center on place">⌖</button>${p.subject ? "" : '<div class="map-pinhint">Tap the map to drop a pin on what you want to shoot</div>'}<div class="map-tap" role="group" aria-label="What a map tap places"><button class="plan-seg-b ${p.tap === "subject" ? "on" : ""}" data-tap="subject">Place subject</button><button class="plan-seg-b ${p.tap === "you" ? "on" : ""}" data-tap="you">Place me</button></div></div>`;
 
   const dayMin = Math.max(60, Math.round((pl.t1 - pl.t0) / 60000));
   const plKey = p.loc.lat.toFixed(3) + "," + p.loc.lon.toFixed(3);
@@ -2613,10 +2634,12 @@ function renderPlan(app, tabsHtml){
   const jumps = [["Sunrise", sun.rise], ["Golden hr", sun.gEve], ["Sunset", sun.set], ["Moonrise", moon.moonrise]].filter(j => j[1]);
   let i0 = html.length;
   const jumps2 = jumps.slice(); if(moon.moonset) jumps2.push(["Moonset", moon.moonset]);
-  html += `<div class="card" style="margin-bottom:10px;"><div class="label">Move the Sun and Moon lines</div><div class="plan-clock" id="planTime">&nbsp;</div>
+  const dockDay = parseLocalDate(p.date).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+  html += `<div class="plan-dock"><div class="dock-top"><div class="dock-main"><div class="plan-clock" id="planTime">&nbsp;</div><div class="dock-lbl">${dockDay} · drag to move the lines</div></div><button class="plan-seg-b jump" id="planNow">Now</button></div>
     <input type="range" class="plan-range" id="planSlider" min="0" max="${dayMin - 1}" step="1" value="${p.min}" aria-label="Time of day" style="--track:${track}">
-    <div class="plan-ticks"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>12a</span></div>
-    <div class="plan-seg" style="margin:10px 0 4px;"><button class="plan-seg-b jump" id="planNow">Now</button>${jumps2.map(j => `<button class="plan-seg-b jump" data-jump="${Math.round((j[1] - pl.t0) / 60000)}">${j[0]}<small>${fmtZ(j[1], tz)}</small></button>`).join("")}</div>
+    <div class="plan-ticks"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>12a</span></div></div>`;
+  html += `<div class="card" style="margin-bottom:10px;"><div class="label">Jump to</div>
+    <div class="plan-seg" style="margin:6px 0 4px;">${jumps2.map(j => `<button class="plan-seg-b jump" data-jump="${Math.round((j[1] - pl.t0) / 60000)}">${j[0]}<small>${fmtZ(j[1], tz)}</small></button>`).join("")}</div>
     <div id="planReadout"></div>${planDialSVG(pl, tz)}<div class="map-note" style="text-align:center;">Sky view, you at the center, north up. Closer to the middle is higher in the sky; the edge is the horizon. Orange is the Sun, dotted blue the Moon.</div></div>`;
   cap("time", i0);
   i0 = html.length;
@@ -2673,7 +2696,7 @@ function renderPlan(app, tabsHtml){
   </div>`;
   cap("sum", i0);
   const foldBody = (key, title, inner, force) => `<details class="plan-fold" data-fold="${key}"${(p.fold[key] || force) ? " open" : ""}><summary>${title}</summary><div class="fold-body">${inner}</div></details>`;
-  const vTitle = "Viewing from · " + (p.vmode === "ground" ? "Ground" : "Drone") + " <span style=\"color:var(--slate);font-size:12.5px;\">&amp; what's in the way</span>";
+  const vTitle = "Height &amp; things in the way <span style=\"color:var(--slate);font-size:12.5px;\">· " + (p.vmode === "ground" ? "from the ground" : "drone") + "</span>";
   html += (parts.time || "") + (parts.sky || "") + (parts.subj || "");
   html += foldBody("view", vTitle, parts.view || "");
   html += foldBody("tools", "Share, calendar &amp; print", (parts.share || "") + (parts.cal || ""), !!p.shareMsg);
@@ -3382,6 +3405,44 @@ function initLocation(){
   );
 }
 initLocation();
+
+// ---------- Larger text (v1.5.0i) ----------
+// Scales every font size set in this page's own stylesheet by 1.2 (the map's library styles are left alone).
+const BIGTEXT_KEY = "ag_bigtext";
+function applyBigText(on){
+  const old = document.getElementById("bigTextCss"); if(old) old.remove();
+  const btn = document.getElementById("textBtn"); if(btn) btn.setAttribute("aria-pressed", on ? "true" : "false");
+  if(!on) return;
+  const out = [];
+  const walk = (rules, wrapOpen, wrapClose) => {
+    for(const r of rules){
+      try{
+        if(r.type === 1 && r.style && /px$/.test(r.style.fontSize || "")){
+          out.push(wrapOpen + r.selectorText + "{font-size:" + (parseFloat(r.style.fontSize) * 1.2).toFixed(1) + "px !important}" + wrapClose);
+        } else if(r.type === 4 && r.cssRules){
+          walk(r.cssRules, wrapOpen + "@media " + r.conditionText + "{", "}" + wrapClose);
+        }
+      }catch(e){}
+    }
+  };
+  for(const sh of Array.from(document.styleSheets)){
+    if(sh.href) continue;
+    try{ walk(sh.cssRules, "", ""); }catch(e){}
+  }
+  const st = document.createElement("style"); st.id = "bigTextCss"; st.textContent = out.join("\n");
+  document.head.appendChild(st);
+}
+(function(){
+  let on = false;
+  try{ on = localStorage.getItem(BIGTEXT_KEY) === "1"; }catch(e){}
+  applyBigText(on);
+  const btn = document.getElementById("textBtn");
+  if(btn) btn.addEventListener("click", () => {
+    on = !on;
+    try{ localStorage.setItem(BIGTEXT_KEY, on ? "1" : "0"); }catch(e){}
+    applyBigText(on);
+  });
+})();
 </script>
 <script>
   // Register the service worker for offline support / installability.
