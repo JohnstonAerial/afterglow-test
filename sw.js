@@ -7,7 +7,7 @@
 //   - Everything else (this app's own files, Leaflet's CDN assets): cache-first,
 //     since those don't go stale in a way that matters day-to-day.
 
-const CACHE_NAME = "afterglow-test-v67";
+const CACHE_NAME = "afterglow-test-v68";
 
 // Bump this string (v1 -> v2, etc.) any time index.html, manifest.json, or the
 // icons change, so returning visitors get the new version instead of a cached
@@ -23,11 +23,10 @@ const STATIC_ASSETS = [
   "./apple-touch-icon.png"
 ];
 
-// Libraries from the CDN, saved when the app installs so Print and the map work offline.
+// Map library from the CDN, saved when the app installs so the map works offline.
 const CDN_ASSETS = [
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css",
-  "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js",
-  "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"
+  "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
 ];
 
 const isApiRequest = (url) =>
