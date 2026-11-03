@@ -1,4 +1,4 @@
-<!-- Afterglow v1.5.0f -->
+<!-- Afterglow v1.5.1a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -136,7 +136,7 @@
   .map-date{ font-family: Georgia, serif; font-size: 15px; color: var(--sand); text-align: center; flex: 1; }
   .map-wrap{
     position: relative; z-index: 0; isolation: isolate; border-radius: 18px; overflow: hidden; border: 1px solid var(--line);
-    height: 360px; margin-bottom: 14px; background: var(--card);
+    height: clamp(230px, 34vh, 280px); margin-bottom: 10px; background: var(--card);
   }
   #sunMap{ width: 100%; height: 100%; }
   .map-hint{ position:absolute; left:50%; bottom:34px; transform:translateX(-50%); z-index:1002; padding:8px 14px; border-radius:999px; background:rgba(10,11,22,0.85); color:var(--sand); font-size:14px; pointer-events:none; opacity:0; transition:opacity .2s; white-space:nowrap; }
@@ -155,7 +155,18 @@
   .map-slider-icon{ font-size: 15px; opacity: 0.7; }
   .map-readout{ display:flex; gap: 10px; margin-bottom: 14px; }
   .map-readout .card{ flex: 1; text-align: center; }
-  .map-note{ font-size: 12px; line-height: 1.5; color: var(--slate-dim); }
+  .map-note{ font-size: 12.5px; line-height: 1.5; color: var(--slate); }
+  .plan-fold{ border:1px solid var(--line); background: var(--card); border-radius:14px; margin-bottom:12px; }
+  .plan-fold > summary{ list-style:none; cursor:pointer; padding:14px 16px; font-size:14px; color: var(--sand); display:flex; justify-content:space-between; align-items:center; }
+  .plan-fold > summary::-webkit-details-marker{ display:none; }
+  .plan-fold > summary::after{ content:"▾"; color: var(--slate); transition: transform .15s; }
+  .plan-fold[open] > summary::after{ transform: rotate(180deg); }
+  .plan-fold > .fold-body{ padding:0 12px 4px; }
+  .plan-fold .card{ border:0; background:transparent; padding:10px 4px; }
+  .plan-fold .card + .card{ border-top:1px solid var(--line); border-radius:0; }
+  .plan-sum{ margin-top:2px; }
+  .plan-sum .plan-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+  .plan-sum .plan-grid .card{ padding:12px 14px; }
 
   /* ---------- Plan tab ---------- */
   .plan-row{ display:flex; align-items:center; gap:8px; margin-bottom:12px; }
@@ -170,7 +181,7 @@
   .plan-msg{ font-size:12.5px; color: var(--slate); margin: 0 0 10px; line-height:1.5; }
   .plan-lbl{ background:none; border:none; }
   .plan-lbl span{ position:absolute; transform: translate(-50%,-50%); white-space:nowrap; font-size:11px; font-weight:600; padding:2px 7px; border-radius:999px; background: rgba(20,23,44,0.88); border:1px solid currentColor; }
-  .plan-legend{ display:flex; flex-wrap:wrap; gap:6px 14px; font-size:12px; color: var(--slate); margin: -4px 0 14px; }
+  .plan-legend{ display:flex; flex-wrap:wrap; gap:6px 14px; font-size:12px; color: var(--slate); margin: 0 0 14px; }
   .plan-legend i{ display:inline-block; width:18px; height:0; border-top:3px solid; vertical-align:middle; margin-right:5px; }
   #printRoot{ display:none; }
   @media print{
@@ -334,7 +345,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.5.0f</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.5.1a</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -2513,6 +2524,9 @@ function renderPlan(app, tabsHtml){
   const tzNote = planZoneOk(tz) ? "" : " The time zone for this place wasn't found, so times are shown in your phone's zone.";
 
   let html = tabsHtml;
+  const parts = {};
+  const cap = (k, i0) => { parts[k] = (parts[k] || "") + html.slice(i0); html = html.slice(0, i0); };
+  if(!p.fold) p.fold = {};
   html += `<div class="plan-row"><button class="plan-btn plan-place" id="planPlaceBtn" aria-label="Change planning place">📍 ${esc(p.loc.name)} · Change ▾</button></div>`;
   if(p.searching){
     html += `<form class="plan-search" id="planForm"><input id="planQ" type="search" placeholder="Town, state or country, or lat, lon" autocomplete="off" autocapitalize="words" enterkeyhint="search"><button class="plan-btn" type="submit">Search</button></form>`;
@@ -2528,7 +2542,7 @@ function renderPlan(app, tabsHtml){
   html += `<div class="map-date" style="margin-bottom:12px;">${planDateLabel(p.date)}</div>`;
   html += `<div class="plan-seg"><span class="plan-seg-l">Tap the map to place:</span><button class="plan-seg-b ${p.tap === "subject" ? "on" : ""}" data-tap="subject">Subject</button><button class="plan-seg-b ${p.tap === "you" ? "on" : ""}" data-tap="you">My spot</button></div>`;
   if(!p.subject){
-    html += `<div class="plan-msg">Tap the map to drop a pin on what you want to shoot: a skyline, a tower, a barn. You'll see its direction, the light on it, and the dates the Sun or Moon lines up with it.</div>`;
+    html += `<div class="plan-msg" style="margin-bottom:8px;">Drop a pin on what you want to shoot (a skyline, tower, barn) to see its light and when the Sun or Moon lines up.</div>`;
   }
   html += `<div class="map-wrap"><div id="sunMap"></div><button type="button" class="map-center-btn" id="planCenter" title="Center on place">⌖</button></div>`;
   html += `<div class="plan-legend"><span style="color:var(--gold)"><i></i>Sunrise</span><span style="color:var(--ember)"><i></i>Sunset</span><span style="color:#9db4e8"><i style="border-top-style:dashed"></i>Moonrise / Moonset</span></div>`;
@@ -2548,11 +2562,14 @@ function renderPlan(app, tabsHtml){
     ? `linear-gradient(90deg, ${D} 0%, ${D} ${pc(Math.max(0, fR - 0.03))}, #F2B84B ${pc(fR)}, ${B} ${pc(Math.min(1, fR + 0.06))}, ${B} ${pc(Math.max(0, fS - 0.06))}, #FF6B35 ${pc(fS)}, ${D} ${pc(Math.min(1, fS + 0.03))}, ${D} 100%)`
     : (sun.polar === "up" ? B : D);
   const jumps = [["Sunrise", sun.rise], ["Golden hr", sun.gEve], ["Sunset", sun.set], ["Moonrise", moon.moonrise]].filter(j => j[1]);
+  let i0 = html.length;
   html += `<div class="card" style="margin-bottom:10px;"><div class="label">Time of day</div><div class="plan-clock" id="planTime">&nbsp;</div>
     <input type="range" class="plan-range" id="planSlider" min="0" max="${dayMin - 1}" step="1" value="${p.min}" aria-label="Time of day" style="--track:${track}">
     <div class="plan-ticks"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>12a</span></div>
     <div class="plan-seg" style="margin:10px 0 4px;"><button class="plan-seg-b" id="planNow">Now</button>${jumps.map(j => `<button class="plan-seg-b" data-jump="${Math.round((j[1] - pl.t0) / 60000)}">${j[0]}</button>`).join("")}</div>
-    <div class="label" style="margin-top:8px;" id="planReadLbl"></div><div id="planReadout"></div></div>`;
+    <div class="label" style="margin-top:8px;" id="planReadLbl"></div><div id="planReadout"></div>${planDialSVG(pl, tz)}<div class="map-note" style="text-align:center;">Sky view, you at the center, north up. Closer to the middle is higher in the sky; the edge is the horizon. Orange is the Sun, dotted blue the Moon.</div></div>`;
+  cap("time", i0);
+  i0 = html.length;
   if(p.subject){
     const bd = bearingDist(p.loc.lat, p.loc.lon, p.subject.lat, p.subject.lon), sname = p.subject.name || "Subject";
     html += `<input class="plan-name" id="planSubjName" value="${esc(sname)}" maxlength="40" aria-label="Subject name" placeholder="Name of the subject">`;
@@ -2566,19 +2583,32 @@ function renderPlan(app, tabsHtml){
     try{ fin = planFinder(p, bd.brg, p.finder); }catch(e){ console.error("Finder failed:", e); fin = '<div class="note">Couldn\'t search the dates.</div>'; }
     html += `<div class="card" style="margin-bottom:12px;"><div class="label">Find the dates it lines up</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.finder === "sun" ? "on" : ""}" data-finder="sun">Sun</button><button class="plan-seg-b ${p.finder === "moon" ? "on" : ""}" data-finder="moon">Moon</button></div>${fin}<div class="note" style="margin-top:8px;">Direction only: it doesn't know how tall the subject is or what stands in between.</div></div>`;
   }
+  cap("subj", i0);
+  i0 = html.length;
   try{ html += planViewCardHtml(p, pl, esc); }catch(e){ console.error('View card failed:', e); }
+  cap("view", i0);
+  i0 = html.length;
   html += skyCardHtml(p, sun, esc);
-  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Share this plan</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b" id="planCopy">🔗 Copy link</button>${navigator.share ? '<button class="plan-seg-b" id="planShare">Share…</button>' : ""}</div>${p.shareMsg ? `<div class="note" style="margin-bottom:6px;color:var(--gold);">${esc(p.shareMsg)}</div>` : ""}<div class="note">Reopens this place${p.subject ? ', the subject pin' : ''} and date in AfterGlow on any phone. No account, and nothing is stored on a server: the plan is inside the link.</div></div>`;
+  cap("sky", i0);
+  i0 = html.length;
+  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Share this plan</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b" id="planCopy">🔗 Copy link</button>${navigator.share ? '<button class="plan-seg-b" id="planShare">Share…</button>' : ""}</div>${p.shareMsg ? `<div class="note" style="margin-bottom:6px;color:var(--gold);">${esc(p.shareMsg)}</div>` : ""}<div class="note">Reopens this place${p.subject ? ', the subject pin' : ''} and date in AfterGlow on any phone. Nothing is stored on a server.</div></div>`;
+  cap("share", i0);
+  i0 = html.length;
   if(!p.calMode) p.calMode = "evening";
   const cw = planShootWindow(pl, p.calMode);
-  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Add to calendar</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.calMode === "evening" ? "on" : ""}" data-cal="evening">Sunset shoot</button><button class="plan-seg-b ${p.calMode === "morning" ? "on" : ""}" data-cal="morning">Sunrise shoot</button></div><input class="plan-name" id="planCalTitle" value="${esc(p.calTitle || "")}" maxlength="80" placeholder="${esc(planEventTitle({ loc: p.loc, subject: p.subject }))}" aria-label="Event title"><textarea class="plan-name" id="planCalNotes" rows="3" maxlength="600" placeholder="Your notes (optional): gear, who is coming, a reminder" aria-label="Your notes" style="resize:vertical;">${esc(p.calNotes || "")}</textarea>${cw ? `<div class="note" style="margin-bottom:8px;">${planDayLabel(p.date)}, ${fmtZ(cw.start, tz)} to ${fmtZ(cw.end, tz)}: an hour before golden hour through ${p.calMode === "morning" ? "the end of golden hour" : "sunset"}.</div><div class="plan-seg" style="margin:0;"><button class="plan-seg-b" id="planIcs">📅 Add to calendar</button><button class="plan-seg-b" id="planGcal">Google Calendar</button></div>` : `<div class="note">The Sun doesn't ${p.calMode === "morning" ? "rise" : "set"} on this date here, so there's no window to add.</div>`}<div class="note" style="margin-top:8px;">The light times go in the event notes, with a link back to this plan. Times are calculated and exact. The sky score is a snapshot of the forecast today.</div></div>`;
+  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Add to calendar</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.calMode === "evening" ? "on" : ""}" data-cal="evening">Sunset shoot</button><button class="plan-seg-b ${p.calMode === "morning" ? "on" : ""}" data-cal="morning">Sunrise shoot</button></div><input class="plan-name" id="planCalTitle" value="${esc(p.calTitle || "")}" maxlength="80" placeholder="${esc(planEventTitle({ loc: p.loc, subject: p.subject }))}" aria-label="Event title"><textarea class="plan-name" id="planCalNotes" rows="3" maxlength="600" placeholder="Your notes (optional): gear, who is coming, a reminder" aria-label="Your notes" style="resize:vertical;">${esc(p.calNotes || "")}</textarea>${cw ? `<div class="note" style="margin-bottom:8px;">${planDayLabel(p.date)}, ${fmtZ(cw.start, tz)} to ${fmtZ(cw.end, tz)}: an hour before golden hour through ${p.calMode === "morning" ? "the end of golden hour" : "sunset"}.</div><div class="plan-seg" style="margin:0;"><button class="plan-seg-b" id="planIcs">📅 Add to calendar</button><button class="plan-seg-b" id="planGcal">Google Calendar</button></div>` : `<div class="note">The Sun doesn't ${p.calMode === "morning" ? "rise" : "set"} on this date here, so there's no window to add.</div>`}<div class="note" style="margin-top:8px;">Light times and a link back to this plan go in the event notes.</div></div>`;
+  cap("cal", i0);
+  i0 = html.length;
   html += `<div class="card" style="margin-bottom:12px;"><div class="label">Print a shoot card</div><div class="note" style="margin-bottom:8px;font-size:12.5px;">One page with the compass, light times, subject, drone height, what's in the way, your notes and a code that reopens this plan. </div><button class="plan-seg-b" id="planPrint">🖨 Print / Save as PDF</button><div class="note" style="margin-top:8px;font-size:12.5px;">${printHint()}</div></div>`;
+  cap("cal", i0);
+  i0 = html.length;
   loadPlanSky(p);
   p.live = null;
   const sunRise = sun.rise ? `${fmtZ(sun.rise, tz)} <small>${Math.round(sun.riseAz)}° ${compassDir(sun.riseAz)}</small>` : `<small>${sun.polar === "up" ? "Sun stays up all day" : "Sun stays down all day"}</small>`;
   const sunSet = sun.set ? `${fmtZ(sun.set, tz)} <small>${Math.round(sun.setAz)}° ${compassDir(sun.setAz)}</small>` : `<small>${sun.polar === "up" ? "Sun doesn't set" : "No sunset"}</small>`;
   const gm = sun.gMorn && sun.rise ? fmtRangeZ(sun.rise, sun.gMorn, tz) : "—";
   const ge = sun.gEve && sun.set ? fmtRangeZ(sun.gEve, sun.set, tz) : "—";
+  i0 = html.length;
   html += `<div class="plan-grid">
     <div class="card"><div class="label">☀ Sunrise</div><div class="value">${sunRise}</div></div>
     <div class="card"><div class="label">☀ Sunset</div><div class="value">${sunSet}</div></div>
@@ -2591,11 +2621,16 @@ function renderPlan(app, tabsHtml){
     <div class="label">${moon.emoji} ${moon.phaseName} · ${moon.illumPct}% lit</div>
     <div class="plan-grid" style="margin:10px 0 0;"><div><div class="label">Moonrise</div><div class="value">${mRise}</div></div><div><div class="label">Moonset</div><div class="value">${mSet}</div></div></div>
   </div>`;
-  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Sky view · you are at the center</div><div class="plan-clock" id="planTime2" style="margin-top:6px;">&nbsp;</div>
-    <input type="range" class="plan-range" id="planSlider2" min="0" max="${dayMin - 1}" step="1" value="${p.min}" aria-label="Time of day (sky view)" style="--track:${track}">${planDialSVG(pl, tz)}
-    <div class="map-note" style="text-align:center;">North is up. The closer to the center, the higher in the sky; the edge is the horizon. Orange is the Sun with hour marks, dotted blue is the Moon.</div></div>`;
-  html += `<div class="map-note">Directions and times are calculated, so they are exact for any date, but this is geometry only: there is no sky forecast past about ten days. Rise and set times are for a flat horizon; hills and buildings change what you actually see.${esc(tzNote)}</div>`;
+  cap("sum", i0);
+  const foldBody = (key, title, inner, force) => `<details class="plan-fold" data-fold="${key}"${(p.fold[key] || force) ? " open" : ""}><summary>${title}</summary><div class="fold-body">${inner}</div></details>`;
+  const vTitle = "Viewing from · " + (p.vmode === "ground" ? "Ground" : "Drone") + " <span style=\"color:var(--slate);font-size:12.5px;\">&amp; what's in the way</span>";
+  html += `<div class="plan-sum">${parts.sum || ""}</div>`;
+  html += (parts.sky || "") + (parts.time || "") + (parts.subj || "");
+  html += foldBody("view", vTitle, parts.view || "");
+  html += foldBody("tools", "Share, calendar &amp; print", (parts.share || "") + (parts.cal || ""), !!p.shareMsg);
+  html += `<div class="map-note" style="margin-top:4px;">Times and directions are calculated for a flat horizon, so hills and buildings change what you see. No sky forecast past about ten days.${esc(tzNote)}</div>`;
   app.innerHTML = html;
+  document.querySelectorAll("details.plan-fold").forEach(d => d.addEventListener("toggle", () => { p.fold[d.dataset.fold] = d.open; }));
 
   destroySunMap();
   const mapEl = $("sunMap");
