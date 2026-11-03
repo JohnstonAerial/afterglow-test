@@ -51,8 +51,8 @@ On a computer, scrolling over the map scrolls the page. To zoom the map, use the
 - **iPhone / iPad (Safari):** tap Share, then **Add to Home Screen**.
 - **Android (Chrome):** open the menu, then **Install app** or **Add to home screen**.
 - **Mac (Safari, macOS Sonoma 14 or newer):** click the Share button in the toolbar, then **Add to Dock**.
-- **Mac (Chrome):** open the menu, then **Cast, save and share → Install page as app** (a copy goes in your Dock).
-- **Windows (Chrome):** open the menu, then **Cast, save and share → Install page as app**.
+- **Mac (Chrome):** click **Install** at the right end of the address bar, then **Next**, then **Install**. A Finder window opens showing the app. Drag it to your Dock or Desktop to keep it handy. (If you don't see **Install**, open the menu and choose **Cast, save and share → Install page as app**.)
+- **Windows (Chrome):** click **Install** at the right end of the address bar and follow the prompts. (Or open the menu and choose **Cast, save and share → Install page as app**.)
 - **Windows (Edge):** click the **App available** icon at the right end of the address bar, then **Install**. (You can also open the menu, then **Apps → Install this site as an app**.)
 
 Firefox on a computer can't install web apps, so alerts won't work there. Use Chrome, Edge or Safari for that.
