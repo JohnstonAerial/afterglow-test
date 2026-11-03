@@ -1,4 +1,4 @@
-<!-- Afterglow v1.5.0j -->
+<!-- Afterglow v1.5.0k -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -196,7 +196,9 @@
   .plan-row .grow{ flex:1; min-width:0; }
   .plan-btn{ background: var(--card); border:1px solid var(--line); color: var(--sand); border-radius: 12px; padding: 9px 12px; font-size: 14px; cursor:pointer; font-family: inherit; }
   .plan-btn.round{ width:36px; height:36px; padding:0; border-radius:50%; font-size:16px; }
-  .plan-place{ flex:1; min-width:0; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .plan-place{ flex:1; min-width:0; text-align:left; display:flex; flex-direction:column; align-items:flex-start; gap:1px; }
+  .plan-place .pl-from{ font-size:11.5px; color: var(--slate); line-height:1.2; }
+  .plan-place .pl-name{ max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .plan-date{ flex:1; min-width:0; background: var(--card); border:1px solid var(--line); color: var(--sand); border-radius:12px; padding:8px 10px; font-size:15px; font-family: inherit; color-scheme: dark; }
   .plan-search{ display:flex; gap:8px; margin-bottom:8px; }
   .plan-search input{ flex:1; min-width:0; background: var(--card); border:1px solid var(--line); color: var(--sand); border-radius:12px; padding:9px 12px; font-size:16px; font-family: inherit; }
@@ -395,7 +397,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST · v1.5.0j</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST · v1.5.0k</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -420,7 +422,7 @@
     <input type="text" id="locInput" placeholder="City, state, ZIP, or lat, lon" autocomplete="off">
     <div class="modal-results" id="locResults"></div>
     <div class="modal-actions">
-      <button class="gps" id="useGps">Use current location</button>
+      <button class="gps" id="useGps">My location</button>
       <button id="closeModal">Cancel</button>
     </div>
   </div>
@@ -777,10 +779,11 @@ let state = {
   stale: null // set when showing a cached forecast we couldn't refresh
 };
 
+const MYLOC = "My location";   // name given to a place found by the phone's location (was "Current location")
 function loadLoc(){
   try{
     const saved = JSON.parse(localStorage.getItem("afterglow_loc"));
-    if(saved && saved.lat) return saved;
+    if(saved && saved.lat){ if(saved.name === "Current location") saved.name = MYLOC; return saved; }
   }catch(e){}
   return null;
 }
@@ -796,7 +799,7 @@ function loadRecents(){
   return [];
 }
 function addRecent(loc){
-  if(!loc || !isFinite(loc.lat) || !isFinite(loc.lon) || !loc.name || loc.name === "Current location") return;
+  if(!loc || !isFinite(loc.lat) || !isFinite(loc.lon) || !loc.name || loc.name === "Current location" || loc.name === MYLOC) return;
   try{
     const keep = loadRecents().filter(x => Math.abs(x.lat - loc.lat) > 0.002 || Math.abs(x.lon - loc.lon) > 0.002);
     keep.unshift({ name: String(loc.name).slice(0, 80), lat: loc.lat, lon: loc.lon, tz: loc.tz || null });
@@ -2431,6 +2434,7 @@ function restoreUi(){
     else if(o.view === "map") state.view = "plan"; // the old Map tab was folded into Plan
     const q = o.plan;
     if(q && q.loc && isFinite(q.loc.lat) && isFinite(q.loc.lon)){
+      if(q.loc.name === "Current location") q.loc.name = MYLOC;
       const stale = q.date && q.date < planToday(q.loc.tz);
       state.plan = { loc: q.loc, date: stale ? null : (q.date || null), subject: q.subject && isFinite(q.subject.lat) ? q.subject : null,
         min: q.min, minKey: q.loc.lat.toFixed(3) + "," + q.loc.lon.toFixed(3), minSet: stale ? false : !!q.minSet, tap: q.tap, finder: q.finder, calMode: q.calMode, calTitle: q.calTitle || "", calNotes: q.calNotes || "", vmode: q.vmode, alt: q.alt, unit: q.unit, searching: false, results: [], msg: "" };
@@ -2597,7 +2601,7 @@ function renderPlan(app, tabsHtml){
   const parts = {};
   const cap = (k, i0) => { parts[k] = (parts[k] || "") + html.slice(i0); html = html.slice(0, i0); };
   if(!p.fold) p.fold = {};
-  html += `<div class="plan-row"><button class="plan-btn plan-place" id="planPlaceBtn" aria-label="Change planning place">📍 ${esc(p.loc.name)} · Change ▾</button></div>`;
+  html += `<div class="plan-row"><button class="plan-btn plan-place" id="planPlaceBtn" aria-label="Change planning place"><small class="pl-from">Planning from</small><span class="pl-name">📍 ${esc(p.loc.name)} · Change ▾</span></button></div>`;
   if(p.searching){
     html += `<form class="plan-search" id="planForm"><input id="planQ" type="search" placeholder="Town, state or country, or lat, lon" autocomplete="off" autocapitalize="words" enterkeyhint="search"><button class="plan-btn" type="submit">Search</button></form>`;
     if(!p.results.length && !p.msg){
@@ -2605,11 +2609,13 @@ function renderPlan(app, tabsHtml){
       if(rl.length) html += `<div class="note" style="margin:8px 0 4px;">Recent places</div>` + rl.map((r, i) => `<button type="button" class="plan-btn plan-res" data-recent="${i}">📍 ${esc(r.name)}</button>`).join("");
     }
     html += p.results.map((r, i) => `<button type="button" class="plan-btn plan-res" data-i="${i}">${esc(r.name)}${r.admin1 ? ", " + esc(r.admin1) : ""}${r.country ? " · " + esc(r.country) : ""}</button>`).join("");
-    html += `<button type="button" class="plan-btn plan-res" id="planSaved">Use my saved location (${esc(state.loc.name)})</button>`;
+    html += `<button type="button" class="plan-btn plan-res" id="planGps">📍 ${p.loc.name === MYLOC ? "Update my location" : "My location"}</button>`;
+    const sameAsSaved = Math.abs(state.loc.lat - p.loc.lat) < 0.0005 && Math.abs(state.loc.lon - p.loc.lon) < 0.0005;
+    if(!sameAsSaved) html += `<button type="button" class="plan-btn plan-res" id="planSaved">Back to my saved place (${esc(state.loc.name)})</button>`;
   }
   if(p.msg) html += `<div class="plan-msg">${esc(p.msg)}</div>`;
   html += `<div class="plan-row"><button class="plan-btn round" id="planPrev" aria-label="Previous day">‹</button><input class="plan-date" type="date" id="planDate" value="${p.date}" min="1900-01-01" max="2100-12-31" aria-label="Date"><button class="plan-btn round" id="planNext" aria-label="Next day">›</button><button class="plan-btn" id="planToday">Today</button></div>`;
-  html += `<div class="plan-seg plan-tap-row" role="group" aria-label="What a map tap places"><span class="plan-seg-l">Tap the map to place:</span><button class="plan-seg-b ${p.tap === "subject" ? "on" : ""}" data-tap="subject">Subject</button><button class="plan-seg-b ${p.tap === "you" ? "on" : ""}" data-tap="you">Me</button></div>`;
+  html += `<div class="plan-seg plan-tap-row" role="group" aria-label="What a map tap places"><span class="plan-seg-l">Tap the map to place:</span><button class="plan-seg-b ${p.tap === "subject" ? "on" : ""}" data-tap="subject">Subject</button><button class="plan-seg-b ${p.tap === "you" ? "on" : ""}" data-tap="you">Your spot</button></div>`;
   html += `<div class="map-wrap"><div id="sunMap"></div><button type="button" class="map-center-btn" id="planCenter" title="Center on place">⌖</button>${p.subject ? "" : '<div class="map-pinhint">Tap to drop a pin on what you want to shoot</div>'}</div>`;
 
   const dayMin = Math.max(60, Math.round((pl.t1 - pl.t0) / 60000));
@@ -2857,6 +2863,25 @@ function renderPlan(app, tabsHtml){
   $("planDate").addEventListener("change", (e) => go(e.target.value));
   $("planPlaceBtn").addEventListener("click", () => { p.searching = !p.searching; p.results = []; p.msg = ""; render(); if(p.searching){ const q = $("planQ"); if(q) q.focus(); } });
   const setPlace = (loc) => { addRecent(loc); p.calTitle = ""; p.calNotes = ""; p.loc = loc; p.subject = null; p.view = null; p.scan = null; p.searching = false; p.results = []; p.msg = ""; p.date = p.date || planToday(loc.tz); render(); };
+  const gpsBtn = $("planGps");
+  if(gpsBtn) gpsBtn.addEventListener("click", () => {
+    if(!navigator.geolocation){ p.msg = "Location services aren't available in this browser."; render(); return; }
+    p.msg = "Finding your location…"; render();
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const la = pos.coords.latitude, lo = pos.coords.longitude;
+        const ztz = await planTimeZoneFor(la, lo);
+        setPlace({ name: MYLOC, lat: la, lon: lo, tz: ztz });
+      },
+      (err) => {
+        p.msg = err && err.code === 1 ? "Location is blocked for this site. Allow it in your browser settings, or search for a place instead."
+          : err && err.code === 3 ? "Your location is taking too long to find. Try again, or search for a place instead."
+          : "Your location isn't available right now. Try again, or search for a place instead.";
+        render();
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 }
+    );
+  });
   const saved = $("planSaved");
   if(saved) saved.addEventListener("click", () => setPlace({ name: state.loc.name, lat: state.loc.lat, lon: state.loc.lon, tz: state.tz || null }));
   document.querySelectorAll(".plan-res[data-recent]").forEach(b => b.addEventListener("click", () => {
@@ -3324,19 +3349,21 @@ $("locInput").addEventListener("input", (e) => {
   }, 350);
 });
 
+const gpsLabel = () => (state.loc && state.loc.name === MYLOC) ? "Update my location" : "My location";
+$("locBtn").addEventListener("click", () => { $("useGps").textContent = gpsLabel(); });
 $("useGps").addEventListener("click", () => {
   if(!navigator.geolocation){ alert("Location services aren't available in this browser."); return; }
   $("useGps").textContent = "Locating…";
   navigator.geolocation.getCurrentPosition(
     (pos) => {
-      const loc = { name: "Current location", lat: pos.coords.latitude, lon: pos.coords.longitude };
+      const loc = { name: MYLOC, lat: pos.coords.latitude, lon: pos.coords.longitude };
       saveLoc(loc);
       backdrop.classList.remove("open");
-      $("useGps").textContent = "Use current location";
+      $("useGps").textContent = gpsLabel();
       boot(loc);
     },
     (err) => {
-      $("useGps").textContent = "Use current location";
+      $("useGps").textContent = gpsLabel();
       alert(err && err.code === 1 ? "Location is blocked for this site. Allow it in your browser settings, or search for a place instead."
         : err && err.code === 3 ? "Your location is taking too long to find. Try again, or search for a place instead."
         : "Your location isn't available right now. Try again, or search for a place instead.");
@@ -3390,7 +3417,7 @@ function initLocation(){
   $("app").innerHTML = '<div class="loading">Requesting your location…</div>';
   navigator.geolocation.getCurrentPosition(
     (pos) => {
-      const loc = { name: "Current location", lat: pos.coords.latitude, lon: pos.coords.longitude };
+      const loc = { name: MYLOC, lat: pos.coords.latitude, lon: pos.coords.longitude };
       saveLoc(loc);
       boot(loc);
     },
