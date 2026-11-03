@@ -1,4 +1,4 @@
-<!-- Afterglow v1.5.0k -->
+<!-- Afterglow v1.5.0l -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -235,6 +235,10 @@
   .plan-seg-l{ font-size:12.5px; color: var(--slate); margin-right:2px; }
   .plan-seg-b{ background: var(--card); border:1px solid var(--line); color: var(--slate); border-radius:999px; padding:6px 14px; font-size:13px; cursor:pointer; font-family: inherit; }
   .plan-seg-b.on{ color: var(--sand); border-color: var(--gold); }
+  .cal-row{ display:flex; gap:6px; align-items:center; margin-bottom:8px; }
+  .plan-name.cal-sel{ width:auto; flex:1 1 0; min-width:0; margin-bottom:0; padding:9px 6px; }
+  .plan-name.cal-num{ width:62px; flex:none; margin-bottom:0; text-align:center; padding:9px 4px; }
+  .cal-row .cal-t{ font-size:14px; color:var(--slate); }
   .plan-name{ width:100%; background: var(--card); border:1px solid var(--line); color: var(--sand); border-radius:12px; padding:9px 12px; font-size:16px; font-family: inherit; margin-bottom:10px; }
   .plan-pin{ background:none; border:none; }
   .plan-row2{ display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-top:1px solid var(--line); font-size:13.5px; line-height:1.4; }
@@ -397,7 +401,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST · v1.5.0k</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST · v1.5.0l</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -2230,7 +2234,7 @@ function planCompassSvg(p, pl){
 }
 function planPrintHtml(p, pl, qr){
   const esc = t => String(t).replace(/[<>&"]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
-  const { sun, moon } = pl, tz = p.loc.tz, ft = d => fmtZ(d, tz), mode = p.calMode || "evening", w = planShootWindow(pl, mode);
+  const { sun, moon } = pl, tz = p.loc.tz, ft = d => fmtZ(d, tz), mode = p.calMode || "evening", w = planShootWindow(pl, mode, p);
   const row = (a, b) => `<div class="pr-row"><span>${a}</span><b>${b}</b></div>`;
   const az = (d, a) => d ? ft(d) + " · " + Math.round(a) + "° " + compassDir(a) : null;
   let light = "";
@@ -2272,7 +2276,7 @@ function planPrintHtml(p, pl, qr){
     <div class="pr-foot"><div>AfterGlow · afterglow.johnstonaerial.com<br>Printed from the Plan tab. Directions and times are calculated. The height of the subject, and anything in the way that you haven't entered, are not known.</div>${qr ? `<div style="width:92px;flex:none;text-align:center;">${qr}<div>Open this plan</div></div>` : ""}</div>`;
 }
 function planGcalUrl(p, pl, mode){
-  const w = planShootWindow(pl, mode); if(!w) return null;
+  const w = planShootWindow(pl, mode, p); if(!w || w.bad) return null;
   const name = (p.subject && p.subject.name) || p.loc.name, L = planShootLines(p, pl, mode, w);
   const mk = (extra) => "https://calendar.google.com/calendar/render?" + new URLSearchParams({ action: "TEMPLATE", text: planEventTitle(p),
     dates: icsStamp(w.start) + "/" + icsStamp(w.end), location: p.loc.name + " (" + p.loc.lat.toFixed(5) + ", " + p.loc.lon.toFixed(5) + ")",
@@ -2361,8 +2365,32 @@ function planViewCardHtml(p, pl, esc){
   return h;
 }
 function planEventTitle(p){ return (p.calTitle || "").trim() || "Shoot: " + ((p.subject && p.subject.name) || p.loc.name); }
-function planShootWindow(pl, mode){
+const CAL_ANCHORS = [["sunrise", "sunrise", "Sunrise"], ["gMorn", "golden hour ends (morning)", "Golden hour ends (AM)"], ["gEve", "golden hour starts (evening)", "Golden hour starts (PM)"], ["sunset", "sunset", "Sunset"]];
+function calAnchorTime(sun, k){ return k === "sunrise" ? sun.rise : k === "gMorn" ? sun.gMorn : k === "gEve" ? sun.gEve : k === "sunset" ? sun.set : null; }
+function calDefaults(c){
+  c = c || {};
+  return { startKind: c.startKind || "sun", anchor: c.anchor || "sunset", dir: c.dir || "before", offMin: c.offMin == null ? 120 : c.offMin,
+    clock: c.clock || "15:00", lenKind: c.lenKind || "fixed", lenMin: c.lenMin == null ? 120 : c.lenMin };
+}
+function planCustomWindow(pl, c0){
+  const c = calDefaults(c0), HR = 3600000;
+  let start;
+  if(c.startKind === "clock"){
+    const m = /^(\d{1,2}):(\d{2})$/.exec(c.clock); if(!m) return null;
+    start = new Date(pl.t0.getTime() + (+m[1] * 60 + +m[2]) * 60000);
+  } else {
+    const a = calAnchorTime(pl.sun, c.anchor); if(!a) return null;
+    start = new Date(a.getTime() + (c.dir === "before" ? -1 : 1) * c.offMin * 60000);
+  }
+  let end;
+  if(c.lenKind === "sunset"){ if(!pl.sun.set) return null; end = pl.sun.set; }
+  else end = new Date(start.getTime() + Math.max(15, c.lenMin) * 60000);
+  if(end <= start) return { start, end, bad: true };
+  return { start, end };
+}
+function planShootWindow(pl, mode, p){
   const { sun } = pl, HR = 3600000;
+  if(mode === "custom") return planCustomWindow(pl, p && p.cal);
   if(mode === "morning"){
     if(!sun.rise) return null;
     return { start: new Date(sun.rise.getTime() - HR), end: sun.gMorn || new Date(sun.rise.getTime() + 45 * 60000) };
@@ -2370,6 +2398,15 @@ function planShootWindow(pl, mode){
   if(!sun.set) return null;
   return { start: new Date((sun.gEve || new Date(sun.set.getTime() - 45 * 60000)).getTime() - HR), end: sun.set };
 }
+function calHM(min){ const h = Math.floor(min / 60), m = min % 60; return (h ? h + (h === 1 ? " hour" : " hours") : "") + (h && m ? " " : "") + (m ? m + " minutes" : (h ? "" : "0 minutes")); }
+function planCustomText(pl, p, tz){
+  const c = calDefaults(p.cal);
+  const a = CAL_ANCHORS.find(x => x[0] === c.anchor);
+  const st = c.startKind === "clock" ? "Starts at " + fmtZ(new Date(pl.t0.getTime() + (parseInt(c.clock) * 60 + parseInt(c.clock.split(":")[1])) * 60000), tz)
+    : (c.offMin ? calHM(c.offMin) + " " + c.dir + " " + a[1] : "At " + a[1]);
+  return st + (c.lenKind === "sunset" ? ", through sunset." : ", for " + calHM(c.lenMin) + ".");
+}
+function calEffMode(pl, mode, w){ return mode !== "custom" ? mode : ((w.start - pl.t0) < 12 * 3600000 ? "morning" : "evening"); }
 function planSkyLine(p, sun, mode){
   const sk = p.sky; if(!sk || !sk.daily) return "";
   const i = sk.daily.time.indexOf(p.date); if(i < 0) return "";
@@ -2384,9 +2421,9 @@ function saveIcs(ics, fname){
 }
 function planShootLines(p, pl, mode, w){
   const { sun, moon } = pl, tz = p.loc.tz, ft = d => fmtZ(d, tz);
-  const L = [];
+  const L = [], custom = mode === "custom"; mode = calEffMode(pl, mode, w);
   if((p.calNotes || "").trim()){ L.push(p.calNotes.trim().slice(0, 600)); L.push(""); }
-  L.push((mode === "morning" ? "Sunrise" : "Sunset") + " shoot window: " + ft(w.start) + " to " + ft(w.end) + (tz ? " (" + tz + ")" : ""));
+  L.push((custom ? "Shoot" : mode === "morning" ? "Sunrise shoot" : "Sunset shoot") + " window: " + ft(w.start) + " to " + ft(w.end) + (tz ? " (" + tz + ")" : ""));
   if(sun.gMorn && sun.rise) L.push("Golden hour AM: " + ft(sun.rise) + " to " + ft(sun.gMorn));
   if(sun.gEve && sun.set) L.push("Golden hour PM: " + ft(sun.gEve) + " to " + ft(sun.set));
   if(sun.rise) L.push("Sunrise " + ft(sun.rise) + " at " + Math.round(sun.riseAz) + "° " + compassDir(sun.riseAz));
@@ -2403,7 +2440,7 @@ function planShootLines(p, pl, mode, w){
   return L;
 }
 function planIcs(p, pl, mode){
-  const w = planShootWindow(pl, mode); if(!w) return null;
+  const w = planShootWindow(pl, mode, p); if(!w || w.bad) return null;
   const name = (p.subject && p.subject.name) || p.loc.name;
   const L = planShootLines(p, pl, mode, w); L.push("Plan: " + planLink(p));
   const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Johnston Aerial//AfterGlow//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "BEGIN:VEVENT",
@@ -2422,7 +2459,7 @@ function saveUi(){
   try{
     const o = { view: state.view };
     const p = state.plan;
-    if(p && p.loc) o.plan = { loc: p.loc, date: p.date || null, subject: p.subject || null, min: p.min == null ? null : p.min, minSet: !!p.minSet, tap: p.tap, finder: p.finder, calMode: p.calMode, calTitle: p.calTitle || "", calNotes: p.calNotes || "", vmode: p.vmode, alt: p.alt, unit: p.unit };
+    if(p && p.loc) o.plan = { loc: p.loc, date: p.date || null, subject: p.subject || null, min: p.min == null ? null : p.min, minSet: !!p.minSet, tap: p.tap, finder: p.finder, calMode: p.calMode, cal: p.cal || null, calTitle: p.calTitle || "", calNotes: p.calNotes || "", vmode: p.vmode, alt: p.alt, unit: p.unit };
     localStorage.setItem(UI_KEY, JSON.stringify(o));
   }catch(e){}
 }
@@ -2437,7 +2474,7 @@ function restoreUi(){
       if(q.loc.name === "Current location") q.loc.name = MYLOC;
       const stale = q.date && q.date < planToday(q.loc.tz);
       state.plan = { loc: q.loc, date: stale ? null : (q.date || null), subject: q.subject && isFinite(q.subject.lat) ? q.subject : null,
-        min: q.min, minKey: q.loc.lat.toFixed(3) + "," + q.loc.lon.toFixed(3), minSet: stale ? false : !!q.minSet, tap: q.tap, finder: q.finder, calMode: q.calMode, calTitle: q.calTitle || "", calNotes: q.calNotes || "", vmode: q.vmode, alt: q.alt, unit: q.unit, searching: false, results: [], msg: "" };
+        min: q.min, minKey: q.loc.lat.toFixed(3) + "," + q.loc.lon.toFixed(3), minSet: stale ? false : !!q.minSet, tap: q.tap, finder: q.finder, calMode: q.calMode, cal: q.cal || null, calTitle: q.calTitle || "", calNotes: q.calNotes || "", vmode: q.vmode, alt: q.alt, unit: q.unit, searching: false, results: [], msg: "" };
     }
   }catch(e){}
 }
@@ -2655,7 +2692,7 @@ function renderPlan(app, tabsHtml){
     html += `<div class="card" style="margin-bottom:10px;"><div class="label">${esc(sname)} · ${Math.round(bd.brg)}° ${compassDir(bd.brg)} · ${fmtDist(bd.km)}</div><label class="plan-name-lbl" for="planSubjName">Name this spot (optional)</label><input class="plan-name" id="planSubjName" value="${esc(nameVal)}" maxlength="40" placeholder="e.g. Water tower"><div class="note" style="margin-bottom:4px;">Light on the subject, ${planDayLabel(p.date)}. You are facing it from your spot.</div>${rows.join("") || '<div class="note">No sunrise, sunset or moon events on this date.</div>'}</div>`;
     let fin = "";
     try{ fin = planFinder(p, bd.brg, p.finder); }catch(e){ console.error("Finder failed:", e); fin = '<div class="note">Couldn\'t search the dates.</div>'; }
-    html += `<div class="card" style="margin-bottom:12px;"><div class="label">Find the dates it lines up</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.finder === "sun" ? "on" : ""}" data-finder="sun">Sun</button><button class="plan-seg-b ${p.finder === "moon" ? "on" : ""}" data-finder="moon">Moon</button></div>${fin}<div class="note" style="margin-top:8px;">Direction only: it doesn't know how tall the subject is or what stands in between.</div></div>`;
+    html += `<details class="plan-fold" data-fold="finder"${p.fold.finder ? " open" : ""}><summary>Find the dates it lines up</summary><div class="fold-body"><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.finder === "sun" ? "on" : ""}" data-finder="sun">Sun</button><button class="plan-seg-b ${p.finder === "moon" ? "on" : ""}" data-finder="moon">Moon</button></div>${fin}<div class="note" style="margin-top:8px;">Direction only: it doesn't know how tall the subject is or what stands in between.</div></div></details>`;
   }
   cap("subj", i0);
   i0 = html.length;
@@ -2669,8 +2706,17 @@ function renderPlan(app, tabsHtml){
   cap("share", i0);
   i0 = html.length;
   if(!p.calMode) p.calMode = "evening";
-  const cw = planShootWindow(pl, p.calMode);
-  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Add to calendar</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.calMode === "evening" ? "on" : ""}" data-cal="evening">Sunset shoot</button><button class="plan-seg-b ${p.calMode === "morning" ? "on" : ""}" data-cal="morning">Sunrise shoot</button></div><input class="plan-name" id="planCalTitle" value="${esc(p.calTitle || "")}" maxlength="80" placeholder="${esc(planEventTitle({ loc: p.loc, subject: p.subject }))}" aria-label="Event title"><textarea class="plan-name" id="planCalNotes" rows="3" maxlength="600" placeholder="Your notes (optional): gear, who is coming, a reminder" aria-label="Your notes" style="resize:vertical;">${esc(p.calNotes || "")}</textarea>${cw ? `<div class="note" style="margin-bottom:8px;">${planDayLabel(p.date)}, ${fmtZ(cw.start, tz)} to ${fmtZ(cw.end, tz)}: an hour before golden hour through ${p.calMode === "morning" ? "the end of golden hour" : "sunset"}.</div><div class="plan-seg" style="margin:0;"><button class="plan-seg-b" id="planIcs">📅 Add to calendar</button><button class="plan-seg-b" id="planGcal">Google Calendar</button></div>` : `<div class="note">The Sun doesn't ${p.calMode === "morning" ? "rise" : "set"} on this date here, so there's no window to add.</div>`}<div class="note" style="margin-top:8px;">Light times and a link back to this plan go in the event notes.</div></div>`;
+  const cw = planShootWindow(pl, p.calMode, p);
+  const cc = calDefaults(p.cal), selA = (v) => `<option value="${v[0]}"${cc.anchor === v[0] ? " selected" : ""}>${v[2]}</option>`;
+  const hrOpts = [0,1,2,3,4,5,6].map(h => `<option value="${h}"${Math.floor(cc.offMin / 60) === h ? " selected" : ""}>${h} hr</option>`).join("");
+  const mnOpts = [0,15,30,45].map(m => `<option value="${m}"${cc.offMin % 60 === m ? " selected" : ""}>${m} min</option>`).join("");
+  const lenChip = (m) => `<button class="plan-seg-b ${cc.lenKind === "fixed" && cc.lenMin === m ? "on" : ""}" data-callen="${m}">${m / 60} hr</button>`;
+  const barMin = Math.max(0, Math.min(1439, Math.round(p.min || 0))), barClock = (() => { const h = Math.floor(barMin / 60), m = barMin % 60; return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0"); })();
+  const customUi = p.calMode === "custom" ? `<div class="label" style="margin:6px 0;">Start</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${cc.startKind === "sun" ? "on" : ""}" data-calstart="sun">Relative to the sun</button><button class="plan-seg-b ${cc.startKind === "clock" ? "on" : ""}" data-calstart="clock">Clock time</button></div>${cc.startKind === "sun"
+      ? `<div class="cal-row"><select class="plan-name cal-sel" id="calOffH" aria-label="Hours">${hrOpts}</select><select class="plan-name cal-sel" id="calOffM" aria-label="Minutes">${mnOpts}</select><select class="plan-name cal-sel" id="calDir" aria-label="Before or after"><option value="before"${cc.dir === "before" ? " selected" : ""}>before</option><option value="after"${cc.dir === "after" ? " selected" : ""}>after</option></select></div><div class="cal-row"><select class="plan-name cal-sel" id="calAnchor" aria-label="Light event">${CAL_ANCHORS.map(selA).join("")}</select></div>`
+      : `<input type="time" class="plan-name" id="calClock" value="${esc(cc.clock)}" aria-label="Start time" style="margin-bottom:8px;">`}<div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b" id="calUseBar" data-bar="${barClock}">⏱ Use the time on the bar</button></div><div class="label" style="margin:6px 0;">Length</div><div class="plan-seg" style="margin-bottom:8px;">${lenChip(60)}${lenChip(120)}${lenChip(180)}<button class="plan-seg-b ${cc.lenKind === "sunset" ? "on" : ""}" data-callen="sunset">Until sunset</button></div><div class="cal-row"><span class="cal-t">Or type:</span><input type="number" class="plan-name cal-num" id="calLenH" min="0" max="12" value="${Math.floor(cc.lenMin / 60)}" aria-label="Hours long"><span class="cal-t">hr</span><input type="number" class="plan-name cal-num" id="calLenM" min="0" max="59" value="${cc.lenMin % 60}" aria-label="Minutes long"><span class="cal-t">min</span></div>` : "";
+  const calWords = p.calMode === "custom" ? planCustomText(pl, p, tz) : "an hour before golden hour through " + (p.calMode === "morning" ? "the end of golden hour." : "sunset.");
+  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Add to calendar</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.calMode === "evening" ? "on" : ""}" data-cal="evening">Sunset shoot</button><button class="plan-seg-b ${p.calMode === "morning" ? "on" : ""}" data-cal="morning">Sunrise shoot</button><button class="plan-seg-b ${p.calMode === "custom" ? "on" : ""}" data-cal="custom">Custom</button></div><input class="plan-name" id="planCalTitle" value="${esc(p.calTitle || "")}" maxlength="80" placeholder="${esc(planEventTitle({ loc: p.loc, subject: p.subject }))}" aria-label="Event title">${customUi}<textarea class="plan-name" id="planCalNotes" rows="3" maxlength="600" placeholder="Your notes (optional): gear, who is coming, a reminder" aria-label="Your notes" style="resize:vertical;">${esc(p.calNotes || "")}</textarea>${cw && !cw.bad ? `<div class="note" style="margin-bottom:8px;">${planDayLabel(p.date)}, ${fmtZ(cw.start, tz)} to ${fmtZ(cw.end, tz)}: ${calWords}</div><div class="plan-seg" style="margin:0;"><button class="plan-seg-b" id="planIcs">📅 Add to calendar</button><button class="plan-seg-b" id="planGcal">Google Calendar</button></div>` : cw && cw.bad ? `<div class="note">That ends before it starts. Try a longer length or an earlier start.</div>` : `<div class="note">${p.calMode === "custom" ? "That light event doesn't happen on this date here, so there's no window to add." : "The Sun doesn't " + (p.calMode === "morning" ? "rise" : "set") + " on this date here, so there's no window to add."}</div>`}<div class="note" style="margin-top:8px;">Light times and a link back to this plan go in the event notes.</div></div>`;
   cap("cal", i0);
   i0 = html.length;
   html += `<div class="card" style="margin-bottom:12px;"><div class="label">Print a shoot card</div><div class="note" style="margin-bottom:8px;font-size:12.5px;">One page with the compass, light times, subject, drone height, what's in the way, your notes and a code that reopens this plan. </div><button class="plan-seg-b" id="planPrint">🖨 Print / Save as PDF</button><div class="note" style="margin-top:8px;font-size:12.5px;">${printHint()}</div></div>`;
@@ -2814,7 +2860,16 @@ function renderPlan(app, tabsHtml){
     catch(e){ p.shareMsg = "Couldn't copy. Select and copy: " + url; }
     render();
   };
-  document.querySelectorAll(".plan-seg-b[data-cal]").forEach(b => b.addEventListener("click", () => { p.calMode = b.dataset.cal; render(); }));
+  document.querySelectorAll(".plan-seg-b[data-cal]").forEach(b => b.addEventListener("click", () => { p.calMode = b.dataset.cal; if(p.calMode === "custom") p.cal = calDefaults(p.cal); saveUi(); render(); }));
+  const calSet = (patch) => { p.cal = Object.assign(calDefaults(p.cal), patch); saveUi(); render(); };
+  document.querySelectorAll("[data-calstart]").forEach(b => b.addEventListener("click", () => calSet({ startKind: b.dataset.calstart })));
+  document.querySelectorAll("[data-callen]").forEach(b => b.addEventListener("click", () => { const v = b.dataset.callen; calSet(v === "sunset" ? { lenKind: "sunset" } : { lenKind: "fixed", lenMin: +v }); }));
+  const offChg = () => calSet({ offMin: (+$("calOffH").value) * 60 + (+$("calOffM").value), dir: $("calDir").value, anchor: $("calAnchor").value });
+  ["calOffH", "calOffM", "calDir", "calAnchor"].forEach(id => { const e = $(id); if(e) e.addEventListener("change", offChg); });
+  const clk = $("calClock"); if(clk) clk.addEventListener("change", () => { if(clk.value) calSet({ clock: clk.value }); });
+  const ubar = $("calUseBar"); if(ubar) ubar.addEventListener("click", () => calSet({ startKind: "clock", clock: ubar.dataset.bar }));
+  const lenChg = () => { const h = Math.max(0, Math.min(12, parseInt($("calLenH").value) || 0)), m = Math.max(0, Math.min(59, parseInt($("calLenM").value) || 0)); calSet({ lenKind: "fixed", lenMin: Math.max(15, h * 60 + m) }); };
+  ["calLenH", "calLenM"].forEach(id => { const e = $(id); if(e) e.addEventListener("change", lenChg); });
   document.querySelectorAll("[data-vm]").forEach(b => b.addEventListener("click", () => { p.vmode = b.dataset.vm; if(p.alt == null) p.alt = 400; saveUi(); render(); }));
   document.querySelectorAll("[data-unit]").forEach(b => b.addEventListener("click", () => { p.unit = b.dataset.unit; saveUi(); render(); }));
   document.querySelectorAll("[data-altq]").forEach(b => b.addEventListener("click", () => { p.alt = +b.dataset.altq; saveUi(); render(); }));
