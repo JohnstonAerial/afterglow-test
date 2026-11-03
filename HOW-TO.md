@@ -74,7 +74,7 @@ When an alert has a minimum, the message includes the forecast, for example "Sun
 
 ## 7. Larger text
 
-Tap **Aa** near the top to make all the text bigger. Tap it again to go back. Afterglow remembers your choice on this device.
+Tap **Aa** near the top to make all the text bigger. Tap it again to go back. Afterglow remembers your choice in that browser or installed app. Each one keeps its own setting, so if you use Afterglow in Safari and from your Home Screen, set it in both.
 
 ## Good to know
 
