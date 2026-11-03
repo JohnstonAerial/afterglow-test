@@ -1,4 +1,4 @@
-<!-- Afterglow v1.5.0g -->
+<!-- Afterglow v1.5.0h -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -56,7 +56,7 @@
   .hdr-top{ display:flex; align-items:center; justify-content:space-between; gap: 12px; }
   .brand{ font-family: Georgia, 'Times New Roman', serif; font-size: 22px; letter-spacing: 0.02em; font-weight: 600; line-height: 1.1; }
   .brand em{ font-style: italic; color: var(--gold); font-weight: 500;}
-  .brand .version{ display:block; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.04em; font-weight: 400; color: var(--slate-dim); margin-top: 2px; }
+  .brand .version{ display:block; white-space:nowrap; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.04em; font-weight: 400; color: var(--slate-dim); margin-top: 2px; }
   .brand .version.test{ color: var(--ember); font-weight: 600; }
   #locBtn{
     display:flex; align-items:center; gap:10px; width:100%; margin-top:16px; text-align:left;
@@ -164,6 +164,29 @@
   .plan-fold > .fold-body{ padding:0 12px 4px; }
   .plan-fold .card{ border:0; background:transparent; padding:10px 4px; }
   .plan-fold .card + .card{ border-top:1px solid var(--line); border-radius:0; }
+  .map-tap{ position:absolute; left:8px; bottom:26px; z-index:1001; display:flex; gap:4px; background:rgba(10,11,22,0.82); border:1px solid var(--line); border-radius:999px; padding:3px; }
+  .map-tap .plan-seg-b{ padding:5px 12px; font-size:12.5px; border-color:transparent; background:transparent; }
+  .map-tap .plan-seg-b.on{ background: var(--card); border-color: var(--gold); }
+  .plan-seg-b.jump{ display:flex; flex-direction:column; align-items:center; line-height:1.25; padding:6px 12px; }
+  .plan-seg-b.jump small{ font-size:11px; color: var(--slate); font-family:'IBM Plex Mono', monospace; }
+  [hidden]{ display:none !important; }
+  .more-link{ background:none; border:0; color: var(--gold); font: inherit; font-size:13px; padding:4px 0; cursor:pointer; text-decoration:underline; }
+  .today-fold .card{ border:1px solid var(--line); background: var(--card); border-radius:14px; padding:14px 16px; }
+  .today-fold .card + .card{ border-top:1px solid var(--line); border-radius:14px; }
+  .today-fold .fold-body{ padding:0 0 12px; }
+  .today-fold > summary .sub, .plan-fold > summary .sub{ color: var(--slate); font-size:12.5px; margin-left:auto; margin-right:10px; }
+  .ag-head, .ag-row{ display:grid; grid-template-columns:54px 1fr 1fr; gap:8px; align-items:stretch; }
+  .ag-head{ font-size:12px; color: var(--slate); text-transform:uppercase; letter-spacing:.08em; font-family:'IBM Plex Mono', monospace; margin:2px 0 6px; }
+  .ag-row{ margin-bottom:8px; }
+  .ag-day{ font-family: Georgia, serif; font-size:15px; font-weight:600; color: var(--sand); display:flex; align-items:center; }
+  .ag-cell{ border:1px solid var(--line); background: var(--card); border-radius:12px; padding:8px 10px; cursor:pointer; position:relative; }
+  .ag-cell.best{ border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
+  .ag-cell .t1{ display:flex; justify-content:space-between; align-items:baseline; gap:6px; }
+  .ag-cell .sc{ font-family: Georgia, serif; font-size:20px; font-weight:600; color: var(--sand); }
+  .ag-cell .lb{ font-size:13px; color: var(--slate); }
+  .ag-cell .tm{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; color: var(--slate); margin-top:2px; }
+  .ag-cell .agenda-bar{ margin:5px 0 0; }
+  .ag-best{ font-size:11px; color: var(--gold); font-family:'IBM Plex Mono', monospace; text-transform:uppercase; letter-spacing:.06em; }
   .plan-sum{ margin-top:2px; }
   .plan-sum .plan-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
   .plan-sum .plan-grid .card{ padding:12px 14px; }
@@ -249,8 +272,8 @@
   .why{ font-size: 13px; line-height: 1.6; color: var(--slate); border-top: 1px solid var(--line); padding-top: 16px; margin-top: 22px; }
   .why b{ color: var(--sand); }
 
-  footer{ text-align:center; font-size: 11px; color: var(--slate-dim); margin-top: 36px; font-family:'IBM Plex Mono', monospace; }
-  footer a{ text-decoration: underline; text-decoration-color: var(--slate-dim); }
+  footer{ text-align:center; font-size: 12px; line-height:1.55; color: var(--slate); margin-top: 36px; font-family:'IBM Plex Mono', monospace; }
+  footer a{ text-decoration: underline; text-decoration-color: var(--slate); }
 
   .loading, .err{ text-align:center; padding: 60px 20px; color: var(--slate); font-size: 14px; }
   .err{ color: var(--rose); }
@@ -345,7 +368,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.5.0g</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST · v1.5.0h</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -1706,6 +1729,17 @@ function timelapseCardHTML(result){
   </div>`;
 }
 
+function uiFold(key, title, inner){
+  state.fold = state.fold || {};
+  return `<details class="plan-fold today-fold" data-fold="${key}"${state.fold[key] ? " open" : ""}><summary>${title}</summary><div class="fold-body">${inner}</div></details>`;
+}
+function bindFolds(){
+  document.querySelectorAll("details.today-fold").forEach(d => d.addEventListener("toggle", () => { state.fold = state.fold || {}; state.fold[d.dataset.fold] = d.open; }));
+}
+function splitBlurb(t){
+  const m = String(t).match(/^([\s\S]*?[.!?])\s+([\s\S]+)$/);
+  return m ? [m[1], m[2]] : [t, ""];
+}
 function render(){
   const app = $("app");
   if(!state.daily){ app.innerHTML = '<div class="loading">Reading the sky…</div>'; return; }
@@ -1799,7 +1833,7 @@ function renderToday(app, tabsHtml){
         <div class="score-num">${s.score}</div>
         <div class="score-label">${label(s.score)} ${mode === "evening" ? "sunset" : "sunrise"}</div>
       </div>
-      <div class="hero-sub">${blurb(s, mode)}</div>
+      ${(() => { const [b1, b2] = splitBlurb(blurb(s, mode)); return `<div class="hero-sub">${b1}${b2 ? ` <span id="blurbRest"${state.blurbMore ? "" : " hidden"}>${b2}</span> <button class="more-link" id="blurbMore">${state.blurbMore ? "Less" : "More"}</button>` : ""}</div>`; })()}
       ${s.score >= 26 ? `<div class="hero-sub" style="margin-top:8px;">${afterglowTip(eventIso, mode)}</div>` : ""}
       <div class="hero-times">
         ${(twilight && mode !== "evening") ? `<div class="hero-time-item"><div class="k">${twilightLabel}</div><div class="v">${fmt(twilight)}</div></div>` : ""}
@@ -1808,9 +1842,12 @@ function renderToday(app, tabsHtml){
         <div class="hero-time-item"><div class="k">Direction</div><div class="v">${azimuthLabel}</div></div>
         <div class="hero-time-item"><div class="k">Golden hour</div><div class="v">${fmt(goldenStart)}–${fmt(goldenEnd)}</div></div>
         <div class="hero-time-item"><div class="k">Blue hour</div><div class="v">${fmt(blueStart)}–${fmt(blueEnd)}</div></div>
+      </div>
+      ${(nauticalTwilight || astroTwilight) ? `<button class="more-link" id="moreTimes">${state.moreTimes ? "Fewer times" : "More twilight times"}</button>
+      <div class="hero-times" id="moreTimesBox" style="margin-top:6px;"${state.moreTimes ? "" : " hidden"}>
         ${nauticalTwilight ? `<div class="hero-time-item"><div class="k">${nauticalLabel}</div><div class="v">${fmt(nauticalTwilight)}</div></div>` : ""}
         ${astroTwilight ? `<div class="hero-time-item"><div class="k">${astroLabel}</div><div class="v">${fmt(astroTwilight)}</div></div>` : ""}
-      </div>
+      </div>` : ""}
     </div>
   </div>`;
 
@@ -1835,8 +1872,7 @@ function renderToday(app, tabsHtml){
   });
   html += `</div>`;
 
-  html += `<div class="section-title">Sky breakdown</div>`;
-  html += `<div class="grid">
+  let skyInner = `<div class="grid">
     ${s.beam != null ? statCard("Toward the sun", Math.max(s.beamLow, s.beamMid), "%",
         `Low/mid cloud ~${SUN_PATH_SAMPLE_KM}km ${compassDir(azimuth)} — the gap light has to come through`,
         var2color(Math.max(s.beamLow, s.beamMid), 100, 45, true)) : ``}
@@ -1848,12 +1884,12 @@ function renderToday(app, tabsHtml){
       : statCard("Humidity", s.hum, "%", "Fallback haze proxy — visibility unavailable", var2color(s.hum, 100, 80, true))}
   </div>`;
 
-  html += `<div class="why"><b>How this is scored</b> — Afterglow weighs high-altitude cloud cover (the layer that catches direct light and turns pink/orange), low and mid cloud (which physically block the view of the horizon or the light source), and humidity (haze mutes saturation even on an otherwise clear evening). It's a heuristic, not a guarantee — always worth a look outside 20 minutes before showtime.</div>`;
+  skyInner += `<div class="why"><b>How this is scored</b> — Afterglow weighs high-altitude cloud cover (the layer that catches direct light and turns pink/orange), low and mid cloud (which physically block the view of the horizon or the light source), and humidity (haze mutes saturation even on an otherwise clear evening). It's a heuristic, not a guarantee — always worth a look outside 20 minutes before showtime.</div>`;
+  html += uiFold("sky", `Sky breakdown <span class="sub">High ${s.high}% · Mid ${s.mid}% · Low ${s.low}%</span>`, skyInner);
 
   const moon = computeMoonInfo(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, sunrise, sunset);
   const timelapse = scanTimelapseWindow(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, hourly);
-  html += `<div class="section-title">Moon</div>`;
-  html += `<div class="grid">${moonCardHTML(moon)}${timelapseCardHTML(timelapse)}</div>`;
+  html += uiFold("moon", `${moon.emoji} Moon &amp; timelapse <span class="sub">${moon.phaseName} · ${moon.illumPct}% lit</span>`, `<div class="grid">${moonCardHTML(moon)}${timelapseCardHTML(timelapse)}</div>`);
 
   app.innerHTML = html;
 
@@ -1863,6 +1899,9 @@ function renderToday(app, tabsHtml){
   document.querySelectorAll(".day-card").forEach(b => b.addEventListener("click", () => {
     state.activeDay = parseInt(b.dataset.day); render();
   }));
+  bindFolds();
+  const bm = $("blurbMore"); if(bm) bm.addEventListener("click", () => { state.blurbMore = !state.blurbMore; $("blurbRest").hidden = !state.blurbMore; bm.textContent = state.blurbMore ? "Less" : "More"; });
+  const mt = $("moreTimes"); if(mt) mt.addEventListener("click", () => { state.moreTimes = !state.moreTimes; $("moreTimesBox").hidden = !state.moreTimes; mt.textContent = state.moreTimes ? "Fewer times" : "More twilight times"; });
   const staleBtn = $("staleRetry");
   if(staleBtn) staleBtn.addEventListener("click", () => boot(state.loc));
 }
@@ -1896,23 +1935,37 @@ function agendaCardHTML(dayIdx, mode, daily, hourly){
 }
 
 function renderOutlook(app, tabsHtml){
-  const { daily, hourly, activeDay } = state;
+  const { daily, hourly } = state;
   let html = tabsHtml;
-
+  const cells = [];
+  let best = null;
   daily.time.slice(0, 7).forEach((t, i) => {
-    const dow = i === 0 ? "Today" : parseLocalDate(t).toLocaleDateString([], { weekday: "long" });
-    html += `<div class="agenda-day${i===0?' first':''}">${dow}</div>`;
-    html += `<div class="grid">
-      ${agendaCardHTML(i, "morning", daily, hourly)}
-      ${agendaCardHTML(i, "evening", daily, hourly)}
-    </div>`;
+    ["morning", "evening"].forEach(mode => {
+      const evt = mode === "evening" ? daily.sunset[i] : daily.sunrise[i];
+      let sc = null;
+      if(evt){ const j = nearestHourIdx(hourly.time, evt); sc = scoreEvent(hourly, j, sampleAt(state.sample[mode], evt)); }
+      cells.push({ i, mode, evt, sc });
+      if(sc && (!best || sc.score > best.sc.score)) best = { i, mode, sc };
+    });
   });
-
+  const cellHtml = c => {
+    if(!c.sc) return `<div class="ag-cell" style="cursor:default"><div class="lb">No data</div></div>`;
+    const isBest = best && best.sc.score >= 26 && best.i === c.i && best.mode === c.mode;
+    return `<div class="ag-cell${isBest ? " best" : ""}" data-day="${c.i}" data-mode="${c.mode}">
+      <div class="t1"><span class="sc">${c.sc.score}</span><span class="lb">${label(c.sc.score)}</span></div>
+      <div class="agenda-bar"><i style="width:${c.sc.score}%; background:${agendaColor(c.sc.score)}"></i></div>
+      <div class="tm">${fmtTime(c.evt)}${isBest ? ` <span class="ag-best">· best</span>` : ""}</div>
+    </div>`;
+  };
+  html += `<div class="ag-head"><span></span><span>Sunrise</span><span>Sunset</span></div>`;
+  daily.time.slice(0, 7).forEach((t, i) => {
+    const dow = i === 0 ? "Today" : parseLocalDate(t).toLocaleDateString([], { weekday: "short" });
+    html += `<div class="ag-row"><div class="ag-day">${dow}</div>${cellHtml(cells[i * 2])}${cellHtml(cells[i * 2 + 1])}</div>`;
+  });
   app.innerHTML = html;
 
-  // Tapping a card jumps to that day/mode on the Today view — same activeDay
-  // and mode state the hero view reads, so the two screens stay in sync.
-  document.querySelectorAll(".agenda-card[data-day]").forEach(b => b.addEventListener("click", () => {
+  // Tapping a cell jumps to that day/mode on the Today view (same state the hero reads).
+  document.querySelectorAll(".ag-cell[data-day]").forEach(b => b.addEventListener("click", () => {
     state.activeDay = parseInt(b.dataset.day);
     state.mode = b.dataset.mode;
     state.view = "today";
@@ -2540,12 +2593,8 @@ function renderPlan(app, tabsHtml){
   if(p.msg) html += `<div class="plan-msg">${esc(p.msg)}</div>`;
   html += `<div class="plan-row"><button class="plan-btn round" id="planPrev" aria-label="Previous day">‹</button><input class="plan-date" type="date" id="planDate" value="${p.date}" min="1900-01-01" max="2100-12-31" aria-label="Date"><button class="plan-btn round" id="planNext" aria-label="Next day">›</button><button class="plan-btn" id="planToday">Today</button></div>`;
   html += `<div class="map-date" style="margin-bottom:12px;">${planDateLabel(p.date)}</div>`;
-  html += `<div class="plan-seg"><span class="plan-seg-l">Tap the map to place:</span><button class="plan-seg-b ${p.tap === "subject" ? "on" : ""}" data-tap="subject">Subject</button><button class="plan-seg-b ${p.tap === "you" ? "on" : ""}" data-tap="you">My spot</button></div>`;
-  if(!p.subject){
-    html += `<div class="plan-msg" style="margin-bottom:8px;">Drop a pin on what you want to shoot (a skyline, tower, barn) to see its light and when the Sun or Moon lines up.</div>`;
-  }
-  html += `<div class="map-wrap"><div id="sunMap"></div><button type="button" class="map-center-btn" id="planCenter" title="Center on place">⌖</button></div>`;
-  html += `<div class="plan-legend"><span style="color:var(--gold)"><i></i>Sunrise</span><span style="color:var(--ember)"><i></i>Sunset</span><span style="color:#9db4e8"><i style="border-top-style:dashed"></i>Moonrise / Moonset</span></div>`;
+  html += `<div class="map-wrap"><div id="sunMap"></div><button type="button" class="map-center-btn" id="planCenter" title="Center on place">⌖</button><div class="map-tap" role="group" aria-label="What a map tap places"><button class="plan-seg-b ${p.tap === "subject" ? "on" : ""}" data-tap="subject">Place subject</button><button class="plan-seg-b ${p.tap === "you" ? "on" : ""}" data-tap="you">Place me</button></div></div>`;
+  if(!p.subject) html += `<div class="plan-msg" style="margin:-4px 0 10px;">Tap the map to drop a pin on what you want to shoot (a skyline, tower, barn) and see its light.</div>`;
 
   const dayMin = Math.max(60, Math.round((pl.t1 - pl.t0) / 60000));
   const plKey = p.loc.lat.toFixed(3) + "," + p.loc.lon.toFixed(3);
@@ -2563,11 +2612,12 @@ function renderPlan(app, tabsHtml){
     : (sun.polar === "up" ? B : D);
   const jumps = [["Sunrise", sun.rise], ["Golden hr", sun.gEve], ["Sunset", sun.set], ["Moonrise", moon.moonrise]].filter(j => j[1]);
   let i0 = html.length;
-  html += `<div class="card" style="margin-bottom:10px;"><div class="label">Time of day</div><div class="plan-clock" id="planTime">&nbsp;</div>
+  const jumps2 = jumps.slice(); if(moon.moonset) jumps2.push(["Moonset", moon.moonset]);
+  html += `<div class="card" style="margin-bottom:10px;"><div class="label">Move the Sun and Moon lines</div><div class="plan-clock" id="planTime">&nbsp;</div>
     <input type="range" class="plan-range" id="planSlider" min="0" max="${dayMin - 1}" step="1" value="${p.min}" aria-label="Time of day" style="--track:${track}">
     <div class="plan-ticks"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>12a</span></div>
-    <div class="plan-seg" style="margin:10px 0 4px;"><button class="plan-seg-b" id="planNow">Now</button>${jumps.map(j => `<button class="plan-seg-b" data-jump="${Math.round((j[1] - pl.t0) / 60000)}">${j[0]}</button>`).join("")}</div>
-    <div class="label" style="margin-top:8px;" id="planReadLbl"></div><div id="planReadout"></div>${planDialSVG(pl, tz)}<div class="map-note" style="text-align:center;">Sky view, you at the center, north up. Closer to the middle is higher in the sky; the edge is the horizon. Orange is the Sun, dotted blue the Moon.</div></div>`;
+    <div class="plan-seg" style="margin:10px 0 4px;"><button class="plan-seg-b jump" id="planNow">Now</button>${jumps2.map(j => `<button class="plan-seg-b jump" data-jump="${Math.round((j[1] - pl.t0) / 60000)}">${j[0]}<small>${fmtZ(j[1], tz)}</small></button>`).join("")}</div>
+    <div id="planReadout"></div>${planDialSVG(pl, tz)}<div class="map-note" style="text-align:center;">Sky view, you at the center, north up. Closer to the middle is higher in the sky; the edge is the horizon. Orange is the Sun, dotted blue the Moon.</div></div>`;
   cap("time", i0);
   i0 = html.length;
   if(p.subject){
@@ -2624,8 +2674,7 @@ function renderPlan(app, tabsHtml){
   cap("sum", i0);
   const foldBody = (key, title, inner, force) => `<details class="plan-fold" data-fold="${key}"${(p.fold[key] || force) ? " open" : ""}><summary>${title}</summary><div class="fold-body">${inner}</div></details>`;
   const vTitle = "Viewing from · " + (p.vmode === "ground" ? "Ground" : "Drone") + " <span style=\"color:var(--slate);font-size:12.5px;\">&amp; what's in the way</span>";
-  html += `<div class="plan-sum">${parts.sum || ""}</div>`;
-  html += (parts.sky || "") + (parts.time || "") + (parts.subj || "");
+  html += (parts.time || "") + (parts.sky || "") + (parts.subj || "");
   html += foldBody("view", vTitle, parts.view || "");
   html += foldBody("tools", "Share, calendar &amp; print", (parts.share || "") + (parts.cal || ""), !!p.shareMsg);
   html += `<div class="map-note" style="margin-top:4px;">Times and directions are calculated for a flat horizon, so hills and buildings change what you see. No sky forecast past about ten days.${esc(tzNote)}</div>`;
