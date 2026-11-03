@@ -1,4 +1,4 @@
-<!-- Afterglow v1.5.0c -->
+<!-- Afterglow v1.5.0d -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -334,7 +334,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.5.0c</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST COPY · v1.5.0d</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -3227,8 +3227,13 @@ $("useGps").addEventListener("click", () => {
       $("useGps").textContent = "Use current location";
       boot(loc);
     },
-    () => { alert("Couldn't get your location — check permissions."); $("useGps").textContent = "Use current location"; },
-    { timeout: 8000 }
+    (err) => {
+      $("useGps").textContent = "Use current location";
+      alert(err && err.code === 1 ? "Location is blocked for this site. Allow it in your browser settings, or search for a place instead."
+        : err && err.code === 3 ? "Your location is taking too long to find. Try again, or search for a place instead."
+        : "Your location isn't available right now. Try again, or search for a place instead.");
+    },
+    { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 }
   );
 });
 
@@ -3282,7 +3287,7 @@ function initLocation(){
       boot(loc);
     },
     () => { boot(DEFAULT_LOC); }, // denied, timed out, or unavailable — fall back quietly
-    { timeout: 8000 }
+    { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 }
   );
 }
 initLocation();
