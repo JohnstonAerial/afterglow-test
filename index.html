@@ -1,4 +1,4 @@
-<!-- Afterglow v1.5.0m -->
+<!-- Afterglow v1.5.0n -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -401,7 +401,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST · v1.5.0m</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST · v1.5.0n</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -2380,8 +2380,8 @@ function planViewCardHtml(p, pl, esc){
   return h;
 }
 function planEventTitle(p){ return (p.calTitle || "").trim() || "Shoot: " + ((p.subject && p.subject.name) || p.loc.name); }
-const CAL_ANCHORS = [["sunrise", "sunrise", "Sunrise"], ["gMorn", "golden hour ends (morning)", "Golden hour ends (AM)"], ["gEve", "golden hour starts (evening)", "Golden hour starts (PM)"], ["sunset", "sunset", "Sunset"]];
-function calAnchorTime(sun, k){ return k === "sunrise" ? sun.rise : k === "gMorn" ? sun.gMorn : k === "gEve" ? sun.gEve : k === "sunset" ? sun.set : null; }
+const CAL_ANCHORS = [["sunrise", "sunrise", "Sunrise"], ["gMorn", "golden hour ends (morning)", "Golden hour ends (AM)"], ["gEve", "golden hour starts (evening)", "Golden hour starts (PM)"], ["sunset", "sunset", "Sunset"], ["moonrise", "moonrise", "Moonrise"], ["moonset", "moonset", "Moonset"]];
+function calAnchorTime(pl, k){ const sun = pl.sun, moon = pl.moon || {}; return k === "sunrise" ? sun.rise : k === "gMorn" ? sun.gMorn : k === "gEve" ? sun.gEve : k === "sunset" ? sun.set : k === "moonrise" ? moon.moonrise : k === "moonset" ? moon.moonset : null; }
 function calDefaults(c){
   c = c || {};
   return { startKind: c.startKind || "sun", anchor: c.anchor || "sunset", dir: c.dir || "before", offMin: c.offMin == null ? 120 : c.offMin,
@@ -2394,7 +2394,7 @@ function planCustomWindow(pl, c0){
     const m = /^(\d{1,2}):(\d{2})$/.exec(c.clock); if(!m) return null;
     start = new Date(pl.t0.getTime() + (+m[1] * 60 + +m[2]) * 60000);
   } else {
-    const a = calAnchorTime(pl.sun, c.anchor); if(!a) return null;
+    const a = calAnchorTime(pl, c.anchor); if(!a) return null;
     start = new Date(a.getTime() + (c.dir === "before" ? -1 : 1) * c.offMin * 60000);
   }
   let end;
@@ -2731,7 +2731,7 @@ function renderPlan(app, tabsHtml){
       ? `<div class="cal-row"><select class="plan-name cal-sel" id="calOffH" aria-label="Hours">${hrOpts}</select><select class="plan-name cal-sel" id="calOffM" aria-label="Minutes">${mnOpts}</select><select class="plan-name cal-sel" id="calDir" aria-label="Before or after"><option value="before"${cc.dir === "before" ? " selected" : ""}>before</option><option value="after"${cc.dir === "after" ? " selected" : ""}>after</option></select></div><div class="cal-row"><select class="plan-name cal-sel" id="calAnchor" aria-label="Light event">${CAL_ANCHORS.map(selA).join("")}</select></div>`
       : `<input type="time" class="plan-name" id="calClock" value="${esc(cc.clock)}" aria-label="Start time" style="margin-bottom:8px;">`}<div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b" id="calUseBar" data-bar="${barClock}">⏱ Use the time on the bar</button></div><div class="label" style="margin:6px 0;">Length</div><div class="plan-seg" style="margin-bottom:8px;">${lenChip(60)}${lenChip(120)}${lenChip(180)}<button class="plan-seg-b ${cc.lenKind === "sunset" ? "on" : ""}" data-callen="sunset">Until sunset</button></div><div class="cal-row"><span class="cal-t">Or type:</span><input type="number" class="plan-name cal-num" id="calLenH" min="0" max="12" value="${Math.floor(cc.lenMin / 60)}" aria-label="Hours long"><span class="cal-t">hr</span><input type="number" class="plan-name cal-num" id="calLenM" min="0" max="59" value="${cc.lenMin % 60}" aria-label="Minutes long"><span class="cal-t">min</span></div>` : "";
   const calWords = p.calMode === "custom" ? planCustomText(pl, p, tz) : "an hour before golden hour through " + (p.calMode === "morning" ? "the end of golden hour." : "sunset.");
-  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Add to calendar</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.calMode === "evening" ? "on" : ""}" data-cal="evening">Sunset shoot</button><button class="plan-seg-b ${p.calMode === "morning" ? "on" : ""}" data-cal="morning">Sunrise shoot</button><button class="plan-seg-b ${p.calMode === "custom" ? "on" : ""}" data-cal="custom">Custom</button></div><input class="plan-name" id="planCalTitle" value="${esc(p.calTitle || "")}" maxlength="80" placeholder="${esc(planEventTitle({ loc: p.loc, subject: p.subject }))}" aria-label="Event title">${customUi}<textarea class="plan-name" id="planCalNotes" rows="3" maxlength="600" placeholder="Your notes (optional): gear, who is coming, a reminder" aria-label="Your notes" style="resize:vertical;">${esc(p.calNotes || "")}</textarea>${cw && !cw.bad ? `<div class="note" style="margin-bottom:8px;">${planDayLabel(p.date)}, ${fmtZ(cw.start, tz)} to ${fmtZ(cw.end, tz)}: ${calWords}</div><div class="plan-seg" style="margin:0;"><button class="plan-seg-b" id="planIcs">📅 Add to calendar</button><button class="plan-seg-b" id="planGcal">Google Calendar</button></div>` : cw && cw.bad ? `<div class="note">That ends before it starts. Try a longer length or an earlier start.</div>` : `<div class="note">${p.calMode === "custom" ? "That light event doesn't happen on this date here, so there's no window to add." : "The Sun doesn't " + (p.calMode === "morning" ? "rise" : "set") + " on this date here, so there's no window to add."}</div>`}<div class="note" style="margin-top:8px;">Light times and a link back to this plan go in the event notes.</div></div>`;
+  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Add to calendar</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.calMode === "evening" ? "on" : ""}" data-cal="evening">Sunset shoot</button><button class="plan-seg-b ${p.calMode === "morning" ? "on" : ""}" data-cal="morning">Sunrise shoot</button><button class="plan-seg-b ${p.calMode === "custom" ? "on" : ""}" data-cal="custom">Custom</button></div><input class="plan-name" id="planCalTitle" value="${esc(p.calTitle || "")}" maxlength="80" placeholder="${esc(planEventTitle({ loc: p.loc, subject: p.subject }))}" aria-label="Event title">${customUi}<textarea class="plan-name" id="planCalNotes" rows="3" maxlength="600" placeholder="Your notes (optional): gear, who is coming, a reminder" aria-label="Your notes" style="resize:vertical;">${esc(p.calNotes || "")}</textarea>${cw && !cw.bad ? `<div class="note" style="margin-bottom:8px;">${planDayLabel(p.date)}, ${fmtZ(cw.start, tz)} to ${fmtZ(cw.end, tz)}: ${calWords}</div><div class="plan-seg" style="margin:0;"><button class="plan-seg-b" id="planIcs">📅 Add to calendar</button><button class="plan-seg-b" id="planGcal">Google Calendar</button></div>` : cw && cw.bad ? `<div class="note">That ends before it starts. Try a longer length or an earlier start.</div>` : `<div class="note">${p.calMode === "custom" ? "That light event doesn't happen on this date here (the Moon doesn't always rise or set each day), so there's no window to add." : "The Sun doesn't " + (p.calMode === "morning" ? "rise" : "set") + " on this date here, so there's no window to add."}</div>`}<div class="note" style="margin-top:8px;">Light times and a link back to this plan go in the event notes.</div></div>`;
   cap("cal", i0);
   i0 = html.length;
   html += `<div class="card" style="margin-bottom:12px;"><div class="label">Print a shoot card</div><div class="note" style="margin-bottom:8px;font-size:12.5px;">One page with the compass, light times, subject, drone height, what's in the way, your notes and a code that reopens this plan. </div><button class="plan-seg-b" id="planPrint">🖨 Print / Save as PDF</button><div class="note" style="margin-top:8px;font-size:12.5px;">${printHint()}</div></div>`;
