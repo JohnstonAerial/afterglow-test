@@ -1,4 +1,4 @@
-<!-- Afterglow v1.5.0q -->
+<!-- Afterglow v2.0.0a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -401,7 +401,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST · v1.5.0q</span></div>
+    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST · v2.0.0a</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -2149,7 +2149,7 @@ async function loadPlanSky(p){
   const near = state.loc && Math.abs(state.loc.lat - p.loc.lat) < 0.02 && Math.abs(state.loc.lon - p.loc.lon) < 0.02;
   try{
     if(near && state.daily && state.hourly){
-      p.sky = { key, daily: state.daily, hourly: state.hourly, sample: state.sample };
+      p.sky = { key, daily: state.daily, hourly: state.hourly, sample: state.sample, staleAt: state.stale ? state.stale.savedAt : null };
     } else {
       awaited = true;
       const data = await fetchCore(p.loc);
@@ -2163,7 +2163,7 @@ async function loadPlanSky(p){
 function skyCardHtml(p, sun, esc){
   const sk = p.sky;
   if(!sk || sk.loading) return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky forecast</div><div class="note">Reading the sky…</div></div>`;
-  if(sk.error) return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky forecast</div><div class="note">The sky forecast didn't load. Directions and times above don't need it.</div></div>`;
+  if(sk.error) return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky forecast</div><div class="note">${navigator.onLine === false ? "No connection, so the sky forecast couldn't load." : "The sky forecast didn't load."} Directions and times above don't need it.</div></div>`;
   const i = sk.daily.time.indexOf(p.date);
   if(i < 0){
     const last = sk.daily.time[sk.daily.time.length - 1];
@@ -2180,7 +2180,7 @@ function skyCardHtml(p, sun, esc){
     rows.push(`<div class="plan-row2"><span>${name}${t ? " " + fmtZ(t, p.loc.tz) : ""}</span><b class="${sc.score >= 44 ? "plan-good" : ""}">${label(sc.score)} · ${sc.score}</b></div>`);
   });
   const nearToday = i === 0 ? "" : "";
-  return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky forecast · ${planDayLabel(p.date)}</div>${rows.join("") || '<div class="note">No sunrise or sunset score for this date.</div>'}<div class="note" style="margin-top:6px;">Same score as Today and Outlook. Forecasts shift, so check again closer to the day.</div></div>`;
+  return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky forecast · ${planDayLabel(p.date)}</div>${sk.staleAt ? `<div class="note" style="margin-bottom:6px;color:var(--gold);">Offline: this is the last forecast that loaded, from ${describeAge(Date.now() - sk.staleAt)}.</div>` : ""}${rows.join("") || '<div class="note">No sunrise or sunset score for this date.</div>'}<div class="note" style="margin-top:6px;">Same score as Today and Outlook. Forecasts shift, so check again closer to the day.</div></div>`;
 }
 
 // ---- Calendar file (.ics): the shoot window plus the light times, in the event notes.
@@ -2769,7 +2769,8 @@ function renderPlan(app, tabsHtml){
         else p.subject = { name: (p.subject && p.subject.name) || "Subject", lat: ev.latlng.lat, lon: ev.latlng.lng };
         render();
       });
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(sunMapInstance);
+      const tl = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(sunMapInstance);
+      { let shown = false; tl.on("tileerror", () => { if(shown || !mapEl.parentElement) return; shown = true; const h = document.createElement("div"); h.className = "map-hint show"; h.textContent = "The map needs a connection to show new areas"; mapEl.parentElement.appendChild(h); setTimeout(() => h.remove(), 6000); }); }
       L.circleMarker([lat, lon], { radius: 6, color: "#F2B84B", weight: 2, fillColor: "#F2B84B", fillOpacity: 1 }).addTo(sunMapInstance);
       if(p.subject){
         const bd = bearingDist(lat, lon, p.subject.lat, p.subject.lon), sj = [p.subject.lat, p.subject.lon];
@@ -2898,7 +2899,7 @@ function renderPlan(app, tabsHtml){
   const pb = $("planPrint");
   if(pb) pb.addEventListener("click", async () => {
     pb.textContent = "Preparing…";
-    const ok = await loadQrLib();
+    const ok = navigator.onLine === false ? !!window.qrcode : await loadQrLib();
     const qr = ok ? planQrSvg(planLink(p)) : "";
     let root = $("printRoot"); if(!root){ root = document.createElement("div"); root.id = "printRoot"; document.body.appendChild(root); }
     root.innerHTML = planPrintHtml(p, pl, qr);
@@ -3017,7 +3018,7 @@ const RETRY_BUDGET_MS = 35000;
 
 // A 4xx means the request itself is wrong; retrying just repeats the mistake.
 function isRetryable(e){
-  return !(e instanceof ForecastError) || e.kind !== "badrequest";
+  return !(e instanceof ForecastError) || (e.kind !== "badrequest" && e.kind !== "offline");
 }
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));

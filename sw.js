@@ -7,7 +7,7 @@
 //   - Everything else (this app's own files, Leaflet's CDN assets): cache-first,
 //     since those don't go stale in a way that matters day-to-day.
 
-const CACHE_NAME = "afterglow-test-v66";
+const CACHE_NAME = "afterglow-test-v67";
 
 // Bump this string (v1 -> v2, etc.) any time index.html, manifest.json, or the
 // icons change, so returning visitors get the new version instead of a cached
@@ -23,6 +23,13 @@ const STATIC_ASSETS = [
   "./apple-touch-icon.png"
 ];
 
+// Libraries from the CDN, saved when the app installs so Print and the map work offline.
+const CDN_ASSETS = [
+  "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css",
+  "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js",
+  "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"
+];
+
 const isApiRequest = (url) =>
   url.hostname === "api.open-meteo.com" ||
   url.hostname === "geocoding-api.open-meteo.com";
@@ -30,7 +37,7 @@ const isApiRequest = (url) =>
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .then((cache) => cache.addAll(STATIC_ASSETS).then(() => Promise.all(CDN_ASSETS.map((u) => cache.add(u).catch(() => null)))))
       .catch((err) => {
         // Don't let a single failed asset (e.g. offline during install) block
         // the whole service worker from installing.
@@ -105,21 +112,10 @@ self.addEventListener("fetch", (event) => {
   // Only handle GET requests; let everything else (if any) pass through untouched.
   if (event.request.method !== "GET") return;
 
-  if (isApiRequest(url)) {
-    // Network-first: try the network, only fall back to a cached copy if the
-    // network request fails outright (e.g. no connectivity). Never treat a
-    // cached forecast as good-enough when the network is available.
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-          return response;
-        })
-        .catch(() => caches.match(event.request))
-    );
-    return;
-  }
+  // Forecast and place-search requests always go straight to the network. If there is
+  // no connection the request fails, so the app can say so plainly and show its own
+  // saved forecast with its age (handing back an old copy here hid that it was offline).
+  if (isApiRequest(url)) return;
 
   // Cache-first for the app shell and static libraries (Leaflet CDN files, icons, etc.)
   event.respondWith(
