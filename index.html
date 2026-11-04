@@ -1,4 +1,4 @@
-<!-- Afterglow v2.1.1b -->
+<!-- Afterglow v2.1.1c -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -211,6 +211,8 @@
   .today-fold .card{ border:1px solid var(--line); background: var(--card); border-radius:14px; padding:14px 16px; }
   .today-fold .card + .card{ border-top:1px solid var(--line); border-radius:14px; }
   .today-fold .fold-body{ padding:0 0 12px; }
+  .fold-close{ display:block; margin:6px auto 10px; background:none; border:0; color: var(--slate); font: inherit; font-size:13px; padding:8px 14px; cursor:pointer; text-decoration:underline; }
+  .fold-close:hover{ color: var(--gold); }
   .today-fold > summary .nw{ white-space:nowrap; }
   .today-fold > summary .sub, .plan-fold > summary .sub{ color: var(--slate); font-size:12.5px; margin-left:auto; margin-right:10px; }
   /* Today cards: title and arrow stay on the first row; the summary drops to its own line when it does not fit beside the title */
@@ -525,7 +527,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.1.1b</span>
+    <span class="version test">🧪 TEST · v2.1.1c</span>
   </footer>
 </div>
 
@@ -1880,9 +1882,18 @@ function timelapseCardHTML(result){
   </div>`;
 }
 
+// A "Collapse" link at the bottom of the longer folds, so you don't have to scroll back up to the header to close one.
+const FOLD_CLOSE = `<button type="button" class="fold-close">Collapse ▲</button>`;
+document.addEventListener("click", e => {
+  const b = e.target && e.target.closest ? e.target.closest(".fold-close") : null;
+  if(!b) return;
+  const d = b.closest("details"); if(!d) return;
+  d.open = false;
+  try{ d.scrollIntoView({ block: "nearest", behavior: "smooth" }); }catch(err){ d.scrollIntoView(); }
+});
 function uiFold(key, title, inner){
   state.fold = state.fold || {};
-  return `<details class="plan-fold today-fold" data-fold="${key}"${state.fold[key] ? " open" : ""}><summary>${title}</summary><div class="fold-body">${inner}</div></details>`;
+  return `<details class="plan-fold today-fold" data-fold="${key}"${state.fold[key] ? " open" : ""}><summary>${title}</summary><div class="fold-body">${inner}${key === "sky" ? FOLD_CLOSE : ""}</div></details>`;
 }
 function bindFolds(){
   document.querySelectorAll("details.today-fold").forEach(d => d.addEventListener("toggle", () => { state.fold = state.fold || {}; state.fold[d.dataset.fold] = d.open; }));
@@ -2859,7 +2870,7 @@ function renderPlan(app, tabsHtml){
     html += `<div class="card" style="margin-bottom:10px;"><div class="label">${esc(sname)} · ${Math.round(bd.brg)}° ${compassDir(bd.brg)} · ${fmtDist(bd.km)}</div><label class="plan-name-lbl" for="planSubjName">Name this spot (optional)</label><input class="plan-name" id="planSubjName" value="${esc(nameVal)}" maxlength="40" placeholder="e.g. Water tower"><div class="note" style="margin-bottom:4px;">Light on the subject, ${planDayLabel(p.date)}. You are facing it from your spot.</div>${rows.join("") || '<div class="note">No sunrise, sunset or moon events on this date.</div>'}</div>`;
     let fin = "";
     try{ fin = planFinder(p, bd.brg, p.finder); }catch(e){ console.error("Finder failed:", e); fin = '<div class="note">Couldn\'t search the dates.</div>'; }
-    html += `<details class="plan-fold" data-fold="finder"${p.fold.finder ? " open" : ""}><summary>Find the dates it lines up${p.scan && p.scan.sum ? ` <span class="sub">${esc(p.scan.sum)}</span>` : ""}</summary><div class="fold-body"><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.finder === "sun" ? "on" : ""}" data-finder="sun">Sun</button><button class="plan-seg-b ${p.finder === "moon" ? "on" : ""}" data-finder="moon">Moon</button></div>${fin}<div class="note" style="margin-top:8px;">Direction only: it doesn't know how tall the subject is or what stands in between.</div></div></details>`;
+    html += `<details class="plan-fold" data-fold="finder"${p.fold.finder ? " open" : ""}><summary>Find the dates it lines up${p.scan && p.scan.sum ? ` <span class="sub">${esc(p.scan.sum)}</span>` : ""}</summary><div class="fold-body"><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.finder === "sun" ? "on" : ""}" data-finder="sun">Sun</button><button class="plan-seg-b ${p.finder === "moon" ? "on" : ""}" data-finder="moon">Moon</button></div>${fin}<div class="note" style="margin-top:8px;">Direction only: it doesn't know how tall the subject is or what stands in between.</div>${FOLD_CLOSE}</div></details>`;
   }
   cap("subj", i0);
   i0 = html.length;
@@ -2908,7 +2919,7 @@ function renderPlan(app, tabsHtml){
     <div class="plan-grid" style="margin:10px 0 0;"><div><div class="label">Moonrise</div><div class="value">${mRise}</div></div><div><div class="label">Moonset</div><div class="value">${mSet}</div></div></div>
   </div>`;
   cap("sum", i0);
-  const foldBody = (key, title, inner, force) => `<details class="plan-fold" data-fold="${key}"${(p.fold[key] || force) ? " open" : ""}><summary>${title}</summary><div class="fold-body">${inner}</div></details>`;
+  const foldBody = (key, title, inner, force) => `<details class="plan-fold" data-fold="${key}"${(p.fold[key] || force) ? " open" : ""}><summary>${title}</summary><div class="fold-body">${inner}${FOLD_CLOSE}</div></details>`;
   const vDrone = p.vmode !== "ground", vFt = vDrone ? Math.max(0, p.alt == null ? 400 : p.alt) : 0, vObs = loadObst(p.loc).length;
   const vTitle = "Height &amp; things in the way <span style=\"color:var(--slate);font-size:12.5px;\">· " + (vDrone ? (p.unit === "m" ? Math.round(vFt * 0.3048) + " m" : Math.round(vFt) + " ft") : "ground") + " · " + (vObs ? vObs + " in the way" : "nothing in the way") + "</span>";
   html += (parts.time || "") + (parts.sky || "") + (parts.subj || "");
