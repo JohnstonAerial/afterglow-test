@@ -1,4 +1,4 @@
-<!-- Afterglow v2.0.3e -->
+<!-- Afterglow v2.0.4a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -156,6 +156,16 @@
     display: flex; align-items: center; justify-content: center;
   }
   .map-center-btn:active{ opacity: 0.7; }
+  /* v2.0.4a: Plan map full screen */
+  .map-full-btn{ top: 58px; font-size: 18px; }
+  .map-fs-tap{ display:none; }
+  html.map-full, html.map-full body{ overflow:hidden; }
+  .map-wrap.full{ position:fixed; inset:0; z-index:3000; height:auto; margin:0; border-radius:0; border:0; }
+  .map-wrap.full .map-center-btn{ top: calc(12px + env(safe-area-inset-top, 0px)); right: calc(12px + env(safe-area-inset-right, 0px)); }
+  .map-wrap.full .map-full-btn{ top: calc(58px + env(safe-area-inset-top, 0px)); }
+  .map-wrap.full .map-pinhint{ top: calc(10px + env(safe-area-inset-top, 0px)); }
+  .map-wrap.full .map-fs-tap{ display:flex; position:absolute; left:50%; transform:translateX(-50%); bottom: calc(74px + env(safe-area-inset-bottom, 0px)); z-index:1002; gap:6px; padding:5px; border-radius:999px; background:rgba(10,11,22,0.88); border:1px solid var(--line); }
+  .map-wrap.full .map-fs-tap .plan-seg-b{ white-space:nowrap; }
   .map-slider-row{ display:flex; align-items:center; gap: 12px; margin-bottom: 16px; }
   .map-slider-row input[type=range]{ flex: 1; accent-color: var(--gold); }
   .map-slider-icon{ font-size: 15px; opacity: 0.7; }
@@ -430,7 +440,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.0.3e</span>
+    <span class="version test">🧪 TEST · v2.0.4a</span>
   </footer>
 </div>
 
@@ -2034,6 +2044,7 @@ function touchMapMode(map, el){
   let touchy = false;
   try{ touchy = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches) || (navigator.maxTouchPoints || 0) > 1 && /Mobi|Android|iPad|iPhone/.test(navigator.userAgent || ""); }catch(e){}
   if(!map || !el) return;
+  if(el.parentElement && el.parentElement.classList.contains("full")) return; // full screen: one finger moves the map, wheel zooms
   if(!touchy){
     // Computers: plain scrolling over the map scrolls the page. Zoom with Ctrl or Cmd + scroll (a trackpad pinch counts).
     const wrapD = el.parentElement; if(!wrapD) return;
@@ -2057,6 +2068,7 @@ function touchMapMode(map, el){
 }
 
 function destroySunMap(){
+  document.documentElement.classList.remove("map-full");
   if(sunMapInstance){ sunMapInstance.remove(); sunMapInstance = null; }
 }
 
@@ -2688,7 +2700,7 @@ function renderPlan(app, tabsHtml){
   if(p.msg) html += `<div class="plan-msg">${esc(p.msg)}</div>`;
   html += `<div class="plan-row"><button class="plan-btn round" id="planPrev" aria-label="Previous day">‹</button><input class="plan-date" type="date" id="planDate" value="${p.date}" min="1900-01-01" max="2100-12-31" aria-label="Date"><button class="plan-btn round" id="planNext" aria-label="Next day">›</button><button class="plan-btn" id="planToday">Today</button></div>`;
   html += `<div class="plan-seg plan-tap-row" role="group" aria-label="What a map tap places"><span class="plan-seg-l">Tap the map to place:</span><button class="plan-seg-b ${p.tap === "subject" ? "on" : ""}" data-tap="subject">Subject</button><button class="plan-seg-b ${p.tap === "you" ? "on" : ""}" data-tap="you">Your spot</button></div>`;
-  html += `<div class="map-wrap"><div id="sunMap"></div><button type="button" class="map-center-btn" id="planCenter" title="${p.loc.name === 'Dropped pin' ? 'Back to ' + esc((p.homeLoc || state.loc).name) : 'Center on place'}" aria-label="${p.loc.name === 'Dropped pin' ? 'Back to ' + esc((p.homeLoc || state.loc).name) : 'Center on place'}">⌖</button>${p.subject ? "" : '<div class="map-pinhint">Tap to drop a pin on what you want to shoot</div>'}</div>`;
+  html += `<div class="map-wrap${p.full ? " full" : ""}"><div id="sunMap"></div><button type="button" class="map-center-btn" id="planCenter" title="${p.loc.name === 'Dropped pin' ? 'Back to ' + esc((p.homeLoc || state.loc).name) : 'Center on place'}" aria-label="${p.loc.name === 'Dropped pin' ? 'Back to ' + esc((p.homeLoc || state.loc).name) : 'Center on place'}">⌖</button><button type="button" class="map-center-btn map-full-btn" id="planFull" title="${p.full ? 'Close full screen' : 'Full screen map'}" aria-label="${p.full ? 'Close full screen map' : 'Open full screen map'}">${p.full ? '✕' : '⤢'}</button><div class="map-fs-tap" role="group" aria-label="What a map tap places"><button class="plan-seg-b ${p.tap === "subject" ? "on" : ""}" data-tap="subject">Subject</button><button class="plan-seg-b ${p.tap === "you" ? "on" : ""}" data-tap="you">Your spot</button></div>${p.subject ? "" : '<div class="map-pinhint">Tap to drop a pin on what you want to shoot</div>'}</div>`;
 
   const dayMin = Math.max(60, Math.round((pl.t1 - pl.t0) / 60000));
   const plKey = p.loc.lat.toFixed(3) + "," + p.loc.lon.toFixed(3);
@@ -2787,6 +2799,7 @@ function renderPlan(app, tabsHtml){
 
   destroySunMap();
   const mapEl = $("sunMap");
+  document.documentElement.classList.toggle("map-full", !!p.full);
   const { lat, lon } = p.loc;
   if(mapEl && typeof L !== "undefined"){
     try{
@@ -2882,6 +2895,9 @@ function renderPlan(app, tabsHtml){
     applyTime(Math.max(0, Math.min(dayMin - 1, Math.round((Date.now() - pl.t0.getTime()) / 60000))), true);
   });
   applyTime(p.min, false);
+  const fullBtn = $("planFull");
+  if(fullBtn) fullBtn.addEventListener("click", () => { p.full = !p.full; render(); if(!p.full) { const w = document.querySelector(".map-wrap"); if(w) w.scrollIntoView({ block: "center" }); } });
+  if(!window.__agMapEsc){ window.__agMapEsc = true; document.addEventListener("keydown", e => { if(e.key === "Escape" && state.view === "plan" && state.plan && state.plan.full){ state.plan.full = false; render(); } }); }
   const center = $("planCenter");
   if(center) center.addEventListener("click", () => {
     // On a dropped pin, the crosshair takes you back to your saved place (subject pin stays); otherwise it just centers
