@@ -85,4 +85,6 @@ Tap **Aa** near the top to make all the text bigger. Tap it again to go back. Af
 
 Questions or feedback? See the [README](README.md) for more about how it works and privacy.
 
+Also from Johnston Aerial: the [Free Drone Preflight Checklist](https://checklist.johnstonaerial.com/), for the flight itself.
+
 — Jim, Johnston Aerial
