@@ -1,4 +1,4 @@
-<!-- Afterglow v2.0.4b -->
+<!-- Afterglow v2.0.4c -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -446,7 +446,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.0.4b</span>
+    <span class="version test">🧪 TEST · v2.0.4c</span>
   </footer>
 </div>
 
@@ -2813,6 +2813,15 @@ function renderPlan(app, tabsHtml){
     try{
       sunMapInstance = L.map(mapEl, { attributionControl: true }).setView(p.view ? [p.view.lat, p.view.lng] : [lat, lon], p.view ? p.view.z : 13);
       touchMapMode(sunMapInstance, mapEl);
+      // Coming back from full screen: re-fit so your spot and your subject are both in view
+      if(p.fit && !p.full){
+        p.fit = false;
+        try{
+          const pts = [[lat, lon]]; if(p.subject) pts.push([p.subject.lat, p.subject.lon]);
+          if(pts.length > 1) sunMapInstance.fitBounds(pts, { paddingTopLeft: [44, 44], paddingBottomRight: [64, 44], maxZoom: 16, animate: false });
+          else sunMapInstance.setView([lat, lon], p.view ? p.view.z : 13, { animate: false });
+        }catch(e){}
+      }
       sunMapInstance.on("moveend", () => { const c = sunMapInstance.getCenter(); p.view = { lat: c.lat, lng: c.lng, z: sunMapInstance.getZoom() }; });
       sunMapInstance.on("click", (ev) => {
         if(p.tap === "you"){ if(p.loc.name !== "Dropped pin") p.homeLoc = p.loc; p.loc = { name: "Dropped pin", lat: ev.latlng.lat, lon: ev.latlng.lng, tz: p.loc.tz }; p.scan = null; }
@@ -2910,8 +2919,8 @@ function renderPlan(app, tabsHtml){
   const nowF = $("planNowF"); if(nowF) nowF.addEventListener("click", nowFn);
   applyTime(p.min, false);
   const fullBtn = $("planFull");
-  if(fullBtn) fullBtn.addEventListener("click", () => { p.full = !p.full; render(); if(!p.full) { const w = document.querySelector(".map-wrap"); if(w) w.scrollIntoView({ block: "center" }); } });
-  if(!window.__agMapEsc){ window.__agMapEsc = true; document.addEventListener("keydown", e => { if(e.key === "Escape" && state.view === "plan" && state.plan && state.plan.full){ state.plan.full = false; render(); } }); }
+  if(fullBtn) fullBtn.addEventListener("click", () => { p.full = !p.full; p.fit = !p.full; render(); if(!p.full) { const w = document.querySelector(".map-wrap"); if(w) w.scrollIntoView({ block: "center" }); } });
+  if(!window.__agMapEsc){ window.__agMapEsc = true; document.addEventListener("keydown", e => { if(e.key === "Escape" && state.view === "plan" && state.plan && state.plan.full){ state.plan.full = false; state.plan.fit = true; render(); } }); }
   const center = $("planCenter");
   if(center) center.addEventListener("click", () => {
     // On a dropped pin, the crosshair takes you back to your saved place (subject pin stays); otherwise it just centers
