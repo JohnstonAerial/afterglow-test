@@ -8,6 +8,25 @@ Afterglow predicts how good a sunrise or sunset is actually going to look — no
 
 ☕ **Free to use.** If it helped you catch an epic shot — sunrise, sunset, or a moon timelapse — you can [buy me a coffee](https://buymeacoffee.com/JohnstonAerial).
 
+## What's new
+
+**2.0.4**
+- **Full screen map.** On the Plan tab, tap **⤢** on the map to fill the whole screen. A panel along the bottom has the time slider, **Now**, quick jumps (sunrise, golden hour, sunset, moonrise) and a **Subject / Your spot** switch, so you can watch the Sun and Moon lines move across the map. Tap **✕** (or press Esc) to close it, and the small map re-fits so your spot and your subject are both in view.
+
+**2.0.3**
+- A tagline under the name ("Plan your shoot around the sky"), and the version number moved to the bottom of the page.
+- A link to the free Drone Preflight Checklist ("Also from Johnston Aerial") in the footer.
+- A new preview image and description when you share a link to Afterglow.
+- The Sky breakdown and Moon & timelapse cards wrap cleanly on small screens and with larger text.
+
+**2.0.2**
+- On the Plan map, the **⌖** button now returns to the place you were planning from before you dropped a pin (for example My location), instead of your saved place.
+
+**2.0.1**
+- One place control, in the same spot on every tab.
+- The bell window shows which place your alerts are for.
+- Clearer saved-place wording, and install steps added to the how-to guide.
+
 ## What's new in 2.0
 
 Afterglow 2.0 is a big redesign of the Plan tab, with a few new tools.
@@ -28,7 +47,7 @@ Afterglow 2.0 is a big redesign of the Plan tab, with a few new tools.
 - **Outlook** — the coming sunrises and sunsets, each scored, with past times dimmed.
 - **Any location** — search by city, state or ZIP, or use your current position, and switch any time with the location button. Your chosen location stays on your device.
 - **Moon conditions** — phase, illumination, moonrise/moonset with compass headings, and a callout for the "big warm moon on the horizon" alignment window. Includes an hourly timelapse-conditions score.
-- **Plan tab** — Sun and Moon direction and height at any time, on any date, anywhere, on a free, keyless Leaflet/OpenStreetMap map. Place a subject, find the dates the Sun or Moon lines up with it, allow for height and obstructions, share a link, add the shoot to your calendar, or print a shoot card.
+- **Plan tab** — Sun and Moon direction and height at any time, on any date, anywhere, on a free, keyless Leaflet/OpenStreetMap map that also opens full screen. Place a subject, find the dates the Sun or Moon lines up with it, allow for height and obstructions, share a link, add the shoot to your calendar, or print a shoot card.
 - **Three tabs** — Today, Outlook and Plan.
 - **Installable app (PWA)** — add it to your Home Screen on iOS or Android for a real standalone app experience, with offline support for the app itself (forecast data always pulls fresh, never stale).
 - **Push notifications** — optional alerts before sunrise, sunset, or golden hour (morning and evening), sent right to your phone. You choose which alerts you want and how far ahead: 15, 30, 60 or 90 minutes, and sunrise and sunset alerts can wait for a minimum forecast (Good or better, Great or better, or Epic only). Notifications need the app installed (Home Screen on a phone or tablet, Dock or app window on a computer) (see the [how-to](HOW-TO.md)).

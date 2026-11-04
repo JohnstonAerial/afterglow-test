@@ -37,6 +37,7 @@ The **Plan** tab is for working out where the light will be. It uses pure sun an
 - **Planning from** shows the place you're planning for. Tap it to search for another place, use **My location**, or go back to your own place. Plan can look at any place without changing the one Today, Outlook and your alerts use.
 - **Date**: pick any day with the date row.
 - **The map**: tap it to drop a pin. Use **Tap the map to place** to choose whether the next tap sets your **Subject** (what you want to shoot, such as a water tower) or **Your spot** (where you will stand or fly from).
+- **Full screen**: tap **⤢** on the map to open it full screen. The time slider, **Now**, quick jumps and the **Subject / Your spot** switch are along the bottom, so you can move the time and watch where the Sun and Moon lines fall. Tap **✕** to close it. The small map re-fits to show your spot and your subject, and the **⌖** button returns to the place you were planning from before you dropped a pin.
 - **The time bar** stays at the top as you scroll. Drag the slider, or tap **Now**, to move the Sun and Moon lines on the map and the dots on the sky view. **Jump to** buttons take you straight to sunrise, golden hour, sunset, moonrise and moonset.
 - **Sky view** shows the Sun and Moon on a compass from where you stand, north up. Closer to the middle is higher in the sky.
 - **Sky forecast** shows how the sky is expected to look for the sunrise and sunset on that date, when the date is within about ten days.
@@ -44,7 +45,7 @@ The **Plan** tab is for working out where the light will be. It uses pure sun an
 - **Height & things in the way**: say how high you will be (drone or ground) and add trees, buildings or hills, and Afterglow will tell you how much they change what you see.
 - **Share, calendar & print**: copy a link to the plan, or add the shoot to your calendar. Choose **Sunset shoot**, **Sunrise shoot** or **Custom**. With Custom you set the start relative to the Sun or Moon (for example, 2 hours before sunset, or 30 minutes before moonrise) or at a clock time, or use the time on the bar. Then choose how long it lasts. You can also print a one-page shoot card with the compass, light times and a code that reopens the plan.
 
-On a computer, scrolling over the map scrolls the page. To zoom the map, use the **+** and **−** buttons, or hold ⌘ (Mac) or Ctrl (Windows) while you scroll or pinch. On a phone or tablet, one finger scrolls the page and two fingers move the map.
+On a computer, scrolling over the map scrolls the page. To zoom the map, use the **+** and **−** buttons, or hold ⌘ (Mac) or Ctrl (Windows) while you scroll or pinch. On a phone or tablet, one finger scrolls the page and two fingers move the map. In full screen, one finger moves the map.
 
 ## 5. Add it to your Home Screen
 
