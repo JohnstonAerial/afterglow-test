@@ -1,4 +1,4 @@
-<!-- Afterglow v2.0.3d -->
+<!-- Afterglow v2.0.3e -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -180,10 +180,12 @@
   .today-fold .card{ border:1px solid var(--line); background: var(--card); border-radius:14px; padding:14px 16px; }
   .today-fold .card + .card{ border-top:1px solid var(--line); border-radius:14px; }
   .today-fold .fold-body{ padding:0 0 12px; }
-  .today-fold > summary{ white-space:nowrap; gap:10px; }
-  .today-fold > summary .sub{ white-space:normal; text-align:right; min-width:0; }
   .today-fold > summary .nw{ white-space:nowrap; }
   .today-fold > summary .sub, .plan-fold > summary .sub{ color: var(--slate); font-size:12.5px; margin-left:auto; margin-right:10px; }
+  /* Today cards: title and arrow stay on the first row; the summary drops to its own line when it does not fit beside the title */
+  .today-fold > summary{ position:relative; flex-wrap:wrap; justify-content:space-between; gap:4px 10px; padding-right:42px; white-space:nowrap; }
+  .today-fold > summary::after{ position:absolute; right:16px; top:50%; margin-top:-0.6em; line-height:1.2; }
+  .today-fold > summary .sub{ margin:0; text-align:left; white-space:nowrap; }
   .ag-head, .ag-row{ display:grid; grid-template-columns:54px 1fr 1fr; gap:8px; align-items:stretch; }
   .ag-head{ font-size:12px; color: var(--slate); text-transform:uppercase; letter-spacing:.08em; font-family:'IBM Plex Mono', monospace; margin:2px 0 6px; }
   .ag-row{ margin-bottom:8px; }
@@ -428,7 +430,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.0.3d</span>
+    <span class="version test">🧪 TEST · v2.0.3e</span>
   </footer>
 </div>
 
