@@ -1,4 +1,4 @@
-<!-- Afterglow v2.1.0h -->
+<!-- Afterglow v2.1.1a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -84,6 +84,7 @@
     font-family: inherit; font-size: 15px; padding: 11px 14px; border-radius: 12px; cursor: pointer;
   }
   #locBtn .loc-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #locBtn .loc-name .loc-from{ display:block; font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:0.06em; text-transform:uppercase; color: var(--slate); line-height:1.1; margin-bottom:1px; }
   #locBtn .loc-change{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color: var(--gold); white-space:nowrap; }
   #locBtn:hover{ border-color: var(--slate); }
   #locBtn:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
@@ -216,7 +217,7 @@
   .today-fold > summary{ position:relative; flex-wrap:wrap; justify-content:space-between; gap:4px 10px; padding-right:42px; white-space:nowrap; }
   .today-fold > summary::after{ position:absolute; right:16px; top:50%; margin-top:-0.6em; line-height:1.2; }
   .today-fold > summary .sub{ margin:0; text-align:left; white-space:nowrap; }
-  .ag-head, .ag-row{ display:grid; grid-template-columns:54px 1fr 1fr; gap:8px; align-items:stretch; }
+  .ag-head, .ag-row{ display:grid; grid-template-columns:54px minmax(0,1fr) minmax(0,1fr); gap:8px; align-items:stretch; }
   .ag-head{ font-size:12px; color: var(--slate); text-transform:uppercase; letter-spacing:.08em; font-family:'IBM Plex Mono', monospace; margin:2px 0 6px; }
   .ag-row{ margin-bottom:8px; }
   .ag-day{ font-family: Georgia, serif; font-size:15px; font-weight:600; color: var(--sand); display:flex; align-items:center; }
@@ -225,8 +226,10 @@
   .ag-cell .t1{ display:flex; justify-content:space-between; align-items:baseline; gap:6px; }
   .ag-cell .sc{ font-family: Georgia, serif; font-size:20px; font-weight:600; color: var(--sand); }
   .ag-cell .lb{ font-size:13px; color: var(--slate); }
-  .ag-cell .tm{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; color: var(--slate); margin-top:2px; }
+  .ag-cell .tm{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; color: var(--slate); margin-top:2px; white-space:nowrap; }
+  .ag-cell .ag-why{ font-size:11.5px; color: var(--slate); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .ag-cell .agenda-bar{ margin:5px 0 0; }
+  .ag-cell .ag-best{ position:absolute; right:9px; bottom:8px; }
   .ag-best{ font-size:11px; color: var(--gold); font-family:'IBM Plex Mono', monospace; text-transform:uppercase; letter-spacing:.06em; }
   .plan-sum{ margin-top:2px; }
   .plan-sum .plan-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
@@ -522,7 +525,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.1.0h</span>
+    <span class="version test">🧪 TEST · v2.1.1a</span>
   </footer>
 </div>
 
@@ -1864,7 +1867,7 @@ function timelapseCardHTML(result){
     const pts = result.bestRun.points;
     const start = pts[0].time, end = pts[pts.length - 1].time;
     body = `<div class="value">${timelapseLabel(Math.round(result.bestRun.avg))} <small>best window</small></div>
-      <div style="font-family:'IBM Plex Mono', monospace; font-size:15px; margin-top:4px;">${fmt(start)}–${fmt(end)}</div>`;
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:15px; margin-top:4px;">${pts.length === 1 || fmt(start) === fmt(end) ? "around " + fmt(start) : fmt(start) + "–" + fmt(end)}</div>`;
   } else {
     body = `<div class="value" style="font-size:14px; font-weight:400; color:var(--slate);">Mostly clear or solid overcast the whole time the Moon's up — not much drift to catch.</div>`;
   }
@@ -1893,7 +1896,8 @@ function splitBlurb(t){
 function syncLocLabel(){
   const ln = $("locName"), lb = $("locBtn"); if(!ln) return;
   const onPlan = state.view === "plan" && state.plan && state.plan.loc;
-  ln.textContent = onPlan ? "Planning from: " + state.plan.loc.name : ((state.loc && state.loc.name) || "Choose location");
+  if(onPlan){ ln.textContent = ""; const sm = document.createElement("small"); sm.className = "loc-from"; sm.textContent = "Planning from"; ln.appendChild(sm); ln.appendChild(document.createTextNode(state.plan.loc.name)); }
+  else ln.textContent = (state.loc && state.loc.name) || "Choose location";
   if(lb) lb.setAttribute("aria-label", onPlan ? "Change planning place" : "Change location");
 }
 function render(){
@@ -1988,7 +1992,7 @@ function renderToday(app, tabsHtml){
   html += `<div class="hero">
     <div class="hero-swatch" style="background:${gradient}"></div>
     <div class="hero-content">
-      <div class="day-nav"><button class="day-step" id="dayPrev" aria-label="Previous day"${activeDay <= 0 ? " disabled" : ""}>‹</button><div class="eyebrow">${activeDay === 0 ? "Today · " : ""}${parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { weekday:'long', month:'short', day:'numeric' })}</div><button class="day-step" id="dayNext" aria-label="Next day"${activeDay >= Math.min(6, daily.time.length - 1) ? " disabled" : ""}>›</button></div>
+      <div class="day-nav"><button class="day-step" id="dayPrev" aria-label="Previous day"${activeDay <= 0 ? " disabled" : ""}>‹</button><div class="eyebrow">${activeDay === 0 ? "Today · " : ""}${parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { weekday:'long', month:'short', day:'numeric' })}</div><button class="day-step" id="dayNext" aria-label="Next day"${activeDay >= Math.min(9, daily.time.length - 1) ? " disabled" : ""}>›</button></div>
       <div class="score-row">
         <div class="score-num">${s.score}</div>
         <div class="score-label">${label(s.score)} ${mode === "evening" ? "sunset" : "sunrise"}</div>
@@ -2013,13 +2017,13 @@ function renderToday(app, tabsHtml){
 
   let skyInner = `<div class="grid">
     ${s.beam != null ? statCard("Toward the sun", Math.max(s.beamLow, s.beamMid), "%",
-        `Low/mid cloud ~${SUN_PATH_SAMPLE_KM}km ${compassDir(azimuth)} — the gap light has to come through`,
+        `Low/mid cloud ${SUN_PATH_SAMPLE_KM}km ${compassDir(azimuth)}, where the light comes from`,
         var2color(Math.max(s.beamLow, s.beamMid), 100, 45, true)) : ``}
-    ${statCard("High cloud", s.high, "%", "Catches & scatters color — 30–60% is ideal", var2color(s.high, 45, 60))}
-    ${statCard("Low cloud", s.low, "%", "Blocks the horizon view when high", var2color(s.low, 100, 40, true))}
-    ${statCard("Mid cloud", s.mid, "%", "Thin to moderate mid cloud also catches color; a heavy deck blocks", var2color(s.mid, 100, 50, true))}
+    ${statCard("High cloud", s.high, "%", "Catches color. 30–60% is ideal", var2color(s.high, 45, 60))}
+    ${statCard("Low cloud", s.low, "%", "Blocks the horizon when high", var2color(s.low, 100, 40, true))}
+    ${statCard("Mid cloud", s.mid, "%", "Thin mid cloud catches color; a heavy deck blocks", var2color(s.mid, 100, 50, true))}
     ${s.hazeFromVis
-      ? statCard("Visibility", Math.round(s.vis / 1609), " mi", "Direct haze reading — under ~9mi starts flattening color", var2color(Math.min(100, (s.vis / 15000) * 100), 100, 70))
+      ? (s.vis < 1609 ? `<div class="card"><div class="label">Visibility</div><div class="value">Under 1 mi <small>Fog or very low visibility. Under ~9mi starts flattening color</small></div><div class="bar"><i style="width:${Math.max(2, Math.min(100, (s.vis / 15000) * 100))}%; background:${var2color(Math.min(100, (s.vis / 15000) * 100), 100, 70)}"></i></div></div>` : statCard("Visibility", Math.round(s.vis / 1609), " mi", "Direct haze reading — under ~9mi starts flattening color", var2color(Math.min(100, (s.vis / 15000) * 100), 100, 70)))
       : statCard("Humidity", s.hum, "%", "Fallback haze proxy — visibility unavailable", var2color(s.hum, 100, 80, true))}
   </div>`;
 
@@ -2037,7 +2041,7 @@ function renderToday(app, tabsHtml){
   }));
   const dp = $("dayPrev"), dn = $("dayNext");
   if(dp) dp.addEventListener("click", () => { if(state.activeDay > 0){ state.activeDay--; render(); } });
-  if(dn) dn.addEventListener("click", () => { if(state.activeDay < Math.min(6, state.daily.time.length - 1)){ state.activeDay++; render(); } });
+  if(dn) dn.addEventListener("click", () => { if(state.activeDay < Math.min(9, state.daily.time.length - 1)){ state.activeDay++; render(); } });
   bindFolds();
   const bm = $("blurbMore"); if(bm) bm.addEventListener("click", () => { state.blurbMore = !state.blurbMore; $("blurbRest").hidden = !state.blurbMore; bm.textContent = state.blurbMore ? "Less" : "More"; });
   const mt = $("moreTimes"); if(mt) mt.addEventListener("click", () => { state.moreTimes = !state.moreTimes; $("moreTimesBox").hidden = !state.moreTimes; mt.textContent = state.moreTimes ? "Fewer times" : "More twilight times"; });
@@ -2057,6 +2061,20 @@ function agendaColor(score){
   return "#565d78"; // slate-dim — Flat
 }
 
+// A word or two on why a Flat or Fair day scored low, so the Outlook explains itself without opening the day.
+function agWhy(sc){
+  if(!sc || sc.score >= 44) return "";
+  let r = "";
+  if(sc.low >= 60) r = "low cloud";
+  else if(sc.beam != null && sc.beamLow != null && Math.max(sc.beamLow, sc.beamMid) >= 70) r = "cloud toward sun";
+  else if(sc.mid >= 80 && sc.high >= 70) r = "thick overcast";
+  else if(sc.mid >= 70) r = "mid cloud";
+  else if(sc.precip >= 60) r = "rain likely";
+  else if(sc.hazeFromVis && sc.vis < 6000) r = "hazy";
+  else if(sc.high < 15 && sc.mid < 25 && sc.low < 30) r = "clear sky";
+  else if(sc.high >= 90) r = "solid high cloud";
+  return r ? `<div class="ag-why">${r}</div>` : "";
+}
 function agendaCardHTML(dayIdx, mode, daily, hourly){
   const evt = mode === "evening" ? daily.sunset[dayIdx] : daily.sunrise[dayIdx];
   if(!evt) return `<div class="agenda-card"><div class="k">–</div><div class="label-word">No data</div></div>`;
@@ -2078,7 +2096,7 @@ function renderOutlook(app, tabsHtml){
   let html = tabsHtml;
   const cells = [];
   let best = null;
-  daily.time.slice(0, 7).forEach((t, i) => {
+  daily.time.slice(0, 10).forEach((t, i) => {
     ["morning", "evening"].forEach(mode => {
       const evt = mode === "evening" ? daily.sunset[i] : daily.sunrise[i];
       let sc = null;
@@ -2094,12 +2112,12 @@ function renderOutlook(app, tabsHtml){
     return `<div class="ag-cell${isBest ? " best" : ""}${past ? " past" : ""}" data-day="${c.i}" data-mode="${c.mode}">
       <div class="t1"><span class="sc">${c.sc.score}</span><span class="lb">${label(c.sc.score)}</span></div>
       <div class="agenda-bar"><i style="width:${c.sc.score}%; background:${agendaColor(c.sc.score)}"></i></div>
-      <div class="tm">${fmtTime(c.evt)}${isBest ? ` <span class="ag-best">· best</span>` : ""}</div>
+      <div class="tm">${fmtTime(c.evt)}${isBest ? `<span class="ag-best">Best</span>` : ""}</div>${agWhy(c.sc)}
     </div>`;
   };
   html += `<div class="ag-hint">Tap a day to open it. Faded ones have already passed.</div>`;
   html += `<div class="ag-head"><span></span><span>Sunrise</span><span>Sunset</span></div>`;
-  daily.time.slice(0, 7).forEach((t, i) => {
+  daily.time.slice(0, 10).forEach((t, i) => {
     const dow = i === 0 ? "Today" : parseLocalDate(t).toLocaleDateString([], { weekday: "short" });
     html += `<div class="ag-row"><div class="ag-day">${dow}<small>${parseLocalDate(t).toLocaleDateString([], { month: "short", day: "numeric" })}</small></div>${cellHtml(cells[i * 2])}${cellHtml(cells[i * 2 + 1])}</div>`;
   });
