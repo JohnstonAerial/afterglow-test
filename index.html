@@ -1,4 +1,4 @@
-<!-- Afterglow v2.1.0f -->
+<!-- Afterglow v2.1.0g -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -236,7 +236,7 @@
   .plan-row{ display:flex; align-items:center; gap:8px; margin-bottom:12px; }
   .plan-row .grow{ flex:1; min-width:0; }
   .plan-btn{ background: var(--card); border:1px solid var(--line); color: var(--sand); border-radius: 12px; padding: 9px 12px; font-size: 14px; cursor:pointer; font-family: inherit; }
-  .plan-btn.round{ width:36px; height:36px; padding:0; border-radius:50%; font-size:16px; }
+  .plan-btn.round{ width:36px; min-width:36px; flex:0 0 36px; height:36px; padding:0; border-radius:50%; font-size:16px; }
   .plan-saved-note{ margin:0 0 8px; font-size:13px; }
   .plan-place{ flex:1; min-width:0; text-align:left; display:flex; flex-direction:column; align-items:flex-start; gap:1px; }
   .plan-place .pl-from{ font-size:11.5px; color: var(--slate); line-height:1.2; }
@@ -282,6 +282,7 @@
   /* 2.1.0b: hours and minutes fit their text, before/after takes the rest so "before" is never cut off; wraps on very narrow phones */
   .cal-row:has(#calDir){ flex-wrap:wrap; }
   #calOffH.cal-sel, #calOffM.cal-sel{ flex:0 0 auto; width:auto; padding-right:2px; }
+  #calAnchor.cal-sel{ font-size:14px; padding-left:8px; padding-right:4px; text-overflow:ellipsis; }
   #calDir.cal-sel{ flex:1 1 7.5em; min-width:7.5em; }
   .plan-name.cal-num{ width:62px; flex:none; margin-bottom:0; text-align:center; padding:9px 4px; }
   .cal-row .cal-t{ font-size:14px; color:var(--slate); }
@@ -458,7 +459,7 @@
     color-scheme: light;
     --ink: #f7f1e7; --ink-2: #fffaf1; --sand: #262b45; --slate: #566079; --slate-dim: #78809a;
     --gold: #a35f08; --ember: #c4431a; --rose: #bf3a66;
-    --line: rgba(30,35,70,0.18); --card: rgba(30,35,70,0.05); --panel: #fffaf1;
+    --line: rgba(30,35,70,0.18); --card: rgba(255,253,248,0.7); --panel: #fffaf1;
     --ring: rgba(30,35,70,0.30); --ring2: rgba(30,35,70,0.16);
     --moon: #3a56a0; --moon-fill: #a9bfe8; --sun: #d9730d;
   }
@@ -521,7 +522,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.1.0f</span>
+    <span class="version test">🧪 TEST · v2.1.0g</span>
   </footer>
 </div>
 
