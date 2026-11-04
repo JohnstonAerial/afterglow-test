@@ -1,4 +1,4 @@
-<!-- Afterglow v2.1.1a -->
+<!-- Afterglow v2.1.1b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -216,7 +216,7 @@
   /* Today cards: title and arrow stay on the first row; the summary drops to its own line when it does not fit beside the title */
   .today-fold > summary{ position:relative; flex-wrap:wrap; justify-content:space-between; gap:4px 10px; padding-right:42px; white-space:nowrap; }
   .today-fold > summary::after{ position:absolute; right:16px; top:50%; margin-top:-0.6em; line-height:1.2; }
-  .today-fold > summary .sub{ margin:0; text-align:left; white-space:nowrap; }
+  .today-fold > summary .sub{ margin:0; text-align:left; white-space:normal; }
   .ag-head, .ag-row{ display:grid; grid-template-columns:54px minmax(0,1fr) minmax(0,1fr); gap:8px; align-items:stretch; }
   .ag-head{ font-size:12px; color: var(--slate); text-transform:uppercase; letter-spacing:.08em; font-family:'IBM Plex Mono', monospace; margin:2px 0 6px; }
   .ag-row{ margin-bottom:8px; }
@@ -525,7 +525,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.1.1a</span>
+    <span class="version test">🧪 TEST · v2.1.1b</span>
   </footer>
 </div>
 
@@ -2028,11 +2028,17 @@ function renderToday(app, tabsHtml){
   </div>`;
 
   skyInner += `<div class="why"><b>How this is scored</b> — Afterglow weighs high-altitude cloud cover (the layer that catches direct light and turns pink/orange), low and mid cloud (which physically block the view of the horizon or the light source), and humidity (haze mutes saturation even on an otherwise clear evening). It's a heuristic, not a guarantee — always worth a look outside 20 minutes before showtime.</div>`;
-  html += uiFold("sky", `Sky breakdown <span class="sub"><span class="nw">High ${s.high}%</span> · <span class="nw">Mid ${s.mid}%</span> · <span class="nw">Low ${s.low}%</span></span>`, skyInner);
+  const skyExtra = (s.hazeFromVis ? ` · <span class="nw">Vis ${s.vis < 1609 ? "&lt;1" : Math.round(s.vis / 1609)} mi</span>` : "") + (s.precip >= 20 ? ` · <span class="nw">Rain ${Math.round(s.precip)}%</span>` : "");
+  html += uiFold("sky", `Sky breakdown <span class="sub"><span class="nw">High ${s.high}%</span> · <span class="nw">Mid ${s.mid}%</span> · <span class="nw">Low ${s.low}%</span>${skyExtra}</span>`, skyInner);
 
   const moon = computeMoonInfo(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, sunrise, sunset);
   const timelapse = scanTimelapseWindow(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, hourly);
-  html += uiFold("moon", `${moon.emoji} Moon &amp; timelapse <span class="sub">${moon.phaseName} · <span class="nw">${moon.illumPct}% lit</span></span>`, `<div class="grid">${moonCardHTML(moon)}${timelapseCardHTML(timelapse)}</div>`);
+  let tlSum = "";
+  if(timelapse && timelapse.points && timelapse.points.length){
+    if(timelapse.bestRun && timelapse.bestRun.avg >= 45){ const bp = timelapse.bestRun.points; tlSum = ` · <span class="nw">Timelapse ${timelapseLabel(Math.round(timelapse.bestRun.avg))}, ${bp.length === 1 ? "~" : ""}${fmt(bp[0].time)}</span>`; }
+    else tlSum = ` · <span class="nw">Timelapse: not much drift</span>`;
+  }
+  html += uiFold("moon", `${moon.emoji} Moon &amp; timelapse <span class="sub">${moon.phaseName} · <span class="nw">${moon.illumPct}% lit</span>${tlSum}</span>`, `<div class="grid">${moonCardHTML(moon)}${timelapseCardHTML(timelapse)}</div>`);
 
   app.innerHTML = html;
 
@@ -2676,7 +2682,7 @@ function planFinder(p, brg, mode){
   const tz = p.loc.tz;
   const key = [p.loc.lat, p.loc.lon, brg.toFixed(1), p.date, mode].join("|");
   if(p.scan && p.scan.key === key) return p.scan.html;
-  let html = "";
+  let html = "", sum = "";
   if(mode === "sun"){
     const list = scanDays(p, Astronomy.Body.Sun, 366), back = (brg + 180) % 360;
     const rows = [];
@@ -2690,6 +2696,8 @@ function planFinder(p, brg, mode){
       rows.push(`<div class="plan-row2"><span>${label} behind you: front light <span style="color:var(--slate)">(within 20°)</span></span><b>${tx || "never"}</b></div>`);
     });
     html = `<div class="note" style="margin-bottom:6px;">Dates in the next 12 months. The Sun's heading moves slowly, so these are runs of days.</div>` + rows.join("");
+    const firsts = [["rise", "Sunrise"], ["set", "Sunset"]].map(([k, label]) => { const w = windowsOf(list, k, brg, 3); return w.runs.length ? { label, r: w.runs[0] } : null; }).filter(Boolean).sort((a, b) => a.r.from < b.r.from ? -1 : 1);
+    sum = firsts.length ? firsts[0].label + " behind it: " + (firsts[0].r.from === firsts[0].r.to ? planDayLabel(firsts[0].r.from) : planDayLabel(firsts[0].r.from) + " – " + planDayLabel(firsts[0].r.to)) : "no Sun lineup in 12 months";
   } else {
     const days = 90, mlist = scanDays(p, Astronomy.Body.Moon, days), slist = scanDays(p, Astronomy.Body.Sun, days);
     const cand = [];
@@ -2708,7 +2716,7 @@ function planFinder(p, brg, mode){
     html = `<div class="note" style="margin-bottom:6px;">${near.length ? "Moonrise or moonset within 6° of the subject, next " + days + " days" : "Nothing within 6° in the next " + days + " days. The closest one:"}</div>` +
       show.map(c => `<div class="plan-row2"><span><b>${planDayLabel(c.ds)}</b> · ${c.label} ${fmtZ(c.t, tz)} · ${c.lit}% lit${c.rel ? `<br><span style="color:var(--slate);font-size:12.5px;">${c.rel}</span>` : ""}</span><b>${Math.round(c.az)}°, ${Math.round(c.off)}° off</b></div>`).join("");
   }
-  p.scan = { key, html };
+  p.scan = { key, html, sum };
   return html;
 }
 
@@ -2851,7 +2859,7 @@ function renderPlan(app, tabsHtml){
     html += `<div class="card" style="margin-bottom:10px;"><div class="label">${esc(sname)} · ${Math.round(bd.brg)}° ${compassDir(bd.brg)} · ${fmtDist(bd.km)}</div><label class="plan-name-lbl" for="planSubjName">Name this spot (optional)</label><input class="plan-name" id="planSubjName" value="${esc(nameVal)}" maxlength="40" placeholder="e.g. Water tower"><div class="note" style="margin-bottom:4px;">Light on the subject, ${planDayLabel(p.date)}. You are facing it from your spot.</div>${rows.join("") || '<div class="note">No sunrise, sunset or moon events on this date.</div>'}</div>`;
     let fin = "";
     try{ fin = planFinder(p, bd.brg, p.finder); }catch(e){ console.error("Finder failed:", e); fin = '<div class="note">Couldn\'t search the dates.</div>'; }
-    html += `<details class="plan-fold" data-fold="finder"${p.fold.finder ? " open" : ""}><summary>Find the dates it lines up</summary><div class="fold-body"><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.finder === "sun" ? "on" : ""}" data-finder="sun">Sun</button><button class="plan-seg-b ${p.finder === "moon" ? "on" : ""}" data-finder="moon">Moon</button></div>${fin}<div class="note" style="margin-top:8px;">Direction only: it doesn't know how tall the subject is or what stands in between.</div></div></details>`;
+    html += `<details class="plan-fold" data-fold="finder"${p.fold.finder ? " open" : ""}><summary>Find the dates it lines up${p.scan && p.scan.sum ? ` <span class="sub">${esc(p.scan.sum)}</span>` : ""}</summary><div class="fold-body"><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.finder === "sun" ? "on" : ""}" data-finder="sun">Sun</button><button class="plan-seg-b ${p.finder === "moon" ? "on" : ""}" data-finder="moon">Moon</button></div>${fin}<div class="note" style="margin-top:8px;">Direction only: it doesn't know how tall the subject is or what stands in between.</div></div></details>`;
   }
   cap("subj", i0);
   i0 = html.length;
@@ -2901,7 +2909,8 @@ function renderPlan(app, tabsHtml){
   </div>`;
   cap("sum", i0);
   const foldBody = (key, title, inner, force) => `<details class="plan-fold" data-fold="${key}"${(p.fold[key] || force) ? " open" : ""}><summary>${title}</summary><div class="fold-body">${inner}</div></details>`;
-  const vTitle = "Height &amp; things in the way <span style=\"color:var(--slate);font-size:12.5px;\">· " + (p.vmode === "ground" ? "from the ground" : "drone") + "</span>";
+  const vDrone = p.vmode !== "ground", vFt = vDrone ? Math.max(0, p.alt == null ? 400 : p.alt) : 0, vObs = loadObst(p.loc).length;
+  const vTitle = "Height &amp; things in the way <span style=\"color:var(--slate);font-size:12.5px;\">· " + (vDrone ? (p.unit === "m" ? Math.round(vFt * 0.3048) + " m" : Math.round(vFt) + " ft") : "ground") + " · " + (vObs ? vObs + " in the way" : "nothing in the way") + "</span>";
   html += (parts.time || "") + (parts.sky || "") + (parts.subj || "");
   html += foldBody("view", vTitle, parts.view || "");
   html += foldBody("tools", "Share, calendar &amp; print", (parts.share || "") + (parts.cal || ""), !!p.shareMsg);
