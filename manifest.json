@@ -1,7 +1,7 @@
 {
   "name": "Afterglow — Sky Forecast",
   "short_name": "Afterglow",
-  "description": "Sunrise and sunset color-quality forecasts for photographers and pilots.",
+  "description": "Plan your shoot around the sky: sunrise and sunset forecasts, plus sun and moon planning, for photographers and pilots.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
