@@ -1,4 +1,4 @@
-<!-- Afterglow v2.1.0c -->
+<!-- Afterglow v2.1.0d -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -53,6 +53,8 @@
     --line: rgba(245,230,211,0.14);
     --card: rgba(245,230,211,0.05);
     --panel: #1b1f3b;
+    --ring: rgba(245,230,211,0.3); --ring2: rgba(245,230,211,0.14);
+    --moon: #9db4e8; --moon-fill: #dfe8ff; --sun: var(--gold);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -457,6 +459,8 @@
     --ink: #f7f1e7; --ink-2: #fffaf1; --sand: #262b45; --slate: #566079; --slate-dim: #78809a;
     --gold: #a35f08; --ember: #c4431a; --rose: #bf3a66;
     --line: rgba(30,35,70,0.18); --card: rgba(30,35,70,0.05); --panel: #fffaf1;
+    --ring: rgba(30,35,70,0.30); --ring2: rgba(30,35,70,0.16);
+    --moon: #3a56a0; --moon-fill: #a9bfe8; --sun: var(--gold);
   }
   html[data-theme="light"]{ background: #efe6d8; }
   html[data-theme="light"] body{ background: linear-gradient(180deg, #fbf6ec 0%, #f4ecdf 55%, #eadfce 100%); }
@@ -512,7 +516,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.1.0c</span>
+    <span class="version test">🧪 TEST · v2.1.0d</span>
   </footer>
 </div>
 
@@ -2710,16 +2714,16 @@ function planDialSVG(pl, tz){
   const dirs = [["N", 0, 0, -8], ["E", 90, 11, 4], ["S", 180, 0, 16], ["W", 270, -11, 4]]
     .map(([t, , dx, dy], i) => { const a = [0, 90, 180, 270][i] * Math.PI / 180; return `<text x="${(cx + (R) * Math.sin(a) + dx).toFixed(1)}" y="${(cy - R * Math.cos(a) + dy).toFixed(1)}" font-size="13" font-weight="700" fill="var(--sand)" text-anchor="middle">${t}</text>`; }).join("");
   return `<svg class="plan-dial" viewBox="0 0 320 320" role="img" aria-label="Sun and Moon paths across the sky">
-    <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="rgba(245,230,211,0.3)" stroke-width="1.5"/>
-    <circle cx="${cx}" cy="${cy}" r="${R * 2 / 3}" fill="none" stroke="rgba(245,230,211,0.14)" stroke-dasharray="3 4"/>
-    <circle cx="${cx}" cy="${cy}" r="${R / 3}" fill="none" stroke="rgba(245,230,211,0.14)" stroke-dasharray="3 4"/>
-    <line x1="${cx}" y1="${cy - R}" x2="${cx}" y2="${cy + R}" stroke="rgba(245,230,211,0.14)"/><line x1="${cx - R}" y1="${cy}" x2="${cx + R}" y2="${cy}" stroke="rgba(245,230,211,0.14)"/>
+    <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="var(--ring)" stroke-width="1.5"/>
+    <circle cx="${cx}" cy="${cy}" r="${R * 2 / 3}" fill="none" stroke="var(--ring2)" stroke-dasharray="3 4"/>
+    <circle cx="${cx}" cy="${cy}" r="${R / 3}" fill="none" stroke="var(--ring2)" stroke-dasharray="3 4"/>
+    <line x1="${cx}" y1="${cy - R}" x2="${cx}" y2="${cy + R}" stroke="var(--ring2)"/><line x1="${cx - R}" y1="${cy}" x2="${cx + R}" y2="${cy}" stroke="var(--ring2)"/>
     <text x="${cx + 4}" y="${cy - R / 3 + 11}" font-size="9" fill="var(--slate)">60°</text><text x="${cx + 4}" y="${cy - 2 * R / 3 + 11}" font-size="9" fill="var(--slate)">30°</text>
-    <path d="${arc(pl.moonPts)}" fill="none" stroke="#9db4e8" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 6"/>
-    <path d="${arc(pl.sunPts)}" fill="none" stroke="var(--gold)" stroke-width="3.5" stroke-linecap="round"/>
-    ${ticks(pl.moonPts, 3, "#9db4e8", 13)}${ticks(pl.sunPts, 2, "var(--gold)", -7)}
+    <path d="${arc(pl.moonPts)}" fill="none" stroke="var(--moon)" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 6"/>
+    <path d="${arc(pl.sunPts)}" fill="none" stroke="var(--sun)" stroke-width="3.5" stroke-linecap="round"/>
+    ${ticks(pl.moonPts, 3, "var(--moon)", 13)}${ticks(pl.sunPts, 2, "var(--sun)", -7)}
     ${dirs}<circle cx="${cx}" cy="${cy}" r="4" fill="var(--sand)"/>
-    <circle id="planDialMoon" r="7" fill="#dfe8ff" stroke="#9db4e8" stroke-width="2" style="display:none"/><circle id="planDialSun" r="8" fill="var(--gold)" stroke="#fff" stroke-width="2" style="display:none"/></svg>`;
+    <circle id="planDialMoon" r="7" fill="var(--moon-fill)" stroke="var(--moon)" stroke-width="2" style="display:none"/><circle id="planDialSun" r="8" fill="var(--sun)" stroke="#fff" stroke-width="2" style="display:none"/></svg>`;
 }
 
 async function planTimeZoneFor(lat, lon){
