@@ -1,4 +1,4 @@
-<!-- Afterglow v2.0.3c -->
+<!-- Afterglow v2.0.3d -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -58,12 +58,12 @@
 
   /* ---------- Header ---------- */
   header{ margin-bottom: 22px; }
-  .tagline{ font-size:12px; color: var(--slate); margin: 4px 0 10px; line-height:1.3; }
+  .brand .tagline{ display:block; font-size:12px; letter-spacing:0; font-weight:400; color: var(--slate); margin-top:3px; line-height:1.3; }
   .hdr-top{ display:flex; align-items:center; justify-content:space-between; gap: 12px; }
   .brand{ font-family: Georgia, 'Times New Roman', serif; font-size: 22px; letter-spacing: 0.02em; font-weight: 600; line-height: 1.1; }
   .brand em{ font-style: italic; color: var(--gold); font-weight: 500;}
-  .brand .version{ display:block; white-space:nowrap; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.04em; font-weight: 400; color: var(--slate-dim); margin-top: 2px; }
-  .brand .version.test{ color: var(--ember); font-weight: 600; }
+  footer .version{ display:block; white-space:nowrap; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.04em; font-weight: 400; color: var(--slate-dim); margin-top: 14px; }
+  footer .version.test{ color: var(--ember); font-weight: 600; }
   #locBtn{
     display:flex; align-items:center; gap:10px; width:100%; margin-top:16px; text-align:left;
     background: rgba(255,255,255,0.04); border: 1px solid var(--line); color: var(--sand);
@@ -411,7 +411,7 @@
 
   <header>
     <div class="hdr-top">
-    <div class="brand">After<em>glow</em><span class="version test">🧪 TEST · v2.0.3c</span></div>
+    <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
       <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help &amp; about">ⓘ About</a>
@@ -419,7 +419,6 @@
       <button id="notifBtn" title="Notifications" aria-label="Notifications">🔔</button>
     </div>
     </div>
-    <div class="tagline">Plan your shoot around the sky</div>
     <button id="locBtn" aria-label="Change location"><span aria-hidden="true">📍</span><span class="loc-name" id="locName">Choose location</span><span class="loc-change">Change ▾</span></button>
   </header>
 
@@ -429,6 +428,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
+    <span class="version test">🧪 TEST · v2.0.3d</span>
   </footer>
 </div>
 
