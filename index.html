@@ -1,4 +1,4 @@
-<!-- Afterglow v2.2.1e -->
+<!-- Afterglow v2.2.1f -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -554,14 +554,14 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.2.1e</span>
+    <span class="version test">🧪 TEST · v2.2.1f</span>
   </footer>
 </div>
 
 <div class="modal-backdrop" id="modalBackdrop">
   <div class="modal">
     <h3>Change location</h3>
-    <input type="text" id="locInput" placeholder="City, state, ZIP, or lat, lon" autocomplete="off">
+    <input type="text" id="locInput" placeholder="City, state, ZIP, or coordinates" autocomplete="off">
     <div class="modal-results" id="locResults"></div>
     <div class="modal-actions">
       <button class="gps" id="useGps">My location</button>
@@ -1147,20 +1147,67 @@ async function fetchForecast(loc){
   return data;
 }
 
-// Coordinates as Google Maps copies them ("35.7672209, -78.6630545"), with or without
-// brackets, degree signs or N/S/E/W letters. Returns {lat, lon}, or null if it isn't a pair
-// of coordinates in range.
-function parseLatLon(q){
-  const t = String(q).replace(/[()\[\]°]/g, " ").replace(/\s+/g, " ").trim();
-  const m = t.match(/^(-?\d+(?:\.\d+)?)\s*([NS])?\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*([EW])?$/i);
-  if(!m) return null;
-  let lat = parseFloat(m[1]), lon = parseFloat(m[3]);
-  if(m[2] && m[2].toUpperCase() === "S") lat = -Math.abs(lat);
-  if(m[4] && m[4].toUpperCase() === "W") lon = -Math.abs(lon);
-  if(!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
-  return { lat: lat, lon: lon };
+// Coordinates typed or pasted in any common form (same parser as the Drone Preflight Checklist, 4.3.5):
+// decimal degrees ("35.59, -78.50"), degrees/minutes/seconds ("35°12'30"N 78°30'15"W"), survey style
+// ("35 07 03.1763(N) 078 49 59.0882(W)"), compact aviation (351230N 0783015W), or a pasted Google or
+// Apple Maps link. Returns {lat, lon}, or null if it isn't a pair of coordinates in range.
+function parseCoordsText(q) {
+  let s = String(q).toUpperCase()
+    .replace(/[′’‘`´]/g, "'").replace(/[″”“]/g, '"').replace(/[º˚]/g, '°').replace(/''/g, '"')
+    .replace(/[°'"()]/g, ' ').replace(/[−–—]/g, '-');
+  const re = /([NSEW])?\s*(-)?\s*(\d+(?:\.\d+)?)(?:\s+(\d+(?:\.\d+)?))?(?:\s+(\d+(?:\.\d+)?))?\s*([NSEW])?/g;
+  const parts = []; let m, last = 0;
+  while ((m = re.exec(s)) !== null) {
+    if (m[0] === '') { re.lastIndex++; continue; }
+    // "N 35 12 30 W 78 ...": the letter after the first number belongs to the next coordinate
+    if (m[1] && m[6]) re.lastIndex -= (m[0].length - m[0].lastIndexOf(m[6]));
+    const between = s.slice(last, m.index);
+    if (between.replace(/[\s,;]/g, '') !== '') return null;
+    last = re.lastIndex;
+    const d = parseFloat(m[3]), mi = m[4] != null ? parseFloat(m[4]) : 0, se = m[5] != null ? parseFloat(m[5]) : 0;
+    if (mi >= 60 || se >= 60) return null;
+    let v = d + mi / 60 + se / 3600;
+    const h = (m[1] && m[6]) ? m[1] : (m[1] || m[6] || null);
+    if (h) { if (h === 'S' || h === 'W') v = -v; } else if (m[2]) v = -v;
+    parts.push({ v, h });
+    if (parts.length > 2) return null;
+  }
+  if (s.slice(last).replace(/[\s,;]/g, '') !== '' || parts.length !== 2) return null;
+  let lat = parts[0], lon = parts[1];
+  const isLat = (p) => p.h === 'N' || p.h === 'S', isLon = (p) => p.h === 'E' || p.h === 'W';
+  if (isLon(parts[0]) || isLat(parts[1])) { if (isLat(parts[0]) || isLon(parts[1])) return null; lat = parts[1]; lon = parts[0]; }
+  else if (isLat(parts[0]) && isLon(parts[1])) { /* normal order */ }
+  else if ((parts[0].h && !parts[1].h) || (!parts[0].h && parts[1].h)) return null;
+  if (Math.abs(lat.v) > 90 || Math.abs(lon.v) > 180) return null;
+  return { lat: lat.v, lon: lon.v };
 }
-function looksLikeCoords(q){ return /^[\s\d.,()\[\]°\-NSEWnsew]+$/.test(q) && (String(q).match(/\d+/g) || []).length >= 2; }
+function parseCoords(q) {
+  const ok = (la, lo) => (isFinite(la) && isFinite(lo) && Math.abs(la) <= 90 && Math.abs(lo) <= 180) ? { lat: la, lon: lo } : null;
+  const t = String(q).trim();
+  if (/^https?:\/\//i.test(t)) {
+    let u = t; try { u = decodeURIComponent(t); } catch (e) {}
+    const n = '(-?\\d{1,3}(?:\\.\\d+)?)';
+    const pats = [
+      new RegExp('!3d' + n + '!4d' + n),                       // Google place pin
+      new RegExp('@' + n + ',' + n),                           // Google map centre
+      new RegExp('[?&](?:q|ll|query|center|sll|destination|daddr|coordinate)=\\s*' + n + '\\s*[, +]\\s*' + n)   // Google and Apple Maps
+    ];
+    for (const re of pats) { const m = u.match(re); if (m) return ok(parseFloat(m[1]), parseFloat(m[2])); }
+    return null;
+  }
+  const c = t.toUpperCase().replace(/[°'"′″]/g, '').match(/^(\d{2})(\d{2})(\d{2}(?:\.\d+)?)?\s*([NS])[\s,;]*(\d{3})(\d{2})(\d{2}(?:\.\d+)?)?\s*([EW])$/);
+  if (c) {
+    if (+c[2] >= 60 || +c[6] >= 60 || +(c[3] || 0) >= 60 || +(c[7] || 0) >= 60) return null;
+    const la = (+c[1] + +c[2] / 60 + +(c[3] || 0) / 3600) * (c[4] === 'S' ? -1 : 1);
+    const lo = (+c[5] + +c[6] / 60 + +(c[7] || 0) / 3600) * (c[8] === 'W' ? -1 : 1);
+    return ok(la, lo);
+  }
+  return parseCoordsText(q);
+}
+function parseLatLon(q){ return parseCoords(q); }
+function isMapLink(q){ return /^https?:\/\//i.test(String(q).trim()); }
+const MAP_LINK_MSG = "That link doesn't show coordinates (short links like maps.app.goo.gl can't be read). Open it, copy the long address from the browser bar, or type the coordinates.";
+function looksLikeCoords(q){ return /^[\s\d.,;()\[\]°'"′″\-NSEWnsew]+$/.test(q) && (String(q).match(/\d+/g) || []).length >= 2; }
 // Place search (the same logic as the Drone Preflight Checklist's search, from its 4.2.4b):
 //  - "Raleigh NC", "Raleigh, North Carolina", trailing "USA"
 //  - "Toronto ON", "Calgary, Alberta", "Sydney NSW" (restricts to that country, province first)
@@ -2987,7 +3034,7 @@ function renderPlan(app, tabsHtml){
   // About 2 km: a fresh "My location" lookup moves a little each time, and that is still the same place.
   const sameAsSaved = Math.abs(state.loc.lat - p.loc.lat) < 0.02 && Math.abs(state.loc.lon - p.loc.lon) < 0.02;
   if(p.searching){
-    html += `<form class="plan-search" id="planForm"><input id="planQ" type="search" placeholder="Town, state or country, or lat, lon" autocomplete="off" autocapitalize="words" enterkeyhint="search"><button class="plan-btn" type="submit">Search</button></form>`;
+    html += `<form class="plan-search" id="planForm"><input id="planQ" type="search" placeholder="Town, state or country, or coordinates" autocomplete="off" autocapitalize="words" enterkeyhint="search"><button class="plan-btn" type="submit">Search</button></form>`;
     if(!p.results.length && !p.msg){
       const rl = recentsFor(p.loc);
       if(rl.length) html += `<div class="note" style="margin:8px 0 4px;">Recent places</div>` + rl.map((r, i) => `<button type="button" class="plan-btn plan-res" data-recent="${i}">📍 ${esc(r.name)}</button>`).join("");
@@ -3343,6 +3390,7 @@ function renderPlan(app, tabsHtml){
     const q = $("planQ").value.trim();
     if(!q) return;
     const ll = parseLatLon(q);
+    if(!ll && isMapLink(q)){ p.msg = MAP_LINK_MSG; render(); return; }
     if(!ll && looksLikeCoords(q)){ p.msg = "That doesn't look like coordinates. Latitude is -90 to 90 and longitude is -180 to 180, for example 35.7672, -78.6631."; render(); return; }
     if(ll){
       const la = ll.lat, lo = ll.lon;
@@ -3781,6 +3829,7 @@ $("locInput").addEventListener("input", (e) => {
   const q = e.target.value.trim();
   if(q.length < 2){ showRecentPlaces(); return; }
   const ll = parseLatLon(q);
+  if(!ll && isMapLink(q)){ $("locResults").innerHTML = `<div class="modal-result" style="cursor:default;color:var(--slate);white-space:normal;">${MAP_LINK_MSG}</div>`; return; }
   if(ll){
     const nm = ll.lat.toFixed(4) + ", " + ll.lon.toFixed(4);
     $("locResults").innerHTML = `<div class="modal-result" data-lat="${ll.lat}" data-lon="${ll.lon}" data-name="${nm}">Use these coordinates: ${nm}</div>`;
