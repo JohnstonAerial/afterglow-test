@@ -1,4 +1,4 @@
-<!-- Afterglow v2.2.1j -->
+<!-- Afterglow v2.2.1k -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -391,7 +391,9 @@
     background:none; border: none; color: var(--slate); font-size: 13px; cursor: pointer; padding: 6px;
   }
   .modal-actions{ justify-content: flex-end; }
-  .modal-gps{ display:block; width:100%; text-align:left; margin:8px 0 4px; background: var(--card); border:1px solid var(--line); color: var(--sand); border-radius: 12px; padding: 9px 12px; font-size: 14px; cursor:pointer; font-family: inherit; }
+  .loc-ico{ width:18px; height:18px; flex:none; }
+  #planGps, .modal-gps{ display:flex; align-items:center; gap:10px; }
+  .modal-gps{ width:100%; text-align:left; margin:8px 0 4px; background: var(--card); border:1px solid var(--line); color: var(--sand); border-radius: 12px; padding: 9px 12px; font-size: 14px; cursor:pointer; font-family: inherit; }
 
   /* v1.5.0i: Plan time dock, pin hint on the map, Today/Outlook touches, Larger text */
   .map-wrap{ height: clamp(190px, 28vh, 235px); }
@@ -555,7 +557,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.2.1j</span>
+    <span class="version test">🧪 TEST · v2.2.1k</span>
   </footer>
 </div>
 
@@ -563,7 +565,7 @@
   <div class="modal">
     <h3>Change location</h3>
     <input type="text" id="locInput" placeholder="City, state, ZIP, or coordinates" autocomplete="off" enterkeyhint="go">
-    <button type="button" class="modal-gps" id="useGps">◎ My location</button>
+    <button type="button" class="modal-gps" id="useGps"><svg class="loc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4"/></svg><span>My location</span></button>
     <div class="modal-results" id="locResults"></div>
     <div class="modal-actions">
       <button id="closeModal">Cancel</button>
@@ -3067,7 +3069,7 @@ function renderPlan(app, tabsHtml){
   const sameAsSaved = Math.abs(state.loc.lat - p.loc.lat) < 0.02 && Math.abs(state.loc.lon - p.loc.lon) < 0.02;
   if(p.searching){
     html += `<form class="plan-search" id="planForm"><input id="planQ" type="search" placeholder="City, state, ZIP, or coordinates" autocomplete="off" autocapitalize="words" enterkeyhint="search"><button class="plan-btn" type="submit">Search</button></form>`;
-    html += `<button type="button" class="plan-btn plan-res" id="planGps" style="margin-top:8px;">◎ ${p.loc.name === MYLOC ? "Update my location" : "My location"}</button>`;
+    html += `<button type="button" class="plan-btn plan-res" id="planGps" style="margin-top:8px;"><svg class="loc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4"/></svg><span>${p.loc.name === MYLOC ? "Update my location" : "My location"}</span></button>`;
     if(!p.results.length && !p.msg){
       const rl = recentsFor(p.loc);
       if(rl.length) html += `<div class="note" style="margin:8px 0 4px;">Recent places</div>` + rl.map((r, i) => `<button type="button" class="plan-btn plan-res" data-recent="${i}">📍 ${esc(r.name)}</button>`).join("");
@@ -3913,21 +3915,23 @@ $("locInput").addEventListener("keydown", (e) => {
   enterWanted = true;
 });
 
-const gpsLabel = () => "◎ " + ((state.loc && state.loc.name === MYLOC) ? "Update my location" : "My location");
-$("locBtn").addEventListener("click", () => { $("useGps").textContent = gpsLabel(); });
+const GPS_ICON = '<svg class="loc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4"/></svg>';
+const gpsLabel = () => (state.loc && state.loc.name === MYLOC) ? "Update my location" : "My location";
+const setGpsBtn = (txt) => { $("useGps").innerHTML = GPS_ICON + "<span></span>"; $("useGps").lastChild.textContent = txt; };
+$("locBtn").addEventListener("click", () => { setGpsBtn(gpsLabel()); });
 $("useGps").addEventListener("click", () => {
   if(!navigator.geolocation){ alert("Location services aren't available in this browser."); return; }
-  $("useGps").textContent = "Locating…";
+  setGpsBtn("Locating…");
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       const loc = { name: MYLOC, lat: pos.coords.latitude, lon: pos.coords.longitude };
       saveLoc(loc);
       backdrop.classList.remove("open");
-      $("useGps").textContent = gpsLabel();
+      setGpsBtn(gpsLabel());
       boot(loc);
     },
     (err) => {
-      $("useGps").textContent = gpsLabel();
+      setGpsBtn(gpsLabel());
       alert(err && err.code === 1 ? "Location is blocked for this site. Allow it in your browser settings, or search for a place instead."
         : err && err.code === 3 ? "Your location is taking too long to find. Try again, or search for a place instead."
         : "Your location isn't available right now. Try again, or search for a place instead.");
