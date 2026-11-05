@@ -1,4 +1,4 @@
-<!-- Afterglow v2.2.1d -->
+<!-- Afterglow v2.2.1e -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -307,9 +307,9 @@
   .plan-pin{ background:none; border:none; }
   .hz-head{ display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:2px 8px; margin-bottom:8px; }
   .hz-head .label{ margin:0; }
-  .hz-jumps{ display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); gap:5px; margin:0 0 8px; }
-  .hz-jumps .plan-seg-b.jump{ padding:5px 1px; font-size:11px; min-width:0; white-space:nowrap; }
-  .hz-jumps .plan-seg-b.jump small{ font-size:10px; }
+  .hz-jumps{ display:flex; flex-wrap:nowrap; gap:6px; margin:0 -2px 8px; padding:0 2px 4px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .hz-jumps::-webkit-scrollbar{ display:none; }
+  .hz-jumps .plan-seg-b.jump{ flex:0 0 auto; padding:6px 12px; white-space:nowrap; }
   .plan-row2 b.nw{ white-space:nowrap; flex:none; }
   .plan-row2 span{ min-width:0; }
   .plan-row2 b small.by{ display:block; font-weight:400; font-size:12px; color:var(--slate); }
@@ -554,7 +554,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.2.1d</span>
+    <span class="version test">🧪 TEST · v2.2.1e</span>
   </footer>
 </div>
 
