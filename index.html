@@ -1,4 +1,4 @@
-<!-- Afterglow v2.2.1a -->
+<!-- Afterglow v2.2.1b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -548,7 +548,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.2.1a</span>
+    <span class="version test">🧪 TEST · v2.2.1b</span>
   </footer>
 </div>
 
@@ -3038,11 +3038,13 @@ function renderPlan(app, tabsHtml){
     if(moon.moonrise) { const dd = angDiff(moon.moonriseAz, bd.brg); rows.push(`<div class="plan-row2"><span>Moonrise (${fmtZ(moon.moonrise, tz)})</span><b>${Math.round(Math.abs(dd))}° ${dd > 0 ? "right" : "left"} of the subject</b></div>`); }
     if(moon.moonset) { const dd = angDiff(moon.moonsetAz, bd.brg); rows.push(`<div class="plan-row2"><span>Moonset (${fmtZ(moon.moonset, tz)})</span><b>${Math.round(Math.abs(dd))}° ${dd > 0 ? "right" : "left"} of the subject</b></div>`); }
     html += `<div class="card" style="margin-bottom:10px;"><div class="label">${esc(sname)} · ${Math.round(bd.brg)}° ${compassDir(bd.brg)} · ${fmtDist(bd.km)}</div><div class="note" style="margin-bottom:4px;">Light on the subject, ${planDayLabel(p.date)}. You are facing it from your spot.</div>${rows.join("") || '<div class="note">No sunrise, sunset or moon events on this date.</div>'}</div>`;
+    cap("subj", i0);
+    i0 = html.length;
     let fin = "";
     try{ fin = planFinder(p, bd.brg, p.finder); }catch(e){ console.error("Finder failed:", e); fin = '<div class="note">Couldn\'t search the dates.</div>'; }
     html += `<details class="plan-fold two" data-fold="finder"${p.fold.finder ? " open" : ""}><summary>Find the dates it lines up${p.scan && p.scan.sum ? ` <span class="sub">${esc(p.scan.sum)}</span>` : ""}</summary><div class="fold-body"><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.finder === "sun" ? "on" : ""}" data-finder="sun">Sun</button><button class="plan-seg-b ${p.finder === "moon" ? "on" : ""}" data-finder="moon">Moon</button></div>${fin}<div class="note" style="margin-top:8px;">Direction only: it doesn't know how tall the subject is or what stands in between.</div>${FOLD_CLOSE}</div></details>`;
   }
-  cap("subj", i0);
+  cap("find", i0);
   i0 = html.length;
   try{ html += planViewCardHtml(p, pl, esc); }catch(e){ console.error('View card failed:', e); }
   cap("view", i0);
@@ -3092,10 +3094,10 @@ function renderPlan(app, tabsHtml){
   const foldBody = (key, title, inner, force, cls) => `<details class="plan-fold${cls ? " " + cls : ""}" data-fold="${key}"${(p.fold[key] || force) ? " open" : ""}><summary>${title}</summary><div class="fold-body">${inner}${FOLD_CLOSE}</div></details>`;
   const vDrone = p.vmode !== "ground", vFt = vDrone ? Math.max(0, p.alt == null ? 400 : p.alt) : 0, vObs = loadObst(p.loc).length;
   const vTitle = "Height &amp; things in the way<span class=\"sub\">" + (vDrone ? (p.unit === "m" ? Math.round(vFt * 0.3048) + " m" : Math.round(vFt) + " ft") : "From the ground") + " · " + (vObs ? vObs + " in the way" : "nothing in the way") + "</span>";
-  html += (parts.time || "") + (parts.hz || "") + (parts.sky || "") + (parts.jump || "");
-  html += foldBody("dial", "Sky view<span class=\"sub\">top-down, north up</span>", parts.dial || "", false, "two");
-  html += (parts.subj || "");
+  html += (parts.time || "") + (parts.hz || "") + (parts.subj || "") + (parts.sky || "") + (parts.jump || "");
   html += foldBody("view", vTitle, parts.view || "", false, "two");
+  html += (parts.find || "");
+  html += foldBody("dial", "Sky view<span class=\"sub\">top-down, north up</span>", parts.dial || "", false, "two");
   html += foldBody("tools", "Share, calendar &amp; print", (parts.share || "") + (parts.cal || ""), !!p.shareMsg);
   html += `<div class="map-note" style="margin-top:4px;">Times and directions are calculated for a flat horizon, so hills and buildings change what you see. No sky forecast past about ten days.${esc(tzNote)}</div>`;
   app.innerHTML = html;
