@@ -1,4 +1,4 @@
-<!-- Afterglow v2.2.1f -->
+<!-- Afterglow v2.2.1g -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -554,7 +554,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.2.1f</span>
+    <span class="version test">🧪 TEST · v2.2.1g</span>
   </footer>
 </div>
 
@@ -1205,6 +1205,25 @@ function parseCoords(q) {
   return parseCoordsText(q);
 }
 function parseLatLon(q){ return parseCoords(q); }
+// "Near Angier, NC" for typed coordinates. US only (National Weather Service, the same lookup as the
+// checklist's 4.3.5); anywhere else, or if it can't be reached in a few seconds, the coordinates stay as the name.
+const nearCache = {};
+async function nearName(lat, lon){
+  const key = lat.toFixed(4) + "," + lon.toFixed(4);
+  if(key in nearCache) return nearCache[key];
+  let out = "";
+  try{
+    const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 3500);
+    const r = await fetch("https://api.weather.gov/points/" + key, { signal: ctl.signal });
+    clearTimeout(tm);
+    if(r.ok){
+      const d = await r.json(), rl = d && d.properties && d.properties.relativeLocation && d.properties.relativeLocation.properties;
+      if(rl && rl.city) out = "Near " + String(rl.city).slice(0, 40) + (rl.state ? ", " + String(rl.state).slice(0, 2) : "");
+    }
+  }catch(e){ /* no name: the coordinates still work */ }
+  nearCache[key] = out;
+  return out;
+}
 function isMapLink(q){ return /^https?:\/\//i.test(String(q).trim()); }
 const MAP_LINK_MSG = "That link doesn't show coordinates (short links like maps.app.goo.gl can't be read). Open it, copy the long address from the browser bar, or type the coordinates.";
 function looksLikeCoords(q){ return /^[\s\d.,;()\[\]°'"′″\-NSEWnsew]+$/.test(q) && (String(q).match(/\d+/g) || []).length >= 2; }
@@ -3395,8 +3414,8 @@ function renderPlan(app, tabsHtml){
     if(ll){
       const la = ll.lat, lo = ll.lon;
       p.msg = "Looking up the time zone…"; render();
-      const ztz = await planTimeZoneFor(la, lo);
-      setPlace({ name: la.toFixed(4) + ", " + lo.toFixed(4), lat: la, lon: lo, tz: ztz });
+      const [ztz, nn] = await Promise.all([planTimeZoneFor(la, lo), nearName(la, lo)]);
+      setPlace({ name: nn || (la.toFixed(4) + ", " + lo.toFixed(4)), lat: la, lon: lo, tz: ztz });
       return;
     }
     p.msg = "Searching…"; render();
@@ -3833,6 +3852,7 @@ $("locInput").addEventListener("input", (e) => {
   if(ll){
     const nm = ll.lat.toFixed(4) + ", " + ll.lon.toFixed(4);
     $("locResults").innerHTML = `<div class="modal-result" data-lat="${ll.lat}" data-lon="${ll.lon}" data-name="${nm}">Use these coordinates: ${nm}</div>`;
+    nearName(ll.lat, ll.lon).then(nn => { const el = document.querySelector('#locResults .modal-result[data-lat]'); if(nn && el && +el.dataset.lat === ll.lat && +el.dataset.lon === ll.lon){ el.dataset.name = nn; el.textContent = "Use these coordinates: " + nm + " · " + nn; } });
     document.querySelectorAll(".modal-result[data-lat]").forEach(el => {
       el.addEventListener("click", () => {
         const loc = { name: el.dataset.name, lat: parseFloat(el.dataset.lat), lon: parseFloat(el.dataset.lon) };

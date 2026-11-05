@@ -7,7 +7,7 @@
 //   - Everything else (this app's own files, Leaflet's CDN assets): cache-first,
 //     since those don't go stale in a way that matters day-to-day.
 
-const CACHE_NAME = "afterglow-test-v111";
+const CACHE_NAME = "afterglow-test-v112";
 
 // Bump this string (v1 -> v2, etc.) any time index.html, manifest.json, or the
 // icons change, so returning visitors get the new version instead of a cached
@@ -31,7 +31,8 @@ const CDN_ASSETS = [
 
 const isApiRequest = (url) =>
   url.hostname === "api.open-meteo.com" ||
-  url.hostname === "geocoding-api.open-meteo.com";
+  url.hostname === "geocoding-api.open-meteo.com" ||
+  url.hostname === "api.weather.gov";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
