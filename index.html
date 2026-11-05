@@ -1,4 +1,4 @@
-<!-- Afterglow v2.2.0a -->
+<!-- Afterglow v2.2.0b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -397,6 +397,7 @@
   .dock-top .plan-seg-b{ margin-left:auto; }
   .plan-dock .plan-range{ margin:0; height:34px; }
   .plan-dock .plan-ticks{ margin-top:-2px; }
+  .plan-subjname{ margin:0 0 10px; }
   .plan-name-lbl{ display:block; font-size:12.5px; color: var(--slate); margin: 6px 0 4px; }
   .plan-tap-row{ margin: 0 0 8px; }
   .hdr-top{ flex-wrap: wrap; row-gap: 8px; }
@@ -544,7 +545,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.2.0a</span>
+    <span class="version test">🧪 TEST · v2.2.0b</span>
   </footer>
 </div>
 
@@ -2924,6 +2925,7 @@ function renderPlan(app, tabsHtml){
   if(p.msg) html += `<div class="plan-msg">${esc(p.msg)}</div>`;
   html += `<div class="plan-row plan-daterow"><button class="plan-btn round" id="planPrev" aria-label="Previous day"${p.date <= planToday(tz) ? " disabled" : ""}>‹</button><input class="plan-date" type="date" id="planDate" value="${p.date}" min="${planToday(tz)}" max="2100-12-31" aria-label="Date"><button class="plan-btn round" id="planNext" aria-label="Next day">›</button><button class="plan-btn" id="planToday">Today</button></div>`;
   html += `<div class="plan-seg plan-tap-row" role="group" aria-label="What a map tap places"><span class="plan-seg-l">Tap the map to place:</span><button class="plan-seg-b ${p.tap === "subject" ? "on" : ""}" data-tap="subject">Subject</button><button class="plan-seg-b ${p.tap === "you" ? "on" : ""}" data-tap="you">Your spot</button></div>`;
+  if(p.subject){ const nv = (p.subject.name && p.subject.name !== "Subject") ? p.subject.name : ""; html += `<input class="plan-name plan-subjname" id="planSubjName" value="${esc(nv)}" maxlength="40" placeholder="Name this spot (optional), e.g. Water tower" aria-label="Name this spot (optional)">`; }
   html += `<div class="map-wrap${p.full ? " full" : ""}"><div id="sunMap"></div><button type="button" class="map-center-btn" id="planCenter" title="${p.loc.name === 'Dropped pin' ? 'Back to ' + esc((p.homeLoc || state.loc).name) : 'Center on place'}" aria-label="${p.loc.name === 'Dropped pin' ? 'Back to ' + esc((p.homeLoc || state.loc).name) : 'Center on place'}">⌖</button><button type="button" class="map-center-btn map-full-btn" id="planFull" title="${p.full ? 'Close full screen' : 'Full screen map'}" aria-label="${p.full ? 'Close full screen map' : 'Open full screen map'}">${p.full ? '✕' : '⤢'}</button><!--FSPANEL-->${p.subject ? "" : '<div class="map-pinhint">Tap to drop a pin on what you want to shoot</div>'}</div>`;
 
   const dayMin = Math.max(60, Math.round((pl.t1 - pl.t0) / 60000));
@@ -2963,7 +2965,7 @@ function renderPlan(app, tabsHtml){
     if(sun.set) { const lp = lightPhrase(sun.setAz, bd.brg); rows.push(`<div class="plan-row2"><span>Sun at sunset (${fmtZ(sun.set, tz)})</span><b class="${lp.c}">${lp.t}</b></div>`); }
     if(moon.moonrise) { const dd = angDiff(moon.moonriseAz, bd.brg); rows.push(`<div class="plan-row2"><span>Moonrise (${fmtZ(moon.moonrise, tz)})</span><b>${Math.round(Math.abs(dd))}° ${dd > 0 ? "right" : "left"} of the subject</b></div>`); }
     if(moon.moonset) { const dd = angDiff(moon.moonsetAz, bd.brg); rows.push(`<div class="plan-row2"><span>Moonset (${fmtZ(moon.moonset, tz)})</span><b>${Math.round(Math.abs(dd))}° ${dd > 0 ? "right" : "left"} of the subject</b></div>`); }
-    html += `<div class="card" style="margin-bottom:10px;"><div class="label">${esc(sname)} · ${Math.round(bd.brg)}° ${compassDir(bd.brg)} · ${fmtDist(bd.km)}</div><label class="plan-name-lbl" for="planSubjName">Name this spot (optional)</label><input class="plan-name" id="planSubjName" value="${esc(nameVal)}" maxlength="40" placeholder="e.g. Water tower"><div class="note" style="margin-bottom:4px;">Light on the subject, ${planDayLabel(p.date)}. You are facing it from your spot.</div>${rows.join("") || '<div class="note">No sunrise, sunset or moon events on this date.</div>'}</div>`;
+    html += `<div class="card" style="margin-bottom:10px;"><div class="label">${esc(sname)} · ${Math.round(bd.brg)}° ${compassDir(bd.brg)} · ${fmtDist(bd.km)}</div><div class="note" style="margin-bottom:4px;">Light on the subject, ${planDayLabel(p.date)}. You are facing it from your spot.</div>${rows.join("") || '<div class="note">No sunrise, sunset or moon events on this date.</div>'}</div>`;
     let fin = "";
     try{ fin = planFinder(p, bd.brg, p.finder); }catch(e){ console.error("Finder failed:", e); fin = '<div class="note">Couldn\'t search the dates.</div>'; }
     html += `<details class="plan-fold two" data-fold="finder"${p.fold.finder ? " open" : ""}><summary>Find the dates it lines up${p.scan && p.scan.sum ? ` <span class="sub">${esc(p.scan.sum)}</span>` : ""}</summary><div class="fold-body"><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.finder === "sun" ? "on" : ""}" data-finder="sun">Sun</button><button class="plan-seg-b ${p.finder === "moon" ? "on" : ""}" data-finder="moon">Moon</button></div>${fin}<div class="note" style="margin-top:8px;">Direction only: it doesn't know how tall the subject is or what stands in between.</div>${FOLD_CLOSE}</div></details>`;
