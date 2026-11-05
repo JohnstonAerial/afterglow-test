@@ -1,4 +1,4 @@
-<!-- Afterglow v2.2.1k -->
+<!-- Afterglow v2.3.1a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -556,8 +556,8 @@
   <footer>
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
-    Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.2.1k</span>
+    Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" id="footChk" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
+    <span class="version test">🧪 TEST · v2.3.1a</span>
   </footer>
 </div>
 
@@ -2012,9 +2012,17 @@ function splitBlurb(t){
 }
 // One place control in the same spot on every tab. On Plan it is "Planning from" (a place that can differ
 // from the saved one); on Today and Outlook it is the saved place.
+// The Flight Checklist, opened on a spot: it reads ?lat=&lon=&name= and uses that place for its weather (checklist 4.3.6).
+// "My location" sends nothing, so the checklist keeps using the phone's own position. Test pages link to the test checklist.
+const CHECKLIST_BASE = /github\.io$/i.test(location.hostname) ? "https://johnstonaerial.github.io/uas-flight-checklist-test/" : "https://checklist.johnstonaerial.com/";
+function checklistLink(loc){
+  if(!loc || loc.name === MYLOC || !isFinite(loc.lat) || !isFinite(loc.lon)) return CHECKLIST_BASE;
+  return CHECKLIST_BASE + "?lat=" + loc.lat.toFixed(4) + "&lon=" + loc.lon.toFixed(4) + "&name=" + encodeURIComponent(String(loc.name || "").slice(0, 60));
+}
 function syncLocLabel(){
   const ln = $("locName"), lb = $("locBtn"); if(!ln) return;
   const onPlan = state.view === "plan" && state.plan && state.plan.loc;
+  const fc = $("footChk"); if(fc) fc.href = checklistLink(onPlan ? state.plan.loc : state.loc);
   if(onPlan){ ln.textContent = ""; const sm = document.createElement("small"); sm.className = "loc-from"; sm.textContent = "Planning from"; ln.appendChild(sm); ln.appendChild(document.createTextNode(state.plan.loc.name)); }
   else ln.textContent = (state.loc && state.loc.name) || "Choose location";
   if(lb) lb.setAttribute("aria-label", onPlan ? "Change planning place" : "Change location");
@@ -3137,6 +3145,7 @@ function renderPlan(app, tabsHtml){
   html += skyCardHtml(p, sun, esc);
   cap("sky", i0);
   i0 = html.length;
+  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Preflight checklist</div><div class="plan-seg" style="margin:6px 0 8px;"><a class="plan-btn" id="planChk" href="${esc(checklistLink(p.loc))}" target="_blank" rel="noopener" style="text-decoration:none;">Open the Flight Checklist</a></div><div class="note">${p.loc.name === MYLOC ? "Opens the free Drone Preflight Checklist, which uses your phone's own position for its weather." : "Opens the free Drone Preflight Checklist with its weather set to " + esc(p.loc.name) + "."}</div></div>`;
   html += `<div class="card" style="margin-bottom:12px;"><div class="label">Share this plan</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b" id="planCopy">🔗 Copy link</button>${navigator.share ? '<button class="plan-seg-b" id="planShare">Share…</button>' : ""}</div>${p.shareMsg ? `<div class="note" style="margin-bottom:6px;color:var(--gold);">${esc(p.shareMsg)}</div>` : ""}<div class="note">Reopens this place${p.subject ? ', the subject pin' : ''} and date in AfterGlow on any phone. Nothing is stored on a server.</div></div>`;
   cap("share", i0);
   i0 = html.length;
