@@ -1,4 +1,4 @@
-<!-- Afterglow v2.1.1j -->
+<!-- Afterglow v2.1.1k -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -246,6 +246,11 @@
   .plan-btn{ background: var(--card); border:1px solid var(--line); color: var(--sand); border-radius: 12px; padding: 9px 12px; font-size: 14px; cursor:pointer; font-family: inherit; }
   #planToday{ padding-left:10px; padding-right:10px; flex:0 0 auto; }
   .plan-row > *{ min-width:0; }
+  .plan-daterow{ flex-wrap:wrap; }
+  .plan-daterow .plan-date{ flex:1 1 130px; width:auto; white-space:nowrap; text-align:center; padding:8px 6px; }
+  .plan-fold.two > summary{ position:relative; flex-wrap:wrap; justify-content:flex-start; gap:2px 10px; padding-right:42px; }
+  .plan-fold.two > summary::after{ position:absolute; right:16px; top:50%; margin-top:-0.6em; line-height:1.2; }
+  .plan-fold.two > summary .sub{ flex-basis:100%; margin:0; text-align:left; white-space:normal; }
   .plan-btn:disabled{ opacity:.35; cursor:default; }
   .plan-btn.round{ width:36px; min-width:36px; flex:0 0 36px; height:36px; padding:0; border-radius:50%; font-size:16px; }
   .plan-saved-note{ margin:0 0 8px; font-size:13px; }
@@ -394,7 +399,7 @@
   .header-actions .hdr-help, #notifBtn, #textBtn{ padding-left: 9px; padding-right: 9px; }
   .day-nav{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:2px; }
   .far-note{ font-size:12.5px; line-height:1.4; text-align:center; color: rgba(245,236,224,0.7); margin:4px 0 2px; }
-  .day-nav .eyebrow{ margin:0; text-align:center; flex:1; }
+  .day-nav .eyebrow{ margin:0; text-align:center; flex:1; white-space:nowrap; letter-spacing:0.1em; }
   .day-step{ width:38px; height:38px; border-radius:50%; border:1px solid var(--line); background: rgba(10,11,22,0.35); color: var(--sand); font-size:20px; line-height:1; cursor:pointer; }
   .day-step:disabled{ opacity:0.3; cursor:default; }
   .ag-day{ flex-direction:column; align-items:flex-start; justify-content:center; line-height:1.15; }
@@ -534,7 +539,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.1.1j</span>
+    <span class="version test">🧪 TEST · v2.1.1k</span>
   </footer>
 </div>
 
@@ -2010,7 +2015,7 @@ function renderToday(app, tabsHtml){
   html += `<div class="hero">
     <div class="hero-swatch" style="background:${gradient}"></div>
     <div class="hero-content">
-      <div class="day-nav"><button class="day-step" id="dayPrev" aria-label="Previous day"${activeDay <= 0 ? " disabled" : ""}>‹</button><div class="eyebrow">${activeDay === 0 ? "Today · " : ""}${parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { weekday:'long', month:'short', day:'numeric' })}</div><button class="day-step" id="dayNext" aria-label="Next day"${activeDay >= Math.min(9, daily.time.length - 1) ? " disabled" : ""}>›</button></div>
+      <div class="day-nav"><button class="day-step" id="dayPrev" aria-label="Previous day"${activeDay <= 0 ? " disabled" : ""}>‹</button><div class="eyebrow">${activeDay === 0 ? "Today, " + parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { month:'short', day:'numeric' }) : parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' })}</div><button class="day-step" id="dayNext" aria-label="Next day"${activeDay >= Math.min(9, daily.time.length - 1) ? " disabled" : ""}>›</button></div>
       ${activeDay >= 7 ? `<div class="far-note">Day ${activeDay + 1} of 10: less certain. Forecasts shift most this far out.</div>` : ""}
       <div class="score-row">
         <div class="score-num">${s.score}</div>
@@ -2091,13 +2096,13 @@ function agWhy(sc){
   if(!sc || sc.score >= 44) return "";
   let r = "";
   if(sc.low >= 60) r = "low cloud";
-  else if(sc.beam != null && sc.beamLow != null && Math.max(sc.beamLow, sc.beamMid) >= 70) r = "cloud toward sun";
-  else if(sc.mid >= 80 && sc.high >= 70) r = "thick overcast";
+  else if(sc.beam != null && sc.beamLow != null && Math.max(sc.beamLow, sc.beamMid) >= 70) r = "sun blocked";
+  else if(sc.mid >= 80 && sc.high >= 70) r = "overcast";
   else if(sc.mid >= 70) r = "mid cloud";
   else if(sc.precip >= 60) r = "rain likely";
   else if(sc.hazeFromVis && sc.vis < 6000) r = "hazy";
   else if(sc.high < 15 && sc.mid < 25 && sc.low < 30) r = "clear sky";
-  else if(sc.high >= 90) r = "solid high cloud";
+  else if(sc.high >= 90) r = "overcast";
   return r ? `<div class="ag-why">${r}</div>` : "";
 }
 function agendaCardHTML(dayIdx, mode, daily, hourly){
@@ -2836,7 +2841,7 @@ function renderPlan(app, tabsHtml){
     if(!sameAsSaved) html += `<button type="button" class="plan-btn plan-res" id="planSaved">Back to ${esc(state.loc.name)}</button>`;
   }
   if(p.msg) html += `<div class="plan-msg">${esc(p.msg)}</div>`;
-  html += `<div class="plan-row"><button class="plan-btn round" id="planPrev" aria-label="Previous day"${p.date <= planToday(tz) ? " disabled" : ""}>‹</button><input class="plan-date" type="date" id="planDate" value="${p.date}" min="${planToday(tz)}" max="2100-12-31" aria-label="Date"><button class="plan-btn round" id="planNext" aria-label="Next day">›</button><button class="plan-btn" id="planToday">Today</button></div>`;
+  html += `<div class="plan-row plan-daterow"><button class="plan-btn round" id="planPrev" aria-label="Previous day"${p.date <= planToday(tz) ? " disabled" : ""}>‹</button><input class="plan-date" type="date" id="planDate" value="${p.date}" min="${planToday(tz)}" max="2100-12-31" aria-label="Date"><button class="plan-btn round" id="planNext" aria-label="Next day">›</button><button class="plan-btn" id="planToday">Today</button></div>`;
   html += `<div class="plan-seg plan-tap-row" role="group" aria-label="What a map tap places"><span class="plan-seg-l">Tap the map to place:</span><button class="plan-seg-b ${p.tap === "subject" ? "on" : ""}" data-tap="subject">Subject</button><button class="plan-seg-b ${p.tap === "you" ? "on" : ""}" data-tap="you">Your spot</button></div>`;
   html += `<div class="map-wrap${p.full ? " full" : ""}"><div id="sunMap"></div><button type="button" class="map-center-btn" id="planCenter" title="${p.loc.name === 'Dropped pin' ? 'Back to ' + esc((p.homeLoc || state.loc).name) : 'Center on place'}" aria-label="${p.loc.name === 'Dropped pin' ? 'Back to ' + esc((p.homeLoc || state.loc).name) : 'Center on place'}">⌖</button><button type="button" class="map-center-btn map-full-btn" id="planFull" title="${p.full ? 'Close full screen' : 'Full screen map'}" aria-label="${p.full ? 'Close full screen map' : 'Open full screen map'}">${p.full ? '✕' : '⤢'}</button><!--FSPANEL-->${p.subject ? "" : '<div class="map-pinhint">Tap to drop a pin on what you want to shoot</div>'}</div>`;
 
@@ -2879,7 +2884,7 @@ function renderPlan(app, tabsHtml){
     html += `<div class="card" style="margin-bottom:10px;"><div class="label">${esc(sname)} · ${Math.round(bd.brg)}° ${compassDir(bd.brg)} · ${fmtDist(bd.km)}</div><label class="plan-name-lbl" for="planSubjName">Name this spot (optional)</label><input class="plan-name" id="planSubjName" value="${esc(nameVal)}" maxlength="40" placeholder="e.g. Water tower"><div class="note" style="margin-bottom:4px;">Light on the subject, ${planDayLabel(p.date)}. You are facing it from your spot.</div>${rows.join("") || '<div class="note">No sunrise, sunset or moon events on this date.</div>'}</div>`;
     let fin = "";
     try{ fin = planFinder(p, bd.brg, p.finder); }catch(e){ console.error("Finder failed:", e); fin = '<div class="note">Couldn\'t search the dates.</div>'; }
-    html += `<details class="plan-fold" data-fold="finder"${p.fold.finder ? " open" : ""}><summary>Find the dates it lines up${p.scan && p.scan.sum ? ` <span class="sub">${esc(p.scan.sum)}</span>` : ""}</summary><div class="fold-body"><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.finder === "sun" ? "on" : ""}" data-finder="sun">Sun</button><button class="plan-seg-b ${p.finder === "moon" ? "on" : ""}" data-finder="moon">Moon</button></div>${fin}<div class="note" style="margin-top:8px;">Direction only: it doesn't know how tall the subject is or what stands in between.</div>${FOLD_CLOSE}</div></details>`;
+    html += `<details class="plan-fold two" data-fold="finder"${p.fold.finder ? " open" : ""}><summary>Find the dates it lines up${p.scan && p.scan.sum ? ` <span class="sub">${esc(p.scan.sum)}</span>` : ""}</summary><div class="fold-body"><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.finder === "sun" ? "on" : ""}" data-finder="sun">Sun</button><button class="plan-seg-b ${p.finder === "moon" ? "on" : ""}" data-finder="moon">Moon</button></div>${fin}<div class="note" style="margin-top:8px;">Direction only: it doesn't know how tall the subject is or what stands in between.</div>${FOLD_CLOSE}</div></details>`;
   }
   cap("subj", i0);
   i0 = html.length;
@@ -2928,11 +2933,11 @@ function renderPlan(app, tabsHtml){
     <div class="plan-grid" style="margin:10px 0 0;"><div><div class="label">Moonrise</div><div class="value">${mRise}</div></div><div><div class="label">Moonset</div><div class="value">${mSet}</div></div></div>
   </div>`;
   cap("sum", i0);
-  const foldBody = (key, title, inner, force) => `<details class="plan-fold" data-fold="${key}"${(p.fold[key] || force) ? " open" : ""}><summary>${title}</summary><div class="fold-body">${inner}${FOLD_CLOSE}</div></details>`;
+  const foldBody = (key, title, inner, force, cls) => `<details class="plan-fold${cls ? " " + cls : ""}" data-fold="${key}"${(p.fold[key] || force) ? " open" : ""}><summary>${title}</summary><div class="fold-body">${inner}${FOLD_CLOSE}</div></details>`;
   const vDrone = p.vmode !== "ground", vFt = vDrone ? Math.max(0, p.alt == null ? 400 : p.alt) : 0, vObs = loadObst(p.loc).length;
-  const vTitle = "Height &amp; things in the way <span style=\"color:var(--slate);font-size:12.5px;\">· " + (vDrone ? (p.unit === "m" ? Math.round(vFt * 0.3048) + " m" : Math.round(vFt) + " ft") : "ground") + " · " + (vObs ? vObs + " in the way" : "nothing in the way") + "</span>";
+  const vTitle = "Height &amp; things in the way<span class=\"sub\">" + (vDrone ? (p.unit === "m" ? Math.round(vFt * 0.3048) + " m" : Math.round(vFt) + " ft") : "From the ground") + " · " + (vObs ? vObs + " in the way" : "nothing in the way") + "</span>";
   html += (parts.time || "") + (parts.sky || "") + (parts.subj || "");
-  html += foldBody("view", vTitle, parts.view || "");
+  html += foldBody("view", vTitle, parts.view || "", false, "two");
   html += foldBody("tools", "Share, calendar &amp; print", (parts.share || "") + (parts.cal || ""), !!p.shareMsg);
   html += `<div class="map-note" style="margin-top:4px;">Times and directions are calculated for a flat horizon, so hills and buildings change what you see. No sky forecast past about ten days.${esc(tzNote)}</div>`;
   app.innerHTML = html;
