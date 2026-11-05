@@ -1,4 +1,4 @@
-<!-- Afterglow v2.2.1h -->
+<!-- Afterglow v2.2.1i -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -554,14 +554,14 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.2.1h</span>
+    <span class="version test">🧪 TEST · v2.2.1i</span>
   </footer>
 </div>
 
 <div class="modal-backdrop" id="modalBackdrop">
   <div class="modal">
     <h3>Change location</h3>
-    <input type="text" id="locInput" placeholder="City, state, ZIP, or coordinates" autocomplete="off">
+    <input type="text" id="locInput" placeholder="City, state, ZIP, or coordinates" autocomplete="off" enterkeyhint="go">
     <div class="modal-results" id="locResults"></div>
     <div class="modal-actions">
       <button class="gps" id="useGps">My location</button>
@@ -3847,6 +3847,7 @@ $("notifSave").addEventListener("click", async () => {
 updateNotifButtonIndicator();
 
 let searchTimeout;
+let enterWanted = false, shownQ = "";
 function showRecentPlaces(){
   const esc = t => String(t).replace(/[<>&"]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
   const list = recentsFor(state.loc);
@@ -3858,7 +3859,7 @@ function showRecentPlaces(){
   }));
 }
 $("locInput").addEventListener("input", (e) => {
-  clearTimeout(searchTimeout);
+  clearTimeout(searchTimeout); enterWanted = false;
   const q = e.target.value.trim();
   if(q.length < 2){ showRecentPlaces(); return; }
   const ll = parseLatLon(q);
@@ -3866,6 +3867,7 @@ $("locInput").addEventListener("input", (e) => {
   if(ll){
     const nm = ll.lat.toFixed(4) + ", " + ll.lon.toFixed(4);
     $("locResults").innerHTML = `<div class="modal-result" data-lat="${ll.lat}" data-lon="${ll.lon}" data-name="${nm}">Use these coordinates: ${nm}</div>`;
+    shownQ = q;
     nearName(ll.lat, ll.lon).then(nn => { const el = document.querySelector('#locResults .modal-result[data-lat]'); if(nn && el && +el.dataset.lat === ll.lat && +el.dataset.lon === ll.lon){ el.dataset.name = nn; el.textContent = "Use these coordinates: " + nm + " · " + nn; } });
     document.querySelectorAll(".modal-result[data-lat]").forEach(el => {
       el.addEventListener("click", () => {
@@ -3894,8 +3896,20 @@ $("locInput").addEventListener("input", (e) => {
           boot(loc);
         });
       });
-    }catch(err){ $("locResults").innerHTML = '<div class="modal-result" style="cursor:default;color:var(--rose)">Search failed</div>'; }
+      shownQ = q;
+      if(enterWanted){ enterWanted = false; const first = document.querySelector("#locResults .modal-result[data-lat]"); if(first) first.click(); }
+    }catch(err){ enterWanted = false; $("locResults").innerHTML = '<div class="modal-result" style="cursor:default;color:var(--rose)">Search failed</div>'; }
   }, 350);
+});
+// Return (Go) does what tapping the top result does; if the matches haven't arrived yet it waits for them.
+$("locInput").addEventListener("keydown", (e) => {
+  if(e.key !== "Enter") return;
+  e.preventDefault();
+  const q = e.target.value.trim();
+  if(q.length < 2) return;
+  const first = document.querySelector("#locResults .modal-result[data-lat]");
+  if(first && shownQ === q){ first.click(); return; }
+  enterWanted = true;
 });
 
 const gpsLabel = () => (state.loc && state.loc.name === MYLOC) ? "Update my location" : "My location";
