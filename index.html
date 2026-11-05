@@ -1,4 +1,4 @@
-<!-- Afterglow v2.1.1f -->
+<!-- Afterglow v2.1.1g -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -231,6 +231,8 @@
   .ag-cell .tm{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; color: var(--slate); margin-top:2px; white-space:nowrap; }
   .ag-cell .ag-why{ font-size:11.5px; color: var(--slate); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .ag-cell .agenda-bar{ margin:5px 0 0; }
+  .ag-cell.far{ border-style:dashed; }
+  .ag-far-note{ font-size:12.5px; color: var(--slate); margin:10px 0 8px; padding-top:10px; border-top:1px dashed var(--line); }
   .ag-cell .ag-best{ position:absolute; right:10px; top:-9px; background: var(--card); border:1px solid var(--gold); border-radius:8px; padding:0 7px; line-height:16px; }
   .ag-best{ font-size:11px; color: var(--gold); font-family:'IBM Plex Mono', monospace; text-transform:uppercase; letter-spacing:.06em; }
   .plan-sum{ margin-top:2px; }
@@ -527,7 +529,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.1.1f</span>
+    <span class="version test">🧪 TEST · v2.1.1g</span>
   </footer>
 </div>
 
@@ -2119,23 +2121,24 @@ function renderOutlook(app, tabsHtml){
       let sc = null;
       if(evt){ const j = nearestHourIdx(hourly.time, evt); sc = scoreEvent(hourly, j, sampleAt(state.sample[mode], evt)); }
       cells.push({ i, mode, evt, sc });
-      if(sc && evt && new Date(evt).getTime() >= Date.now() && (!best || sc.score > best.sc.score)) best = { i, mode, sc };
+      if(i < 7 && sc && evt && new Date(evt).getTime() >= Date.now() && (!best || sc.score > best.sc.score)) best = { i, mode, sc };
     });
   });
   const cellHtml = c => {
     if(!c.sc) return `<div class="ag-cell" style="cursor:default"><div class="lb">No data</div></div>`;
     const isBest = best && best.sc.score >= 26 && best.i === c.i && best.mode === c.mode;
     const past = c.evt && new Date(c.evt).getTime() < Date.now();
-    return `<div class="ag-cell${isBest ? " best" : ""}${past ? " past" : ""}" data-day="${c.i}" data-mode="${c.mode}">
+    return `<div class="ag-cell${isBest ? " best" : ""}${past ? " past" : ""}${c.i >= 7 ? " far" : ""}" data-day="${c.i}" data-mode="${c.mode}">
       <div class="t1"><span class="sc">${c.sc.score}</span><span class="lb">${label(c.sc.score)}</span></div>
       <div class="agenda-bar"><i style="width:${c.sc.score}%; background:${agendaColor(c.sc.score)}"></i></div>
-      <div class="tm">${fmtTime(c.evt)}${isBest ? `<span class="ag-best">Best</span>` : ""}</div>${agWhy(c.sc)}
+      <div class="tm">${fmtTime(c.evt)}</div>${agWhy(c.sc)}
     </div>`;
   };
   html += `<div class="ag-hint">Tap a day to open it. Faded ones have already passed.</div>`;
   html += `<div class="ag-head"><span></span><span>Sunrise</span><span>Sunset</span></div>`;
   daily.time.slice(0, 10).forEach((t, i) => {
     const dow = i === 0 ? "Today" : parseLocalDate(t).toLocaleDateString([], { weekday: "short" });
+    if(i === 7) html += `<div class="ag-far-note">Days 8 to 10: less certain. Forecasts shift most this far out.</div>`;
     html += `<div class="ag-row"><div class="ag-day">${dow}<small>${parseLocalDate(t).toLocaleDateString([], { month: "short", day: "numeric" })}</small></div>${cellHtml(cells[i * 2])}${cellHtml(cells[i * 2 + 1])}</div>`;
   });
   app.innerHTML = html;
