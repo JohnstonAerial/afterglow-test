@@ -1,4 +1,4 @@
-<!-- Afterglow v2.2.1g -->
+<!-- Afterglow v2.2.1h -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -554,7 +554,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.2.1g</span>
+    <span class="version test">🧪 TEST · v2.2.1h</span>
   </footer>
 </div>
 
@@ -1213,16 +1213,28 @@ async function nearName(lat, lon){
   if(key in nearCache) return nearCache[key];
   let out = "";
   try{
-    const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 3500);
+    const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 8000);
     const r = await fetch("https://api.weather.gov/points/" + key, { signal: ctl.signal });
     clearTimeout(tm);
+    if(r.status === 404){ nearCache[key] = ""; return ""; }
     if(r.ok){
       const d = await r.json(), rl = d && d.properties && d.properties.relativeLocation && d.properties.relativeLocation.properties;
       if(rl && rl.city) out = "Near " + String(rl.city).slice(0, 40) + (rl.state ? ", " + String(rl.state).slice(0, 2) : "");
     }
-  }catch(e){ /* no name: the coordinates still work */ }
-  nearCache[key] = out;
+  }catch(e){ return ""; /* no name this time (slow or offline): the coordinates still work, and a later try can still name it */ }
+  if(out) nearCache[key] = out;
   return out;
+}
+// A place saved with just its coordinates as the name picks up "Near <town>" when the lookup answers,
+// even if it answers after the place was chosen.
+function upgradeCoordName(la, lo, getLoc){
+  nearName(la, lo).then(nn => {
+    const l = getLoc();
+    if(!nn || !l || Math.abs(l.lat - la) > 1e-6 || Math.abs(l.lon - lo) > 1e-6 || !/^-?\d/.test(String(l.name))) return;
+    l.name = nn;
+    if(l === state.loc) saveLoc(l); else addRecent(l);
+    syncLocLabel();
+  });
 }
 function isMapLink(q){ return /^https?:\/\//i.test(String(q).trim()); }
 const MAP_LINK_MSG = "That link doesn't show coordinates (short links like maps.app.goo.gl can't be read). Open it, copy the long address from the browser bar, or type the coordinates.";
@@ -3414,8 +3426,10 @@ function renderPlan(app, tabsHtml){
     if(ll){
       const la = ll.lat, lo = ll.lon;
       p.msg = "Looking up the time zone…"; render();
-      const [ztz, nn] = await Promise.all([planTimeZoneFor(la, lo), nearName(la, lo)]);
+      const nnP = nearName(la, lo);
+      const [ztz, nn] = await Promise.all([planTimeZoneFor(la, lo), Promise.race([nnP, new Promise(r => setTimeout(() => r(""), 4000))])]);
       setPlace({ name: nn || (la.toFixed(4) + ", " + lo.toFixed(4)), lat: la, lon: lo, tz: ztz });
+      if(!nn) upgradeCoordName(la, lo, () => state.plan && state.plan.loc);
       return;
     }
     p.msg = "Searching…"; render();
@@ -3859,6 +3873,7 @@ $("locInput").addEventListener("input", (e) => {
         saveLoc(loc);
         backdrop.classList.remove("open");
         boot(loc);
+        if(/^-?\d/.test(loc.name)) upgradeCoordName(loc.lat, loc.lon, () => state.loc);
       });
     });
     return;
