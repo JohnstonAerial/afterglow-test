@@ -1,4 +1,4 @@
-<!-- Afterglow v2.1.1k -->
+<!-- Afterglow v2.1.1l -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -251,6 +251,7 @@
   .plan-fold.two > summary{ position:relative; flex-wrap:wrap; justify-content:flex-start; gap:2px 10px; padding-right:42px; }
   .plan-fold.two > summary::after{ position:absolute; right:16px; top:50%; margin-top:-0.6em; line-height:1.2; }
   .plan-fold.two > summary .sub{ flex-basis:100%; margin:0; text-align:left; white-space:normal; }
+  .ob-lbl{ flex:0 0 72px; }
   .plan-btn:disabled{ opacity:.35; cursor:default; }
   .plan-btn.round{ width:36px; min-width:36px; flex:0 0 36px; height:36px; padding:0; border-radius:50%; font-size:16px; }
   .plan-saved-note{ margin:0 0 8px; font-size:13px; }
@@ -539,7 +540,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.1.1k</span>
+    <span class="version test">🧪 TEST · v2.1.1l</span>
   </footer>
 </div>
 
@@ -2529,9 +2530,10 @@ function planViewCardHtml(p, pl, esc){
     h += `<div class="plan-row2"><span><b>${esc(o.name)}</b> · ${Math.round(o.a1)}° to ${Math.round(o.a2)}°<br><span style="color:var(--slate);font-size:12.5px;">${lenOut(o.h, unit)} tall, ${lenOut(o.d, unit)} away</span></span><b>${Math.max(0, obstAngle(o, 0)).toFixed(0)}° from the ground${drone ? `<br><span style="color:var(--slate);font-weight:400;font-size:12.5px;">${Math.max(0, obstAngle(o, hFt)).toFixed(0)}° at ${lenOut(hFt, unit)}</span>` : ""}<br><button class="plan-seg-b" data-delobs="${i}" style="margin-top:4px;padding:3px 10px;font-size:12px;">Remove</button></b></div>`;
   });
   if(p.addObs){
-    h += `<div style="margin-top:8px;"><input class="plan-name" id="obName" maxlength="30" placeholder="What is it? (trees, building, hill)">
+    h += `<div style="margin-top:8px;"><input class="plan-name" id="obName" maxlength="30" placeholder="What is it? (trees, building)">
       <div class="plan-row"><span style="font-size:13px;">From</span><input class="plan-date" type="number" inputmode="decimal" id="obA1" placeholder="240" aria-label="From compass degrees"><span style="font-size:13px;">to</span><input class="plan-date" type="number" inputmode="decimal" id="obA2" placeholder="260" aria-label="To compass degrees"><span style="font-size:13px;">°</span></div>
-      <div class="plan-row"><span style="font-size:13px;">Height</span><input class="plan-date" type="number" inputmode="decimal" id="obH" placeholder="70" aria-label="Height"><span style="font-size:13px;">${unit}</span><span style="font-size:13px;">Distance</span><input class="plan-date" type="number" inputmode="decimal" id="obD" placeholder="700" aria-label="Distance"><span style="font-size:13px;">${unit}</span></div>
+      <div class="plan-row"><span class="ob-lbl" style="font-size:13px;">Height</span><input class="plan-date" type="number" inputmode="decimal" id="obH" placeholder="70" aria-label="Height"><span style="font-size:13px;">${unit}</span></div>
+      <div class="plan-row"><span class="ob-lbl" style="font-size:13px;">Distance</span><input class="plan-date" type="number" inputmode="decimal" id="obD" placeholder="700" aria-label="Distance"><span style="font-size:13px;">${unit}</span></div>
       ${p.obMsg ? `<div class="plan-msg">${esc(p.obMsg)}</div>` : ""}
       <div class="plan-seg"><button class="plan-seg-b on" id="obSave">Save</button><button class="plan-seg-b" id="obCancel">Cancel</button></div>
       <div class="note" style="font-size:12.5px;">Compass degrees: north 0, east 90, south 180, west 270. Height is above the ground you stand on.</div></div>`;
