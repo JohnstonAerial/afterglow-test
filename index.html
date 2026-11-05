@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.1b -->
+<!-- Afterglow v2.4.1c -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -565,7 +565,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" id="footChk" target="_blank" rel="noopener" data-reuse="checklist_tab">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.4.1b</span>
+    <span class="version test">🧪 TEST · v2.4.1c</span>
   </footer>
 </div>
 
@@ -2989,10 +2989,10 @@ function planHorizonInner(p, pl, tz, t, S, M, sun){
       }
     } else {
       const side = !inWin ? (dd < 0 ? "L" : "R") : "T";
-      const txt = (side === "L" ? "← " : side === "R" ? "" : "↑ ") + name + " · " + (!inWin ? Math.round(Math.abs(dd)) + "° " + (dd < 0 ? "left" : "right") + " · " : "") + Math.round(h.alt) + "° up" + (inWin && hasSub ? " · " + Math.round(Math.abs(dd)) + "° " + (dd < 0 ? "left" : "right") : "") + (side === "R" ? " →" : "");
-      const w = txt.length * 6.9 + 18, yy = side === "T" ? place("T", 14) : place(side, Math.max(16, Math.min(150, y)));
+      const txt = (side === "L" ? "← " : side === "R" ? "" : "↑ ") + name + " · " + (!inWin ? Math.round(Math.abs(dd)) + "° · " : "") + Math.round(h.alt) + "° up" + (side === "R" ? " →" : "");
+      const w = txt.length * 6.3 + 18, yy = side === "T" ? place("T", 14) : place(side, Math.max(16, Math.min(150, y)));
       const x = side === "L" ? 6 : side === "R" ? W - 6 - w : Math.max(6, Math.min(W - 6 - w, xOf(h.az) - w / 2));
-      tags.push(`<g><rect x="${x.toFixed(1)}" y="${(yy - 11).toFixed(1)}" width="${w.toFixed(1)}" height="22" rx="11" fill="rgba(10,13,24,.82)"/><text x="${(x + 8).toFixed(1)}" y="${(yy + 4).toFixed(1)}" font-size="11" font-family="ui-monospace,Menlo,monospace" fill="${col}">${esc(txt)}</text></g>`);
+      tags.push(`<g><rect x="${x.toFixed(1)}" y="${(yy - 11).toFixed(1)}" width="${w.toFixed(1)}" height="22" rx="11" fill="rgba(10,13,24,.82)"/><text x="${(x + 8).toFixed(1)}" y="${(yy + 4).toFixed(1)}" font-size="10.5" font-family="ui-monospace,Menlo,monospace" fill="${col}">${esc(txt)}</text></g>`);
     }
   });
   out += discs;
