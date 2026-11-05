@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.1a -->
+<!-- Afterglow v2.4.1b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -316,7 +316,7 @@
   .plan-row2 span{ min-width:0; }
   .plan-row2 b small.by{ display:block; font-weight:400; font-size:12px; color:var(--slate); }
   .hz-face{ font-family: ui-monospace, Menlo, monospace; font-size:11px; letter-spacing:.08em; color:var(--slate); white-space:nowrap; }
-  .hz-svg{ display:block; width:100%; max-width:480px; height:auto; border-radius:12px; margin:0 auto 6px; }   /* 2.4.1a: on a wide screen (Mac, iPad) the picture stops growing, so its text and tags don't get huge */
+  .hz-svg{ display:block; width:100%; max-width:400px; height:auto; border-radius:12px; margin:0 auto 6px; }   /* 2.4.1a/b: on a wide screen (Mac, iPad) the picture stops growing, so its text and tags don't get huge */
   .plan-row2{ display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-top:1px solid var(--line); font-size:13.5px; line-height:1.4; }
   .plan-row2:first-of-type{ border-top:0; }
   .plan-row2 b{ font-weight:600; text-align:right; }
@@ -565,7 +565,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" id="footChk" target="_blank" rel="noopener" data-reuse="checklist_tab">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.4.1a</span>
+    <span class="version test">🧪 TEST · v2.4.1b</span>
   </footer>
 </div>
 
@@ -2968,7 +2968,12 @@ function planHorizonInner(p, pl, tz, t, S, M, sun){
   out += path(pl.sunPts, "rgba(255,225,160,.6)", 1.6, "4 4") + path(pl.moonPts, "rgba(200,215,255,.55)", 1.6, "2 5");
   if(hasSub) out += `<line x1="${W / 2}" y1="26" x2="${W / 2}" y2="${HY}" stroke="rgba(255,243,220,.3)" stroke-dasharray="3 4"/>`;
   const tags = [], taken = { L: [], R: [], T: [] };
-  const place = (side, y) => { let yy = y; taken[side].forEach(v => { if(Math.abs(v - yy) < 24) yy = v + 24; }); taken[side].push(yy); return Math.min(yy, 150); };
+  // Stack the Sun and Moon tags at least 24 apart. With a Subject pin its name sits at y 142, so keep tags above it (max 116) and stack upward when there's no room below.
+  const place = (side, y) => {
+    const maxY = hasSub ? 116 : 150; let yy = Math.min(y, maxY);
+    for(let g = 0; g < 6; g++){ const hit = taken[side].find(v => Math.abs(v - yy) < 24); if(hit == null) break; yy = (hit + 24 <= maxY) ? hit + 24 : hit - 24; }
+    yy = Math.max(14, yy); taken[side].push(yy); return yy;
+  };
   const bodies = [["Sun", S, "#ffe3a6", false], ["Moon", M, "#dfe7ff", true]];
   let discs = "";
   bodies.forEach(([name, h, col, isMoon]) => {
