@@ -1,4 +1,4 @@
-<!-- Afterglow v2.2.0c -->
+<!-- Afterglow v2.2.1a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -398,6 +398,9 @@
   .plan-dock .plan-range{ margin:0; height:34px; }
   .plan-dock .plan-ticks{ margin-top:-2px; }
   .plan-subjname{ margin:0 0 10px; }
+  .ob-types{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin:0 0 8px; }
+  .ob-type{ display:flex; flex-direction:column; align-items:center; gap:3px; padding:8px 4px; border:1px solid var(--line); border-radius:12px; background:transparent; color:var(--slate); font:inherit; font-size:12.5px; cursor:pointer; }
+  .ob-type.on{ border-color:var(--gold); color:var(--cream, inherit); font-weight:700; background:var(--panel2, rgba(240,178,75,.1)); }
   .plan-name-lbl{ display:block; font-size:12.5px; color: var(--slate); margin: 6px 0 4px; }
   .plan-tap-row{ margin: 0 0 8px; }
   .hdr-top{ flex-wrap: wrap; row-gap: 8px; }
@@ -545,7 +548,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.2.0c</span>
+    <span class="version test">🧪 TEST · v2.2.1a</span>
   </footer>
 </div>
 
@@ -2472,6 +2475,57 @@ const FT_M = 0.3048, OBST_KEY = "afterglow_obst";
 function dipDeg(hFt){ return hFt > 0 ? 1.76 * Math.sqrt(hFt * FT_M) / 60 : 0; }
 function obstAngle(o, hFt){ return Math.atan2(o.h - hFt, o.d) * 180 / Math.PI; }
 function inArc(az, a1, a2){ az = ((az % 360) + 360) % 360; return a1 <= a2 ? (az >= a1 && az <= a2) : (az >= a1 || az <= a2); }
+const OB_TYPES = [["trees","Trees"],["tree","Big tree"],["building","Building"],["hill","Hill"],["tower","Tower or pole"],["wall","Wall or fence"]];
+const SUBJ_TYPES = [["marker","Plain marker"],["tower","Water tower"],["building","Building"],["bridge","Bridge"],["tree","Lone tree"],["mast","Tower or mast"],["lighthouse","Lighthouse"],["steeple","Church steeple"],["house","House or barn"],["turbine","Wind turbine"],["pier","Pier or dock"]];
+const SUBJ_TOP = { marker: 14, tower: 24, building: 26, bridge: 14, tree: 25, mast: 34, lighthouse: 37, steeple: 38, house: 22, turbine: 48, pier: 8 };
+// Simple dark silhouette for the Subject, standing on the horizon at x = cx.
+function subjShapeSvg(type, cx, hy){
+  const f = "#070a14", R = (x, y, w, h) => `<rect x="${(cx + x).toFixed(1)}" y="${(hy - y).toFixed(1)}" width="${w}" height="${h}" fill="${f}"/>`;
+  const P = (pts) => `<polygon points="${pts.map(q => (cx + q[0]).toFixed(1) + "," + (hy - q[1]).toFixed(1)).join(" ")}" fill="${f}"/>`;
+  const C = (x, y, r) => `<circle cx="${(cx + x).toFixed(1)}" cy="${(hy - y).toFixed(1)}" r="${r}" fill="${f}"/>`;
+  switch(type){
+    case "tower": return `<ellipse cx="${cx}" cy="${hy - 19}" rx="9" ry="5" fill="${f}"/>` + R(-9, 19, 18, 5) + R(-6, 14, 2, 14) + R(4, 14, 2, 14) + R(-1, 14, 2, 14);
+    case "building": return R(-9, 26, 12, 26) + R(3, 16, 9, 16) + `<g fill="#2a2f55">${[-6, -1].map(x => [20, 12, 5].map(y => `<rect x="${cx + x}" y="${hy - y - 3}" width="3" height="3"/>`).join("")).join("")}</g>`;
+    case "bridge": return R(-22, 12, 44, 3) + R(-14, 9, 3, 9) + R(0, 9, 3, 9) + R(14, 9, 3, 9) + `<path d="M${cx - 20} ${hy - 12} Q${cx - 10} ${hy - 22} ${cx} ${hy - 12} Q${cx + 10} ${hy - 22} ${cx + 20} ${hy - 12}" fill="none" stroke="${f}" stroke-width="2"/>`;
+    case "tree": return R(-1.5, 9, 3, 9) + C(0, 17, 8) + C(-6, 12, 6) + C(6, 12, 6);
+    case "mast": return P([[-3, 0], [3, 0], [1, 34], [-1, 34]]) + R(-8, 26, 16, 1.5) + R(-6, 18, 12, 1.5);
+    case "lighthouse": return P([[-5, 0], [5, 0], [3, 26], [-3, 26]]) + R(-5, 31, 10, 5) + P([[-5, 31], [0, 37], [5, 31]]);
+    case "steeple": return R(-10, 12, 14, 12) + R(4, 22, 7, 22) + P([[3, 22], [7.5, 38], [12, 22]]);
+    case "house": return R(-12, 10, 24, 10) + P([[-14, 10], [0, 22], [14, 10]]);
+    case "turbine": return P([[-1.5, 0], [1.5, 0], [0.8, 30], [-0.8, 30]]) + C(0, 30, 2) + [[0, -17], [14.7, 8.5], [-14.7, 8.5]].map(q => `<line x1="${cx}" y1="${hy - 30}" x2="${(cx + q[0]).toFixed(1)}" y2="${(hy - 30 + q[1]).toFixed(1)}" stroke="${f}" stroke-width="2" stroke-linecap="round"/>`).join("");
+    case "pier": return R(-24, 5, 48, 2.5) + [-22, -14, -6, 2, 10, 18].map(x => R(x, 5, 1.8, 5)).join("");
+    default: return `<polygon points="${cx},${hy - 3} ${cx - 6},${hy - 14} ${cx + 6},${hy - 14}" fill="#fff3dc"/>`;
+  }
+}
+// An obstacle drawn across x = xs..xe (px) at height hp (px) on the horizon at hy.
+function obstShapeSvg(o, xs, xe, hp, hy){
+  const f = "#070a14", t = OB_TYPES.some(q => q[0] === o.type) ? o.type : "trees";
+  let w = xe - xs, xm = (xs + xe) / 2;
+  if(w < 4){ xs = xm - 2; xe = xm + 2; w = 4; }
+  const F = n => n.toFixed(1);
+  if(t === "tree"){
+    const r = Math.max(4, Math.min(26, hp * 0.4)), cy = hy - hp + r, tw = Math.max(1.5, r * 0.18);
+    return `<rect x="${F(xm - tw)}" y="${F(cy)}" width="${F(tw * 2)}" height="${F(hy - cy)}" fill="${f}"/><circle cx="${F(xm)}" cy="${F(cy)}" r="${F(r)}" fill="${f}"/><circle cx="${F(xm - r * 0.7)}" cy="${F(cy + r * 0.45)}" r="${F(r * 0.7)}" fill="${f}"/><circle cx="${F(xm + r * 0.7)}" cy="${F(cy + r * 0.45)}" r="${F(r * 0.7)}" fill="${f}"/>`;
+  }
+  if(t === "trees"){
+    const r = Math.max(4, hp * 0.55); let step = r * 1.3; if(w / step > 60) step = w / 60;
+    let out = `<rect x="${F(xs)}" y="${F(hy - hp + r)}" width="${F(w)}" height="${F(Math.max(0, hp - r))}" fill="${f}"/>`;
+    for(let i = 0, x = xs + r * 0.6; x < xe + r * 0.6 && i < 80; i++, x += step) out += `<circle cx="${F(Math.min(x, xe))}" cy="${F(hy - hp + r + ((i * 37) % 5 - 2))}" r="${F(r)}" fill="${f}"/>`;
+    return out;
+  }
+  if(t === "building"){
+    let out = `<rect x="${F(xs)}" y="${F(hy - hp)}" width="${F(w)}" height="${F(hp)}" fill="${f}"/>`;
+    if(hp >= 18 && w >= 14){ out += `<g fill="#2a2f55">`; let n = 0; for(let x = xs + 4; x < xe - 5 && n < 80; x += 8) for(let y = hy - hp + 5; y < hy - 6 && n < 80; y += 9, n++) out += `<rect x="${F(x)}" y="${F(y)}" width="3" height="3"/>`; out += `</g>`; }
+    return out;
+  }
+  if(t === "hill") return `<path d="M${F(xs)} ${hy} C${F(xs + w * 0.25)} ${F(hy - hp * 0.9)} ${F(xs + w * 0.35)} ${F(hy - hp)} ${F(xm)} ${F(hy - hp)} C${F(xm + w * 0.15)} ${F(hy - hp)} ${F(xe - w * 0.25)} ${F(hy - hp * 0.6)} ${F(xe)} ${hy}Z" fill="${f}"/>`;
+  if(t === "tower"){
+    const bw = Math.max(1.5, hp * 0.05), cb = Math.max(4, hp * 0.18);
+    return `<polygon points="${F(xm - bw * 2)},${hy} ${F(xm + bw * 2)},${hy} ${F(xm + bw * 0.6)},${F(hy - hp)} ${F(xm - bw * 0.6)},${F(hy - hp)}" fill="${f}"/><rect x="${F(xm - cb)}" y="${F(hy - hp * 0.8)}" width="${F(cb * 2)}" height="1.5" fill="${f}"/><rect x="${F(xm - cb * 0.7)}" y="${F(hy - hp * 0.55)}" width="${F(cb * 1.4)}" height="1.5" fill="${f}"/>`;
+  }
+  const th = Math.max(3, hp);
+  return `<rect x="${F(xs)}" y="${F(hy - th)}" width="${F(w)}" height="${F(th)}" fill="${f}"/>`;
+}
 function horizonAt(az, hFt, obs){
   let m = -0.8333 - dipDeg(hFt), who = null;
   obs.forEach(o => { if(inArc(az, o.a1, o.a2)){ const a = obstAngle(o, hFt); if(a > m){ m = a; who = o.name; } } });
@@ -2535,7 +2589,7 @@ function planViewCardHtml(p, pl, esc){
     h += `<div class="plan-row2"><span><b>${esc(o.name)}</b> · ${Math.round(o.a1)}° to ${Math.round(o.a2)}°<br><span style="color:var(--slate);font-size:12.5px;">${lenOut(o.h, unit)} tall, ${lenOut(o.d, unit)} away</span></span><b>${Math.max(0, obstAngle(o, 0)).toFixed(0)}° from the ground${drone ? `<br><span style="color:var(--slate);font-weight:400;font-size:12.5px;">${Math.max(0, obstAngle(o, hFt)).toFixed(0)}° at ${lenOut(hFt, unit)}</span>` : ""}<br><button class="plan-seg-b" data-delobs="${i}" style="margin-top:4px;padding:3px 10px;font-size:12px;">Remove</button></b></div>`;
   });
   if(p.addObs){
-    h += `<div style="margin-top:8px;"><input class="plan-name" id="obName" maxlength="30" placeholder="What is it? (trees, building)">
+    h += `<div style="margin-top:8px;"><div class="note" style="font-size:12.5px;margin:0 0 4px;">What is it?</div><div class="ob-types"><button type="button" class="ob-type${p.obType === 'trees' || (!p.obType && 'trees' === 'trees') ? " on" : ""}" data-obtype="trees"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><circle cx="8" cy="14" r="6"/><circle cx="17" cy="12" r="7"/><circle cx="27" cy="14" r="6"/><circle cx="34" cy="15" r="5"/><rect x="3" y="14" width="34" height="8"/></svg>Trees</button><button type="button" class="ob-type${p.obType === 'tree' || (!p.obType && 'tree' === 'trees') ? " on" : ""}" data-obtype="tree"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><rect x="18.5" y="14" width="3" height="9"/><circle cx="20" cy="10" r="7"/><circle cx="14" cy="14" r="5"/><circle cx="26" cy="14" r="5"/></svg>Big tree</button><button type="button" class="ob-type${p.obType === 'building' || (!p.obType && 'building' === 'trees') ? " on" : ""}" data-obtype="building"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><rect x="8" y="5" width="14" height="17"/><rect x="22" y="12" width="10" height="10"/></svg>Building</button><button type="button" class="ob-type${p.obType === 'hill' || (!p.obType && 'hill' === 'trees') ? " on" : ""}" data-obtype="hill"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><path d="M2 22 Q12 4 22 12 Q32 2 38 16 L38 22 Z"/></svg>Hill</button><button type="button" class="ob-type${p.obType === 'tower' || (!p.obType && 'tower' === 'trees') ? " on" : ""}" data-obtype="tower"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><polygon points="18,22 22,22 21,2 19,2"/><rect x="13" y="8" width="14" height="1.5"/></svg>Tower</button><button type="button" class="ob-type${p.obType === 'wall' || (!p.obType && 'wall' === 'trees') ? " on" : ""}" data-obtype="wall"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><rect x="3" y="14" width="34" height="8"/></svg>Wall</button></div><input class="plan-name" id="obName" maxlength="30" placeholder="Name it (optional)">
       <div class="plan-row"><span style="font-size:13px;">From</span><input class="plan-date" type="number" inputmode="decimal" id="obA1" placeholder="240" aria-label="From compass degrees"><span style="font-size:13px;">to</span><input class="plan-date" type="number" inputmode="decimal" id="obA2" placeholder="260" aria-label="To compass degrees"><span style="font-size:13px;">°</span></div>
       <div class="plan-row"><span class="ob-lbl" style="font-size:13px;">Height</span><input class="plan-date" type="number" inputmode="decimal" id="obH" placeholder="70" aria-label="Height"><span style="font-size:13px;">${unit}</span></div>
       <div class="plan-row"><span class="ob-lbl" style="font-size:13px;">Distance</span><input class="plan-date" type="number" inputmode="decimal" id="obD" placeholder="700" aria-label="Distance"><span style="font-size:13px;">${unit}</span></div>
@@ -2814,11 +2868,25 @@ function planHorizonInner(p, pl, tz, t, S, M, sun){
     }
   });
   out += discs;
-  // Ground, Subject silhouette, compass ticks
-  out += `<rect y="${HY}" width="${W}" height="${H - HY}" fill="#0a0d18"/><line x1="0" y1="${HY}" x2="${W}" y2="${HY}" stroke="#1d2340"/>`;
+  // Subject (farthest), then the obstacles in front of it, then the ground.
+  const st = hasSub && SUBJ_TYPES.some(q => q[0] === p.subject.type) ? p.subject.type : "marker";
+  if(hasSub) out += subjShapeSvg(st, W / 2, HY);
+  let obLabels = "";
+  loadObst(p.loc).forEach(o => {
+    const dd1 = angDiff(o.a1, face), span = (((o.a2 - o.a1) % 360) + 360) % 360, xs = ((dd1 + HALF) / (2 * HALF)) * W, xe = xs + (span / (2 * HALF)) * W;
+    if(xe < -30 || xs > W + 30) return;
+    const hp = Math.max(1.5, Math.min(HY - 4, obstAngle(o, 0) * K));
+    out += obstShapeSvg(o, xs, xe, hp, HY);
+    const wpx = xe - xs, single = o.type === "tree" || o.type === "tower";
+    if(o.name && o.name !== "Obstruction" && (wpx >= 34 || single)){
+      const lx = Math.max(24, Math.min(W - 24, (xs + xe) / 2)), nm = String(o.name), nmS = nm.length > 16 ? nm.slice(0, 15) + "…" : nm;
+      obLabels += `<text x="${lx.toFixed(1)}" y="${(HY - hp - 4).toFixed(1)}" font-size="9" font-family="ui-monospace,Menlo,monospace" text-anchor="middle" fill="${a >= 4 ? "#0a0d18" : "#fff3dc"}">${esc(nmS)}</text>`;
+    }
+  });
+  out += `<rect y="${HY}" width="${W}" height="${H - HY}" fill="#0a0d18"/><line x1="0" y1="${HY}" x2="${W}" y2="${HY}" stroke="#1d2340"/>` + obLabels;
   if(hasSub){
     const cx = W / 2, nm = String(p.subject.name || "Subject"), nmS = nm.length > 14 ? nm.slice(0, 13) + "…" : nm;
-    out += `<rect x="${cx - 8}" y="${HY - 12}" width="16" height="8" rx="3" fill="#070a14"/><rect x="${cx - 1}" y="${HY - 5}" width="2" height="6" fill="#070a14"/><text x="${cx - 14}" y="${HY - 18}" font-size="10" font-family="ui-monospace,Menlo,monospace" text-anchor="end" fill="${a >= 4 ? "#0a0d18" : "#fff3dc"}">${esc(nmS)}</text>`;
+    out += `<text x="${cx - 16}" y="${HY - 18}" font-size="10" font-family="ui-monospace,Menlo,monospace" text-anchor="end" fill="${a >= 4 ? "#0a0d18" : "#fff3dc"}">${esc(nmS)}</text>`;
   } else {
     const msg = "Drop a Subject pin to center this view", w = msg.length * 6.4 + 20;
     out += `<g><rect x="${(W - w) / 2}" y="52" width="${w}" height="28" rx="10" fill="rgba(10,13,24,.8)"/><text x="${W / 2}" y="70" font-size="11.5" text-anchor="middle" fill="#fff3dc">${msg}</text></g>`;
@@ -2925,7 +2993,7 @@ function renderPlan(app, tabsHtml){
   if(p.msg) html += `<div class="plan-msg">${esc(p.msg)}</div>`;
   html += `<div class="plan-row plan-daterow"><button class="plan-btn round" id="planPrev" aria-label="Previous day"${p.date <= planToday(tz) ? " disabled" : ""}>‹</button><input class="plan-date" type="date" id="planDate" value="${p.date}" min="${planToday(tz)}" max="2100-12-31" aria-label="Date"><button class="plan-btn round" id="planNext" aria-label="Next day">›</button><button class="plan-btn" id="planToday">Today</button></div>`;
   html += `<div class="plan-seg plan-tap-row" role="group" aria-label="What a map tap places"><span class="plan-seg-l">Tap the map to place:</span><button class="plan-seg-b ${p.tap === "subject" ? "on" : ""}" data-tap="subject">Subject</button><button class="plan-seg-b ${p.tap === "you" ? "on" : ""}" data-tap="you">Your spot</button></div>`;
-  if(p.subject){ const nv = (p.subject.name && p.subject.name !== "Subject") ? p.subject.name : ""; html += `<input class="plan-name plan-subjname" id="planSubjName" value="${esc(nv)}" maxlength="40" placeholder="Name this spot (optional), e.g. Water tower" aria-label="Name this spot (optional)">`; }
+  if(p.subject){ const nv = (p.subject.name && p.subject.name !== "Subject") ? p.subject.name : ""; html += `<input class="plan-name plan-subjname" id="planSubjName" value="${esc(nv)}" maxlength="40" placeholder="Name this spot (optional), e.g. Water tower" aria-label="Name this spot (optional)">`; html += `<div class="plan-row plan-subjname"><span style="font-size:13px;flex:0 0 auto;">Looks like</span><select class="plan-name" id="planSubjType" aria-label="What the subject looks like in the picture" style="margin:0;">${SUBJ_TYPES.map(q => `<option value="${q[0]}"${(p.subject.type || "marker") === q[0] ? " selected" : ""}>${q[1]}</option>`).join("")}</select></div>`; }
   html += `<div class="map-wrap${p.full ? " full" : ""}"><div id="sunMap"></div><button type="button" class="map-center-btn" id="planCenter" title="${p.loc.name === 'Dropped pin' ? 'Back to ' + esc((p.homeLoc || state.loc).name) : 'Center on place'}" aria-label="${p.loc.name === 'Dropped pin' ? 'Back to ' + esc((p.homeLoc || state.loc).name) : 'Center on place'}">⌖</button><button type="button" class="map-center-btn map-full-btn" id="planFull" title="${p.full ? 'Close full screen' : 'Full screen map'}" aria-label="${p.full ? 'Close full screen map' : 'Open full screen map'}">${p.full ? '✕' : '⤢'}</button><!--FSPANEL-->${p.subject ? "" : '<div class="map-pinhint">Tap to drop a pin on what you want to shoot</div>'}</div>`;
 
   const dayMin = Math.max(60, Math.round((pl.t1 - pl.t0) / 60000));
@@ -3049,7 +3117,7 @@ function renderPlan(app, tabsHtml){
       sunMapInstance.on("moveend", () => { const c = sunMapInstance.getCenter(); p.view = { lat: c.lat, lng: c.lng, z: sunMapInstance.getZoom() }; });
       sunMapInstance.on("click", (ev) => {
         if(p.tap === "you"){ if(p.loc.name !== "Dropped pin") p.homeLoc = p.loc; p.loc = { name: "Dropped pin", lat: ev.latlng.lat, lon: ev.latlng.lng, tz: p.loc.tz }; p.scan = null; }
-        else p.subject = { name: (p.subject && p.subject.name) || "Subject", lat: ev.latlng.lat, lon: ev.latlng.lng };
+        else p.subject = { name: (p.subject && p.subject.name) || "Subject", type: p.subject && p.subject.type, lat: ev.latlng.lat, lon: ev.latlng.lng };
         render();
       });
       const tl = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(sunMapInstance);
@@ -3104,7 +3172,10 @@ function renderPlan(app, tabsHtml){
     const hzo = (() => { try{ return planHorizonInner(p, pl, tz, t, S, M, sun); }catch(e){ console.error("Horizon failed:", e); return null; } })();
     if(hzo){ const hz = $("planHz"); if(hz) hz.innerHTML = hzo.svg; const hf = $("planHzFace"); if(hf) hf.textContent = hzo.label; }
     const rel = h => { if(!p.subject || h.alt < 0) return ""; const dd = angDiff(h.az, bearingDist(la, lo, p.subject.lat, p.subject.lon).brg), n = Math.round(Math.abs(dd)); return n < 1 ? " · on your subject" : ` · ${n}° ${dd > 0 ? "right" : "left"} of subject`; };
-    let rows = `<div class="plan-row2"><span>Sun</span><b>${desc(S)}${rel(S)}</b></div><div class="plan-row2"><span>Moon</span><b>${desc(M)}${rel(M)}${M.alt >= 0 ? " · " + moonPhaseInfo(t).phaseName.toLowerCase() : ""}</b></div>`;
+    const obsL = loadObst(p.loc);
+    const blk = h => { if(!obsL.length || h.alt < 0) return null; const hz = horizonAt(h.az, 0, obsL); return hz.who && h.alt <= hz.m ? hz.who : null; };
+    const bS = blk(S), bM = blk(M);
+    let rows = `<div class="plan-row2"><span>Sun</span><b${bS ? ' class="plan-warn"' : ""}>${desc(S)}${rel(S)}${bS ? " · behind " + esc(bS) : ""}</b></div><div class="plan-row2"><span>Moon</span><b${bM ? ' class="plan-warn"' : ""}>${desc(M)}${rel(M)}${M.alt >= 0 ? " · " + moonPhaseInfo(t).phaseName.toLowerCase() : ""}${bM ? " · behind " + esc(bM) : ""}</b></div>`;
     if(p.subject){
       const bd = bearingDist(la, lo, p.subject.lat, p.subject.lon);
       const lp = S.alt >= 0 ? lightPhrase(S.az, bd.brg) : null;
@@ -3160,6 +3231,7 @@ function renderPlan(app, tabsHtml){
 
   document.querySelectorAll(".plan-seg-b[data-tap]").forEach(b => b.addEventListener("click", () => { p.tap = b.dataset.tap; render(); }));
   document.querySelectorAll(".plan-seg-b[data-finder]").forEach(b => b.addEventListener("click", () => { p.finder = b.dataset.finder; render(); }));
+  const stSel = $("planSubjType"); if(stSel) stSel.addEventListener("change", () => { if(p.subject){ p.subject.type = stSel.value; saveUi(); render(); } });
   const sn = $("planSubjName");
   if(sn) sn.addEventListener("change", () => { p.subject.name = sn.value.trim().slice(0, 40) || "Subject"; render(); });
   const doShare = async (mode) => {
@@ -3184,14 +3256,15 @@ function renderPlan(app, tabsHtml){
   document.querySelectorAll("[data-altq]").forEach(b => b.addEventListener("click", () => { p.alt = +b.dataset.altq; saveUi(); render(); }));
   const altIn = $("planAlt");
   if(altIn) altIn.addEventListener("change", () => { const v = parseFloat(altIn.value); if(isFinite(v) && v >= 0) p.alt = lenIn(v, p.unit || "ft"); saveUi(); render(); });
-  const oAdd = $("obAdd"); if(oAdd) oAdd.addEventListener("click", () => { p.addObs = true; p.obMsg = ""; render(); });
+  const oAdd = $("obAdd"); if(oAdd) oAdd.addEventListener("click", () => { p.addObs = true; p.obMsg = ""; p.obType = "trees"; render(); });
+  document.querySelectorAll(".ob-type").forEach(b => b.addEventListener("click", () => { p.obType = b.dataset.obtype; document.querySelectorAll(".ob-type").forEach(x => x.classList.toggle("on", x === b)); }));
   const oCan = $("obCancel"); if(oCan) oCan.addEventListener("click", () => { p.addObs = false; p.obMsg = ""; render(); });
   const oSave = $("obSave");
   if(oSave) oSave.addEventListener("click", () => {
-    const u = p.unit || "ft", n = ($("obName").value || "").replace(/[<>&"]/g, "").trim().slice(0, 30) || "Obstruction";
+    const u = p.unit || "ft", ty = OB_TYPES.some(q => q[0] === p.obType) ? p.obType : "trees", n = ($("obName").value || "").replace(/[<>&"]/g, "").trim().slice(0, 30) || OB_TYPES.find(q => q[0] === ty)[1];
     const a1 = parseFloat($("obA1").value), a2 = parseFloat($("obA2").value), hh = parseFloat($("obH").value), dd = parseFloat($("obD").value);
     if(![a1, a2, hh, dd].every(isFinite) || a1 < 0 || a1 > 360 || a2 < 0 || a2 > 360 || hh <= 0 || dd <= 0){ p.obMsg = "Fill in the compass range (0 to 360), the height and the distance, all above zero."; render(); return; }
-    const list = loadObst(p.loc); list.push({ name: n, a1: a1 % 360, a2: a2 % 360, h: lenIn(hh, u), d: lenIn(dd, u) });
+    const list = loadObst(p.loc); list.push({ name: n, type: ty, a1: a1 % 360, a2: a2 % 360, h: lenIn(hh, u), d: lenIn(dd, u) });
     saveObst(p.loc, list); p.addObs = false; p.obMsg = ""; render();
   });
   document.querySelectorAll("[data-delobs]").forEach(b => b.addEventListener("click", () => { const list = loadObst(p.loc); list.splice(+b.dataset.delobs, 1); saveObst(p.loc, list); render(); }));
