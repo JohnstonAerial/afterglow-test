@@ -1,4 +1,4 @@
-<!-- Afterglow v2.3.1b -->
+<!-- Afterglow v2.3.1c -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -391,6 +391,9 @@
     background:none; border: none; color: var(--slate); font-size: 13px; cursor: pointer; padding: 6px;
   }
   .modal-actions{ justify-content: flex-end; }
+  .chk-btn{ display:flex; align-items:center; gap:12px; box-sizing:border-box; width:100%; margin:14px 0 12px; padding:12px 14px; border-radius:14px; background: linear-gradient(135deg, #2f7be0, #1d57b8); color:#fff; font-size:15px; font-weight:700; line-height:1.25; text-decoration:none; text-align:left; }
+  .chk-btn small{ display:block; margin-top:2px; font-size:12.5px; font-weight:500; opacity:.9; }
+  .chk-btn svg{ width:30px; height:30px; flex:none; }
   .loc-ico{ width:18px; height:18px; flex:none; }
   #planGps, .modal-gps{ display:flex; align-items:center; gap:10px; }
   .modal-gps{ width:100%; text-align:left; margin:8px 0 4px; background: var(--card); border:1px solid var(--line); color: var(--sand); border-radius: 12px; padding: 9px 12px; font-size: 14px; cursor:pointer; font-family: inherit; }
@@ -557,7 +560,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" id="footChk" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.3.1b</span>
+    <span class="version test">🧪 TEST · v2.3.1c</span>
   </footer>
 </div>
 
@@ -2019,6 +2022,13 @@ function checklistLink(loc){
   if(!loc || loc.name === MYLOC || !isFinite(loc.lat) || !isFinite(loc.lon)) return CHECKLIST_BASE;
   return CHECKLIST_BASE + "?lat=" + loc.lat.toFixed(4) + "&lon=" + loc.lon.toFixed(4) + "&name=" + encodeURIComponent(String(loc.name || "").slice(0, 60));
 }
+const CHK_ICON = '<svg viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="5" width="20" height="23" rx="3"/><path d="M12 4h8v4h-8zM11 17l3.2 3.2L21 13.5"/></svg>';
+// The big blue button to the Flight Checklist (blue is the checklist's color, as orange is Afterglow's), used on Today and Plan.
+function checklistBtnHtml(loc, id){
+  const here = !loc || loc.name === MYLOC || !isFinite(loc.lat) || !isFinite(loc.lon);
+  const place = here ? "where you are" : String(loc.name || "this spot").slice(0, 40).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  return `<a class="chk-btn" ${id ? 'id="' + id + '" ' : ""}href="${checklistLink(loc).replace(/&/g, "&amp;")}" target="_blank" rel="noopener">${CHK_ICON}<span>Drone Preflight Checklist<small>Weather, airspace and checks for ${place}&nbsp;›</small></span></a>`;
+}
 function syncLocLabel(){
   const ln = $("locName"), lb = $("locBtn"); if(!ln) return;
   const onPlan = state.view === "plan" && state.plan && state.plan.loc;
@@ -2173,6 +2183,7 @@ function renderToday(app, tabsHtml){
   }
   html += uiFold("moon", `${moon.emoji} Moon &amp; timelapse <span class="sub">${moon.phaseName} · <span class="nw">${moon.illumPct}% lit</span>${tlSum}</span>`, `<div class="grid">${moonCardHTML(moon)}${timelapseCardHTML(timelapse)}</div>`);
 
+  html += checklistBtnHtml(state.loc, "todayChk");
   app.innerHTML = html;
 
   document.querySelectorAll(".toggle-btn").forEach(b => b.addEventListener("click", () => {
@@ -3150,7 +3161,8 @@ function renderPlan(app, tabsHtml){
   html += skyCardHtml(p, sun, esc);
   cap("sky", i0);
   i0 = html.length;
-  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Preflight checklist</div><div class="plan-seg" style="margin:6px 0 8px;"><a class="plan-btn" id="planChk" href="${esc(checklistLink(p.loc))}" target="_blank" rel="noopener" style="text-decoration:none;">Open the Flight Checklist</a></div><div class="note">${p.loc.name === MYLOC ? "Opens the free Drone Preflight Checklist, which uses your phone's own position for its weather." : "Opens the free Drone Preflight Checklist with its weather set to " + esc(p.loc.name) + "."}</div></div>`;
+  html += checklistBtnHtml(p.loc, "planChk");
+
   html += `<div class="card" style="margin-bottom:12px;"><div class="label">Share this plan</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b" id="planCopy">🔗 Copy link</button>${navigator.share ? '<button class="plan-seg-b" id="planShare">Share…</button>' : ""}</div>${p.shareMsg ? `<div class="note" style="margin-bottom:6px;color:var(--gold);">${esc(p.shareMsg)}</div>` : ""}<div class="note">Reopens this place${p.subject ? ', the subject pin' : ''} and date in AfterGlow on any phone. Nothing is stored on a server.</div></div>`;
   cap("share", i0);
   i0 = html.length;
