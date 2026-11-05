@@ -1,4 +1,4 @@
-<!-- Afterglow v2.3.1a -->
+<!-- Afterglow v2.3.1b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -557,7 +557,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" id="footChk" target="_blank" rel="noopener">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.3.1a</span>
+    <span class="version test">🧪 TEST · v2.3.1b</span>
   </footer>
 </div>
 
@@ -2022,7 +2022,12 @@ function checklistLink(loc){
 function syncLocLabel(){
   const ln = $("locName"), lb = $("locBtn"); if(!ln) return;
   const onPlan = state.view === "plan" && state.plan && state.plan.loc;
-  const fc = $("footChk"); if(fc) fc.href = checklistLink(onPlan ? state.plan.loc : state.loc);
+  const fc = $("footChk");
+  if(fc){
+    const cl = onPlan ? state.plan.loc : state.loc;
+    fc.href = checklistLink(cl);
+    fc.textContent = (cl && cl.name !== MYLOC && isFinite(cl.lat) && isFinite(cl.lon)) ? "Drone Preflight Checklist for " + String(cl.name || "this spot").slice(0, 40) + " ›" : "Free Drone Preflight Checklist";
+  }
   if(onPlan){ ln.textContent = ""; const sm = document.createElement("small"); sm.className = "loc-from"; sm.textContent = "Planning from"; ln.appendChild(sm); ln.appendChild(document.createTextNode(state.plan.loc.name)); }
   else ln.textContent = (state.loc && state.loc.name) || "Choose location";
   if(lb) lb.setAttribute("aria-label", onPlan ? "Change planning place" : "Change location");
@@ -3980,6 +3985,7 @@ function initLocation(){
     // Drop the place from the address bar so a refresh or bookmark doesn't keep it.
     try{ history.replaceState(null, "", location.pathname); }catch(e){}
     if(!loadLoc()) saveLoc(fromLink);
+    state.view = "today";   // a link with a place always opens on Today, not on whichever tab was open last
     boot(fromLink);
     return;
   }
