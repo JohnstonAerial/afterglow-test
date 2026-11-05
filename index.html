@@ -1,4 +1,4 @@
-<!-- Afterglow v2.3.1l -->
+<!-- Afterglow v2.3.1m -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -561,8 +561,8 @@
   <footer>
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
-    Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" id="footChk" target="checklist_tab">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.3.1l</span>
+    Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" id="footChk" target="_blank" rel="noopener" data-reuse="checklist_tab">Free Drone Preflight Checklist</a>
+    <span class="version test">🧪 TEST · v2.3.1m</span>
   </footer>
 </div>
 
@@ -2029,8 +2029,19 @@ const CHK_ICON = '<svg viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-widt
 function checklistBtnHtml(loc, id){
   const here = !loc || loc.name === MYLOC || !isFinite(loc.lat) || !isFinite(loc.lon);
   const place = here ? "where you are" : String(loc.name || "this spot").slice(0, 40).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  return `<a class="chk-btn" ${id ? 'id="' + id + '" ' : ""}href="${checklistLink(loc).replace(/&/g, "&amp;")}" target="checklist_tab">${CHK_ICON}<span>Drone Preflight Checklist<small>Weather, airspace and checks for ${place}&nbsp;›</small></span></a>`;
+  return `<a class="chk-btn" ${id ? 'id="' + id + '" ' : ""}href="${checklistLink(loc).replace(/&/g, "&amp;")}" target="_blank" rel="noopener" data-reuse="checklist_tab">${CHK_ICON}<span>Drone Preflight Checklist<small>Weather, airspace and checks for ${place}&nbsp;›</small></span></a>`;
 }
+// 2.3.1m: on a computer (mouse), the checklist links reuse one named tab instead of piling up new ones. On a phone, tablet or installed app they stay plain new-tab links, because a named tab can quietly load somewhere you aren't looking (felt like a dead button).
+document.addEventListener("click", ev => {
+  try{
+    const a = ev.target.closest && ev.target.closest("a[data-reuse]");
+    if(!a || ev.defaultPrevented || ev.button || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+    if(!window.matchMedia || !matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    if(window.matchMedia("(display-mode: standalone)").matches || navigator.standalone) return;
+    const w = window.open(a.href, a.dataset.reuse);
+    if(w){ ev.preventDefault(); try{ w.focus(); }catch(e){} }
+  }catch(e){}
+});
 function syncLocLabel(){
   const ln = $("locName"), lb = $("locBtn"); if(!ln) return;
   const onPlan = state.view === "plan" && state.plan && state.plan.loc;
