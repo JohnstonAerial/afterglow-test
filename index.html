@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.2b -->
+<!-- Afterglow v2.4.2c -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -565,7 +565,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" id="footChk" target="_blank" rel="noopener" data-reuse="checklist_tab">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.4.2b</span>
+    <span class="version test">🧪 TEST · v2.4.2c</span>
   </footer>
 </div>
 
@@ -2548,6 +2548,20 @@ function planQrSvg(text){
     return q.createSvgTag({ cellSize: 3, margin: 12, scalable: true });
   }catch(e){ return ""; }
 }
+// Things in the way, drawn on the printed compass as shaded wedges over their compass range.
+function obstWedges(p, pt, cx, cy, R){
+  const obs = loadObst(p.loc).slice(0, 12), unit = p.unit || "ft", esc = t => String(t).replace(/[<>&"]/g, "");
+  let out = "";
+  obs.forEach((o, i) => {
+    let span = ((o.a2 - o.a1) % 360 + 360) % 360; if(span < 5) span = 5;
+    const a1 = o.a1, a2 = o.a1 + span, r0 = R * 0.58, r1 = R * 0.78, big = span > 180 ? 1 : 0;
+    const P = (az, L) => pt(az, L).map(v => v.toFixed(1)).join(" ");
+    out += `<path d="M ${P(a1, r1)} A ${r1} ${r1} 0 ${big} 1 ${P(a2, r1)} L ${P(a2, r0)} A ${r0} ${r0} 0 ${big} 0 ${P(a1, r0)} Z" fill="#777" fill-opacity="0.35" stroke="#555" stroke-width="1"/>`;
+    const mid = a1 + span / 2, [x, y] = pt(mid, r0 - 6), sn = Math.sin(mid * Math.PI / 180);
+    out += `<text x="${x.toFixed(0)}" y="${(y + 3).toFixed(0)}" font-size="11" fill="#222" text-anchor="${sn > 0.25 ? "end" : sn < -0.25 ? "start" : "middle"}">${esc(o.name)} ${lenOut(o.h, unit)}</text>`;
+  });
+  return out;
+}
 function planCompassSvg(p, pl){
   const { sun, moon } = pl, cx = 200, cy = 180, R = 150;
   const pt = (az, L) => [cx + L * Math.sin(az * Math.PI / 180), cy - L * Math.cos(az * Math.PI / 180)];
@@ -2556,11 +2570,12 @@ function planCompassSvg(p, pl){
   let sub = "";
   if(p.subject){
     const bd = bearingDist(p.loc.lat, p.loc.lon, p.subject.lat, p.subject.lon), [x, y] = pt(bd.brg, R * 0.9);
-    sub = `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(0)}" y2="${y.toFixed(0)}" stroke="#d63a22" stroke-width="3" stroke-dasharray="8 6"/><circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="7" fill="#d63a22"/>` + lab(bd.brg, R * 0.9 + 12, ((p.subject.name || "Subject").replace(/[<>&]/g, "")) + " " + Math.round(bd.brg) + "°", "#b8321a");
+    sub = `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(0)}" y2="${y.toFixed(0)}" stroke="#d63a22" stroke-width="3" stroke-dasharray="8 6"/><circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="7" fill="#d63a22"/>` + lab(bd.brg, R * 0.9 + 12, ((p.subject.name || "Subject").replace(/[<>&]/g, "")) + " " + Math.round(bd.brg) + "° · " + fmtDist(bd.km).split(" · ")[0], "#b8321a");
   }
   return `<svg viewBox="-50 0 500 360" width="100%"><circle cx="${cx}" cy="${cy}" r="${R + 12}" fill="none" stroke="#999" stroke-width="1.5"/><circle cx="${cx}" cy="${cy}" r="${(R + 12) * 2 / 3}" fill="none" stroke="#ccc" stroke-dasharray="3 4"/><circle cx="${cx}" cy="${cy}" r="${(R + 12) / 3}" fill="none" stroke="#ccc" stroke-dasharray="3 4"/>
     <line x1="${cx}" y1="18" x2="${cx}" y2="342" stroke="#ddd"/><line x1="26" y1="${cy}" x2="374" y2="${cy}" stroke="#ddd"/>
     <text x="${cx}" y="12" font-size="13" font-weight="700" text-anchor="middle">N</text><text x="404" y="${cy + 5}" font-size="13" font-weight="700" text-anchor="middle">E</text><text x="${cx}" y="356" font-size="13" font-weight="700" text-anchor="middle">S</text><text x="-4" y="${cy + 5}" font-size="13" font-weight="700" text-anchor="middle">W</text>
+    ${obstWedges(p, pt, cx, cy, R)}
     ${ray(sun.riseAz, R, "#c98a00", 4)}${ray(sun.setAz, R, "#e0541c", 4)}${ray(moon.moonriseAz, R * 0.8, "#4f6fc0", 3, "3 6")}${ray(moon.moonsetAz, R * 0.8, "#4f6fc0", 3, "3 6")}${sub}
     ${sun.riseAz != null ? lab(sun.riseAz, R + 4, "Sunrise " + Math.round(sun.riseAz) + "°", "#8a5f00") : ""}${sun.setAz != null ? lab(sun.setAz, R + 4, "Sunset " + Math.round(sun.setAz) + "°", "#b8400f") : ""}
     ${moon.moonriseAz != null ? lab(moon.moonriseAz, R * 0.8 + 4, "Moonrise " + Math.round(moon.moonriseAz) + "°", "#3a56a0", 16) : ""}${moon.moonsetAz != null ? lab(moon.moonsetAz, R * 0.8 + 4, "Moonset " + Math.round(moon.moonsetAz) + "°", "#3a56a0", 16) : ""}
@@ -2604,9 +2619,18 @@ function planPrintHtml(p, pl, qr){
   const sky = `<h2>Sky outlook</h2><div class="pr-note" style="font-size:12px;">${sk.length ? esc(sk.join(" · ")) + ". A snapshot of the forecast on " + esc(planDayLabel(new Date().toISOString().slice(0, 10))) + "; it can change." : "This date is outside the forecast window, so there is no sky score. Directions and times above are still exact."}</div>`;
   const notes = (p.calNotes || "").trim() ? `<h2>My notes</h2><div class="pr-box">${esc(p.calNotes.trim())}</div>` : "";
   const title = planEventTitle(p);
+  let hzBlock = "";
+  try{
+    const em = calEffMode(pl, mode, w || { start: pl.t0 }), ev = em === "morning" ? sun.rise : sun.set;
+    if(ev){
+      const S0 = bodyHorizontal(Astronomy.Body.Sun, ev, p.loc.lat, p.loc.lon), M0 = bodyHorizontal(Astronomy.Body.Moon, ev, p.loc.lat, p.loc.lon);
+      const hzo = planHorizonInner(p, pl, tz, ev, S0, M0, sun);
+      if(hzo && hzo.svg) hzBlock = `<h2>View at ${em === "morning" ? "sunrise" : "sunset"} · ${esc(String(hzo.label).toLowerCase())}</h2><div>${hzo.svg.replace(/hzSky/g, "hzSkyP")}</div><div class="pr-note">Flat horizon with the things in the way you entered. The Sun and Moon are where they will be at ${ft(ev)}.</div>`;
+    }
+  }catch(e){ console.error("Print horizon failed:", e); }
   return `<h1>${esc(title)}</h1><div class="pr-sub">${esc(planDateLabel(p.date))} · ${esc(p.loc.name)}${p.loc.name === p.loc.lat.toFixed(4) + ", " + p.loc.lon.toFixed(4) ? "" : " (" + p.loc.lat.toFixed(4) + ", " + p.loc.lon.toFixed(4) + ")"}</div>
-    <div class="pr-two"><div style="flex:1.2">${planCompassSvg(p, pl)}</div><div style="flex:1"><h2 style="margin-top:0">The light</h2>${light}${subj}</div></div>
-    ${fly}${sky}${notes}
+    <div class="pr-two"><div style="flex:1.2">${planCompassSvg(p, pl)}${hzBlock}</div><div style="flex:1"><h2 style="margin-top:0">The light</h2>${light}${subj}${sky}</div></div>
+    ${fly}${notes}
     <div class="pr-foot"><div>AfterGlow · afterglow.johnstonaerial.com<br>Printed from the Plan tab. Directions and times are calculated. The height of the subject, and anything in the way that you haven't entered, are not known.</div>${qr ? `<div style="width:92px;flex:none;text-align:center;">${qr}<div>Open this plan</div></div>` : ""}</div>`;
 }
 function planGcalUrl(p, pl, mode){
