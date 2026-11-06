@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.2i -->
+<!-- Afterglow v2.4.3a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -566,7 +566,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" id="footChk" target="_blank" rel="noopener" data-reuse="checklist_tab">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.4.2i</span>
+    <span class="version test">🧪 TEST · v2.4.3a</span>
   </footer>
 </div>
 
@@ -3298,12 +3298,13 @@ function renderPlan(app, tabsHtml){
     try{
       sunMapInstance = L.map(mapEl, { attributionControl: true }).setView(p.view ? [p.view.lat, p.view.lng] : [lat, lon], p.view ? p.view.z : 13);
       touchMapMode(sunMapInstance, mapEl);
+      // Remember the view (including the automatic fit) so a redraw keeps the map where it was
+      sunMapInstance.on("moveend", () => { const c = sunMapInstance.getCenter(); p.view = { lat: c.lat, lng: c.lng, z: sunMapInstance.getZoom() }; });
       // Coming back from full screen: re-fit so your spot and your subject are both in view
       if(p.fit){
         p.fit = false;
         planFitMap(sunMapInstance, lat, lon, p, false);
       }
-      sunMapInstance.on("moveend", () => { const c = sunMapInstance.getCenter(); p.view = { lat: c.lat, lng: c.lng, z: sunMapInstance.getZoom() }; });
       sunMapInstance.on("click", (ev) => {
         if(p.tap === "you"){ if(p.loc.name !== "Dropped pin") p.homeLoc = p.loc; p.loc = { name: "Dropped pin", lat: ev.latlng.lat, lon: ev.latlng.lng, tz: p.loc.tz }; p.scan = null; }
         else p.subject = { name: (p.subject && p.subject.name) || "Subject", type: p.subject && p.subject.type, lat: ev.latlng.lat, lon: ev.latlng.lng };
