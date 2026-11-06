@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.2e -->
+<!-- Afterglow v2.4.2f -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -565,7 +565,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" id="footChk" target="_blank" rel="noopener" data-reuse="checklist_tab">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.4.2e</span>
+    <span class="version test">🧪 TEST · v2.4.2f</span>
   </footer>
 </div>
 
@@ -2424,6 +2424,9 @@ function planLink(p){
   if(p.loc.tz) q.set("tz", p.loc.tz);
   if(p.min != null && p.t0ms){ const hm = localHM(new Date(p.t0ms + p.min * 60000), p.loc.tz); q.set("t", String(hm.h).padStart(2, "0") + String(hm.m).padStart(2, "0")); }
   if(p.subject){ q.set("sl", p.subject.lat.toFixed(5)); q.set("so", p.subject.lon.toFixed(5)); q.set("sn", p.subject.name || "Subject"); }
+  if(p.subject && p.subject.type && p.subject.type !== "marker") q.set("sk", p.subject.type);
+  if(p.vmode === "ground") q.set("vm", "g"); else if(p.vmode === "drone"){ q.set("vm", "d"); if(p.alt != null && isFinite(p.alt)) q.set("al", String(Math.round(p.alt))); }
+  if(p.calMode === "morning" || p.calMode === "evening") q.set("cm", p.calMode === "morning" ? "m" : "e");
   const ob = loadObst(p.loc).slice(0, 12).map(o => [o.type, Math.round(o.a1), Math.round(o.a2), Math.round(o.h * 10) / 10, Math.round(o.d), String(o.name || "").replace(/[|,<>&"'`]/g, "").slice(0, 30)].join(",")).join("|");
   if(ob) q.set("ob", ob);
   return location.origin + location.pathname + "?" + q.toString();
@@ -2442,6 +2445,9 @@ function planFromLink(){
     if(/^\d{4}$/.test(tt || "") && +tt.slice(0, 2) < 24 && +tt.slice(2) < 60) plan.linkMin = +tt.slice(0, 2) * 60 + +tt.slice(2);
     const sl = parseFloat(q.get("sl")), so = parseFloat(q.get("so"));
     if(isFinite(sl) && isFinite(so) && Math.abs(sl) <= 90 && Math.abs(so) <= 180) plan.subject = { name: clean(q.get("sn")).slice(0, 40) || "Subject", lat: sl, lon: so };
+    const sk = q.get("sk"); if(plan.subject && sk && SUBJ_TYPES.some(x => x[0] === sk)) plan.subject.type = sk;
+    const vm = q.get("vm"); if(vm === "g") plan.vmode = "ground"; else if(vm === "d"){ plan.vmode = "drone"; const al = parseFloat(q.get("al")); if(isFinite(al) && al >= 0 && al <= 5000) plan.alt = al; }
+    const cm = q.get("cm"); if(cm === "m") plan.calMode = "morning"; else if(cm === "e") plan.calMode = "evening";
     plan.obIn = parseObstParam(q.get("ob"));
     return plan;
   }catch(e){ return null; }
