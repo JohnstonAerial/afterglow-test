@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.3b -->
+<!-- Afterglow v2.4.3c -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -566,7 +566,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" id="footChk" target="_blank" rel="noopener" data-reuse="checklist_tab">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.4.3b</span>
+    <span class="version test">🧪 TEST · v2.4.3c</span>
   </footer>
 </div>
 
@@ -2577,7 +2577,14 @@ function planCompassSvg(p, pl){
   let sub = "";
   if(p.subject){
     const bd = bearingDist(p.loc.lat, p.loc.lon, p.subject.lat, p.subject.lon), [x, y] = pt(bd.brg, R * 0.9);
-    sub = `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(0)}" y2="${y.toFixed(0)}" stroke="#d63a22" stroke-width="3" stroke-dasharray="8 6"/><circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="7" fill="#d63a22"/>` + lab(bd.brg, R * 0.9 + 12, ((p.subject.name || "Subject").replace(/[<>&]/g, "")) + " " + Math.round(bd.brg) + "° · " + fmtDist(bd.km).split(" · ")[0], "#b8321a");
+    sub = `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(0)}" y2="${y.toFixed(0)}" stroke="#d63a22" stroke-width="3" stroke-dasharray="8 6"/><circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="7" fill="#d63a22"/>` + (() => {
+      // The label sits just past the dot; a long name near the left or right edge is moved above the dot and aligned inward so it is never cut off.
+      const txt = ((p.subject.name || "Subject").replace(/[<>&]/g, "")) + " " + Math.round(bd.brg) + "° · " + fmtDist(bd.km).split(" · ")[0], wd = txt.length * 7;
+      const [lx, ly] = pt(bd.brg, R * 0.9 + 12), sn = Math.sin(bd.brg * Math.PI / 180);
+      if(sn > 0.2 && lx + wd > 446) return `<text x="${(x + 10).toFixed(0)}" y="${(y - 14).toFixed(0)}" font-size="11.5" font-weight="700" fill="#b8321a" text-anchor="end">${txt}</text>`;
+      if(sn < -0.2 && lx - wd < -46) return `<text x="${(x - 10).toFixed(0)}" y="${(y - 14).toFixed(0)}" font-size="11.5" font-weight="700" fill="#b8321a" text-anchor="start">${txt}</text>`;
+      return lab(bd.brg, R * 0.9 + 12, txt, "#b8321a");
+    })();
   }
   return `<svg viewBox="-50 0 500 360" width="100%"><circle cx="${cx}" cy="${cy}" r="${R + 12}" fill="none" stroke="#999" stroke-width="1.5"/><circle cx="${cx}" cy="${cy}" r="${(R + 12) * 2 / 3}" fill="none" stroke="#ccc" stroke-dasharray="3 4"/><circle cx="${cx}" cy="${cy}" r="${(R + 12) / 3}" fill="none" stroke="#ccc" stroke-dasharray="3 4"/>
     <line x1="${cx}" y1="18" x2="${cx}" y2="342" stroke="#ddd"/><line x1="26" y1="${cy}" x2="374" y2="${cy}" stroke="#ddd"/>
