@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.2h -->
+<!-- Afterglow v2.4.2i -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -566,7 +566,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" id="footChk" target="_blank" rel="noopener" data-reuse="checklist_tab">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.4.2h</span>
+    <span class="version test">🧪 TEST · v2.4.2i</span>
   </footer>
 </div>
 
@@ -2624,7 +2624,8 @@ function planPrintHtml(p, pl, qr){
   }
   const sk = [["evening", "Sunset"], ["morning", "Sunrise"]].map(([m, n]) => { const t = planSkyLine(p, sun, m); return t ? n + " " + t : ""; }).filter(Boolean);
   const sky = `<h2>Sky outlook</h2><div class="pr-note" style="font-size:12px;">${sk.length ? esc(sk.join(" · ")) + ". A snapshot of the forecast on " + esc(planDayLabel(new Date().toISOString().slice(0, 10))) + "; it can change." : "This date is outside the forecast window, so there is no sky score. Directions and times above are still exact."}</div>`;
-  const notes = (p.calNotes || "").trim() ? `<h2>My notes</h2><div class="pr-box">${esc(p.calNotes.trim())}</div>` : "";
+  const nt = (p.calNotes || "").trim().slice(0, 600), longNote = nt.length > 200;
+  const notes = !nt ? "" : longNote ? `<div class="pr-note" style="margin-top:8px;">My notes continue on page 2.</div><div style="break-before:page;page-break-before:always;"><h2 style="margin-top:0">My notes · ${esc(planEventTitle(p))}</h2><div class="pr-box" style="font-size:13px;line-height:1.5;">${esc(nt)}</div></div>` : `<h2>My notes</h2><div class="pr-box">${esc(nt)}</div>`;
   const title = planEventTitle(p);
   let hzBlock = "";
   try{
