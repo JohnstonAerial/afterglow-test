@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.3c -->
+<!-- Afterglow v2.4.4a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -196,6 +196,18 @@
   .map-readout{ display:flex; gap: 10px; margin-bottom: 14px; }
   .map-readout .card{ flex: 1; text-align: center; }
   .map-note{ font-size: 12.5px; line-height: 1.5; color: var(--slate); }
+  /* Reality check: airport reports toward the sun, shown in the last 3 hours before the event */
+  .rc-card{ border:1px solid var(--line); border-left:4px solid var(--rc, var(--slate)); background: var(--card); border-radius:14px; padding:14px 16px 12px; margin:14px 0 12px; }
+  .rc-head{ display:flex; justify-content:space-between; gap:8px; align-items:baseline; font:600 11px/1.2 ui-monospace,Menlo,monospace; letter-spacing:.14em; text-transform:uppercase; color: var(--slate); }
+  .rc-head span:last-child{ font-weight:400; letter-spacing:0; text-transform:none; font-size:12px; }
+  .rc-verdict{ margin-top:10px; font:600 18px/1.25 Georgia,serif; color: var(--rc, var(--slate)); }
+  .rc-text{ margin:6px 0 10px; font-size:14px; line-height:1.45; color: var(--sand); }
+  .rc-row{ display:flex; justify-content:space-between; gap:8px; padding:7px 0; border-top:1px solid var(--line); font:12.5px ui-monospace,Menlo,monospace; color: var(--sand); }
+  .rc-row small{ color: var(--slate); font:inherit; }
+  .rc-row b:last-child{ white-space:nowrap; }
+  .rc-note{ margin-top:8px; font-size:12px; line-height:1.4; color: var(--slate); }
+  .rc-ok{ --rc:#7bd88f; } .rc-bad{ --rc: var(--ember); } .rc-none{ --rc: var(--slate); }
+  html[data-theme="light"] .rc-ok{ --rc:#116329; }
   .plan-fold{ border:1px solid var(--line); background: var(--card); border-radius:14px; margin-bottom:12px; }
   .plan-fold > summary{ list-style:none; cursor:pointer; padding:14px 16px; font-size:14px; color: var(--sand); display:flex; justify-content:space-between; align-items:center; }
   .plan-fold > summary::-webkit-details-marker{ display:none; }
@@ -566,7 +578,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" id="footChk" target="_blank" rel="noopener" data-reuse="checklist_tab">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.4.3c</span>
+    <span class="version test">🧪 TEST · v2.4.4a</span>
   </footer>
 </div>
 
@@ -2081,6 +2093,77 @@ function render(){
   saveUi();
 }
 
+// ---------- Reality check: real airport reports toward the sun ----------
+// A second opinion for the last 3 hours before sunrise/sunset. It checks for blockers (low and mid cloud
+// that the forecast missed). Airport reports only see cloud below about 12,000 ft, so they can't judge high
+// cloud (the color). The score is never changed by this.
+const AG_METAR_PROXY = "https://uas-metar.fisherofmen58.workers.dev";
+const RC_COVER = { SKC: 0, CLR: 0, NSC: 0, NCD: 0, CAVOK: 0, FEW: 18, SCT: 44, BKN: 75, OVC: 100, OVX: 100, VV: 100 };
+const RC_WORDS = { FEW: "a few clouds", SCT: "scattered cloud", BKN: "a broken deck", OVC: "overcast", OVX: "overcast", VV: "overcast" };
+const rcEsc = t => String(t).replace(/[<>&"]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
+async function rcFetchPoint(lat, lon){
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 9000);
+  try{
+    const r = await fetch(`${AG_METAR_PROXY}/metar?lat=${lat.toFixed(2)}&lon=${lon.toFixed(2)}`, { signal: ctl.signal });
+    if(!r.ok) throw new Error("metar " + r.status);
+    const j = await r.json();
+    return Array.isArray(j) ? j : [];
+  } finally { clearTimeout(t); }
+}
+function rcStationSky(st){
+  const layers = (st.clouds || []).map(c => ({ code: String(c.cover || c.code || "").toUpperCase(), base: (c.base != null && isFinite(c.base)) ? c.base : null }))
+    .filter(c => c.code in RC_COVER);
+  let top = { code: "CLR", base: null, pct: 0 };
+  layers.forEach(l => { const pct = RC_COVER[l.code]; if(pct > top.pct || (pct === top.pct && pct > 0 && l.base != null && (top.base == null || l.base < top.base))) top = { code: l.code, base: l.base, pct }; });
+  return top;
+}
+async function rcLoad(loc, eventIso, az){
+  const pts = [[loc.lat, loc.lon]];
+  [80, 160].forEach(km => { const p = projectPoint(loc.lat, loc.lon, az, km); pts.push([p.lat, p.lon]); });
+  const lists = await Promise.all(pts.map(p => rcFetchPoint(p[0], p[1])));
+  const seen = {}, nowS = Date.now() / 1000, out = [];
+  lists.forEach(l => l.forEach(st => {
+    if(!st || !st.icaoId || seen[st.icaoId] || st.lat == null || st.lon == null) return;
+    seen[st.icaoId] = 1;
+    const age = st.obsTime ? (nowS - st.obsTime) / 60 : null;
+    if(age == null || age > 120 || age < -10) return;
+    const bd = bearingDist(loc.lat, loc.lon, st.lat, st.lon);
+    if(bd.km > 260) return;
+    if(bd.km > 20 && Math.abs(angDiff(az, bd.brg)) > 40) return;
+    out.push({ id: st.icaoId, name: String(st.name || "").split(",")[0].replace(/\s+(Intl|International|Airport|Regional|Rgnl|Municipal|Muni)\b.*$/i, "").trim(), km: bd.km, brg: bd.brg, obs: st.obsTime, sky: rcStationSky(st) });
+  }));
+  out.sort((a, b) => a.km - b.km);
+  return out.slice(0, 3);
+}
+function rcCardHtml(rc, mode, minsLeft, fc, where){
+  const evName = mode === "evening" ? "Sunset" : "Sunrise";
+  const h = Math.floor(minsLeft / 60), m = Math.round(minsLeft % 60);
+  const left = h >= 1 ? `${h} h${m ? " " + m + " min" : ""}` : `${Math.max(1, m)} min`;
+  const note = `<div class="rc-note">Airport reports can't see high cloud, so this checks for blockers, not color. The score is unchanged.</div>`;
+  const head = `<div class="rc-head"><span>Reality check</span><span>${evName} in ${left}</span></div>`;
+  if(!rc.length) return `<div class="rc-card rc-none">${head}<div class="rc-verdict">No recent reports toward the sun</div><div class="rc-text">No airport toward the sun has reported in the last 2 hours, so there is nothing to compare with the forecast.</div>${note}</div>`;
+  const pcts = rc.map(r => r.sky.pct).sort((a, b) => a - b);
+  const agg = pcts.length === 2 ? (pcts[0] + pcts[1]) / 2 : pcts[Math.floor(pcts.length / 2)];
+  const rep = rc.slice().sort((a, b) => Math.abs(a.sky.pct - agg) - Math.abs(b.sky.pct - agg))[0].sky;
+  const baseTxt = rep.base != null ? ` at ${(Math.round(rep.base / 100) * 100).toLocaleString("en-US")} ft` : "";
+  const phr = rep.pct === 0 ? "clear skies below 12,000 ft" : (RC_WORDS[rep.code] || "cloud") + baseTxt;
+  const bad = (agg - fc >= 35 && agg >= 60) || (fc - agg >= 35 && fc >= 60);
+  const rows = rc.map(r => {
+    const code = r.sky.pct === 0 ? "CLR" : r.sky.code + (r.sky.base != null ? " " + (Math.round(r.sky.base / 100) * 100).toLocaleString("en-US") + " ft" : "");
+    return `<div class="rc-row"><span><b>${rcEsc(r.id)}</b> ${rcEsc(r.name)}<br><small>${fmtDist(r.km).split(" · ")[0]} ${compassDir(r.brg)} · ${fmt(new Date(r.obs * 1000))}</small></span><b>${code}</b></div>`;
+  }).join("");
+  return `<div class="rc-card ${bad ? "rc-bad" : "rc-ok"}">${head}<div class="rc-verdict">${bad ? "Disagrees with the forecast" : "Agrees with the forecast"}</div><div class="rc-text">Forecast says low and mid cloud ${fc}% ${where}. Airports toward the sun report ${phr}.</div>${rows}${note}</div>`;
+}
+function rcSlot(eventIso, mode, az, fc, where){
+  const el = document.getElementById("rcSlot");
+  if(!el) return;
+  const minsLeft = (new Date(eventIso).getTime() - Date.now()) / 60000;
+  if(!(minsLeft > 0 && minsLeft <= 180)) return;
+  const loc = state.loc, key = [loc.lat.toFixed(2), loc.lon.toFixed(2), eventIso].join("|");
+  const draw = rc => { if(el.isConnected) el.innerHTML = rcCardHtml(rc, mode, minsLeft, fc, where); };
+  if(state.rc && state.rc.key === key && Date.now() - state.rc.at < 300000) { draw(state.rc.list); return; }
+  rcLoad(loc, eventIso, az).then(list => { state.rc = { key, at: Date.now(), list }; draw(list); }).catch(() => {});
+}
 function renderToday(app, tabsHtml){
   const { daily, hourly, activeDay, mode, loc } = state;
 
@@ -2169,7 +2252,8 @@ function renderToday(app, tabsHtml){
         ${astroTwilight ? `<div class="hero-time-item"><div class="k">${astroLabel}</div><div class="v">${fmt(astroTwilight)}</div></div>` : ""}
       </div>` : ""}
     </div>
-  </div>`;
+  </div>
+  <div id="rcSlot"></div>`;
 
   let skyInner = `<div class="grid">
     ${s.beam != null ? statCard("Toward the sun", Math.max(s.beamLow, s.beamMid), "%",
@@ -2198,6 +2282,7 @@ function renderToday(app, tabsHtml){
 
   html += checklistBtnHtml(state.loc, "todayChk");
   app.innerHTML = html;
+  rcSlot(eventIso, mode, azimuth, s.beam != null ? Math.max(s.beamLow, s.beamMid) : Math.max(s.low, s.mid), s.beam != null ? "toward the sun" : "at your spot");
 
   document.querySelectorAll(".toggle-btn").forEach(b => b.addEventListener("click", () => {
     state.mode = b.dataset.mode; render();
