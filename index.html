@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.2f -->
+<!-- Afterglow v2.4.2g -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -282,6 +282,7 @@
     #printRoot .pr-row{ display:flex; justify-content:space-between; gap:10px; padding:2px 0; }
     #printRoot .pr-row b{ text-align:right; }
     #printRoot .pr-note{ font-size:11px; color:#555; line-height:1.4; }
+    #printRoot .pr-foot, #printRoot .pr-box{ break-inside:avoid; }
     #printRoot .pr-box{ border:1px solid #bbb; border-radius:6px; padding:7px 10px; margin-top:6px; white-space:pre-wrap; }
     #printRoot .pr-foot{ display:flex; justify-content:space-between; align-items:flex-end; gap:14px; margin-top:14px; padding-top:8px; border-top:1px solid #ccc; font-size:10px; color:#666; }
   }
@@ -565,7 +566,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" id="footChk" target="_blank" rel="noopener" data-reuse="checklist_tab">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.4.2f</span>
+    <span class="version test">🧪 TEST · v2.4.2g</span>
   </footer>
 </div>
 
@@ -2634,10 +2635,11 @@ function planPrintHtml(p, pl, qr){
       if(hzo && hzo.svg) hzBlock = `<h2>View at ${em === "morning" ? "sunrise" : "sunset"} · ${esc(String(hzo.label).toLowerCase())}</h2><div>${hzo.svg.replace(/hzSky/g, "hzSkyP")}</div><div class="pr-note">Flat horizon with the things in the way you entered. The Sun and Moon are where they will be at ${ft(ev)}.</div>`;
     }
   }catch(e){ console.error("Print horizon failed:", e); }
-  return `<h1>${esc(title)}</h1><div class="pr-sub">${esc(planDateLabel(p.date))} · ${esc(p.loc.name)}${p.loc.name === p.loc.lat.toFixed(4) + ", " + p.loc.lon.toFixed(4) ? "" : " (" + p.loc.lat.toFixed(4) + ", " + p.loc.lon.toFixed(4) + ")"}</div>
+  const qrTop = qr ? `<div style="width:84px;flex:none;text-align:center;font-size:9px;color:#555;line-height:1.2;">${qr}Open this plan</div>` : "";
+  return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;"><div style="min-width:0;"><h1>${esc(title)}</h1><div class="pr-sub">${esc(planDateLabel(p.date))} · ${esc(p.loc.name)}${p.loc.name === p.loc.lat.toFixed(4) + ", " + p.loc.lon.toFixed(4) ? "" : " (" + p.loc.lat.toFixed(4) + ", " + p.loc.lon.toFixed(4) + ")"}</div></div>${qrTop}</div>
     <div class="pr-two"><div style="flex:1.2">${planCompassSvg(p, pl)}${hzBlock}</div><div style="flex:1"><h2 style="margin-top:0">The light</h2>${light}${subj}${sky}</div></div>
     ${fly}${notes}
-    <div class="pr-foot"><div>AfterGlow · afterglow.johnstonaerial.com<br>Printed from the Plan tab. Directions and times are calculated. The height of the subject, and anything in the way that you haven't entered, are not known.</div>${qr ? `<div style="width:92px;flex:none;text-align:center;">${qr}<div>Open this plan</div></div>` : ""}</div>`;
+    <div class="pr-foot"><div>AfterGlow · afterglow.johnstonaerial.com<br>Printed from the Plan tab. Directions and times are calculated. The height of the subject, and anything in the way that you haven't entered, are not known.</div></div>`;
 }
 function planGcalUrl(p, pl, mode){
   const w = planShootWindow(pl, mode, p); if(!w || w.bad) return null;
