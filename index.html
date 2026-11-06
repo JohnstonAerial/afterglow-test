@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.2a -->
+<!-- Afterglow v2.4.2b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -409,7 +409,7 @@
   .dock-main{ min-width:0; }
   .dock-top .plan-clock{ margin:0; font-size:26px; white-space:nowrap; line-height:1.15; }
   .dock-top .plan-seg-b{ margin-left:auto; }
-  .plan-dock .plan-range{ margin:0; height:34px; touch-action:none; }
+  .plan-dock .plan-range{ margin:0; height:34px; }
   .plan-dock .plan-ticks{ margin-top:-2px; }
   .plan-subjname{ margin:0 0 10px; }
   .ob-types{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin:0 0 8px; }
@@ -565,7 +565,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" id="footChk" target="_blank" rel="noopener" data-reuse="checklist_tab">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.4.2a</span>
+    <span class="version test">🧪 TEST · v2.4.2b</span>
   </footer>
 </div>
 
@@ -2424,6 +2424,8 @@ function planLink(p){
   if(p.loc.tz) q.set("tz", p.loc.tz);
   if(p.min != null && p.t0ms){ const hm = localHM(new Date(p.t0ms + p.min * 60000), p.loc.tz); q.set("t", String(hm.h).padStart(2, "0") + String(hm.m).padStart(2, "0")); }
   if(p.subject){ q.set("sl", p.subject.lat.toFixed(5)); q.set("so", p.subject.lon.toFixed(5)); q.set("sn", p.subject.name || "Subject"); }
+  const ob = loadObst(p.loc).slice(0, 12).map(o => [o.type, Math.round(o.a1), Math.round(o.a2), Math.round(o.h * 10) / 10, Math.round(o.d), String(o.name || "").replace(/[|,<>&"'`]/g, "").slice(0, 30)].join(",")).join("|");
+  if(ob) q.set("ob", ob);
   return location.origin + location.pathname + "?" + q.toString();
 }
 function planFromLink(){
@@ -2440,8 +2442,31 @@ function planFromLink(){
     if(/^\d{4}$/.test(tt || "") && +tt.slice(0, 2) < 24 && +tt.slice(2) < 60) plan.linkMin = +tt.slice(0, 2) * 60 + +tt.slice(2);
     const sl = parseFloat(q.get("sl")), so = parseFloat(q.get("so"));
     if(isFinite(sl) && isFinite(so) && Math.abs(sl) <= 90 && Math.abs(so) <= 180) plan.subject = { name: clean(q.get("sn")).slice(0, 40) || "Subject", lat: sl, lon: so };
+    plan.obIn = parseObstParam(q.get("ob"));
     return plan;
   }catch(e){ return null; }
+}
+// "Things in the way" carried by a share link: checked, then added to this place on this device.
+function parseObstParam(v){
+  const out = [];
+  String(v || "").split("|").slice(0, 12).forEach(part => {
+    const t = part.split(",");
+    if(t.length < 5) return;
+    const ty = t[0], a1 = parseFloat(t[1]), a2 = parseFloat(t[2]), h = parseFloat(t[3]), d = parseFloat(t[4]);
+    if(!OB_TYPES.some(q => q[0] === ty)) return;
+    if(![a1, a2, h, d].every(isFinite) || a1 < 0 || a1 > 360 || a2 < 0 || a2 > 360 || h <= 0 || h > 30000 || d <= 0 || d > 500000) return;
+    const name = (t.slice(5).join(" ") || "").replace(/[<>&"'`]/g, "").replace(/\s+/g, " ").trim().slice(0, 30) || OB_TYPES.find(q => q[0] === ty)[1];
+    out.push({ name: name, type: ty, a1: a1 % 360, a2: a2 % 360, h: h, d: d });
+  });
+  return out;
+}
+function importObst(loc, list){
+  if(!list || !list.length) return 0;
+  const have = loadObst(loc), same = (x, y) => x.type === y.type && Math.round(x.a1) === Math.round(y.a1) && Math.round(x.a2) === Math.round(y.a2) && Math.round(x.d) === Math.round(y.d) && Math.abs(x.h - y.h) < 1;
+  let n = 0;
+  list.forEach(o => { if(have.length < 12 && !have.some(x => same(x, o))){ have.push(o); n++; } });
+  if(n) saveObst(loc, have);
+  return n;
 }
 // Sky forecast for the planning place. Uses the app's own forecast when the plan is at the saved place.
 async function loadPlanSky(p){
@@ -2706,17 +2731,17 @@ function planViewCardHtml(p, pl, esc){
     return `<div class="label" style="margin-top:8px;">${label}</div>${r}`;
   };
   h += `<div class="card" style="margin-bottom:10px;"><div class="label">Sun at the horizon, ${planDayLabel(p.date)}</div>${block("evening", "Sunset") + block("morning", "Sunrise") || '<div class="note" style="font-size:12.5px;">The Sun doesn\'t rise or set on this date here.</div>'}</div>`;
-  h += `<div class="card" style="margin-bottom:12px;"><div class="label">Things in the way at this spot</div>`;
+  h += `<div class="card" style="margin-bottom:12px;"><div class="label">Things in the way at this spot</div>${p.obNote ? `<div class="plan-msg" style="color:var(--gold);margin:4px 0 6px;">${esc(p.obNote)}</div>` : ""}`;
   if(!obs.length) h += `<div class="note" style="font-size:12.5px;margin-bottom:8px;">Trees, buildings or a hill that block the Sun. You've seen them; the app can't. Enter what you know, and the times above allow for it.</div>`;
   obs.forEach((o, i) => {
     h += `<div class="plan-row2"><span><b>${esc(o.name)}</b> · ${Math.round(o.a1)}° to ${Math.round(o.a2)}°<br><span style="color:var(--slate);font-size:12.5px;">${lenOut(o.h, unit)} tall, ${lenOut(o.d, unit)} away</span></span><b>${Math.max(0, obstAngle(o, 0)).toFixed(0)}° from the ground${drone ? `<br><span style="color:var(--slate);font-weight:400;font-size:12.5px;">${Math.max(0, obstAngle(o, hFt)).toFixed(0)}° at ${lenOut(hFt, unit)}</span>` : ""}<br><button class="plan-seg-b" data-delobs="${i}" style="margin-top:4px;padding:3px 10px;font-size:12px;">Remove</button></b></div>`;
   });
   if(p.addObs){
     h += `<div style="margin-top:8px;"><div class="note" style="font-size:12.5px;margin:0 0 4px;">What is it?</div><div class="ob-types"><button type="button" class="ob-type${p.obType === 'trees' || (!p.obType && 'trees' === 'trees') ? " on" : ""}" data-obtype="trees"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><circle cx="8" cy="14" r="6"/><circle cx="17" cy="12" r="7"/><circle cx="27" cy="14" r="6"/><circle cx="34" cy="15" r="5"/><rect x="3" y="14" width="34" height="8"/></svg>Trees</button><button type="button" class="ob-type${p.obType === 'tree' || (!p.obType && 'tree' === 'trees') ? " on" : ""}" data-obtype="tree"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><rect x="18.5" y="14" width="3" height="9"/><circle cx="20" cy="10" r="7"/><circle cx="14" cy="14" r="5"/><circle cx="26" cy="14" r="5"/></svg>Big tree</button><button type="button" class="ob-type${p.obType === 'building' || (!p.obType && 'building' === 'trees') ? " on" : ""}" data-obtype="building"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><rect x="8" y="5" width="14" height="17"/><rect x="22" y="12" width="10" height="10"/></svg>Building</button><button type="button" class="ob-type${p.obType === 'hill' || (!p.obType && 'hill' === 'trees') ? " on" : ""}" data-obtype="hill"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><path d="M2 22 Q12 4 22 12 Q32 2 38 16 L38 22 Z"/></svg>Hill</button><button type="button" class="ob-type${p.obType === 'tower' || (!p.obType && 'tower' === 'trees') ? " on" : ""}" data-obtype="tower"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><polygon points="18,22 22,22 21,2 19,2"/><rect x="13" y="8" width="14" height="1.5"/></svg>Tower</button><button type="button" class="ob-type${p.obType === 'wall' || (!p.obType && 'wall' === 'trees') ? " on" : ""}" data-obtype="wall"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><rect x="3" y="14" width="34" height="8"/></svg>Wall</button></div><input class="plan-name" id="obName" maxlength="30" placeholder="Name it (optional)">
-      <div class="plan-row"><span style="font-size:13px;">From</span><input class="plan-date" type="number" inputmode="decimal" id="obA1" placeholder="240" aria-label="From compass degrees"><span style="font-size:13px;">to</span><input class="plan-date" type="number" inputmode="decimal" id="obA2" placeholder="260" aria-label="To compass degrees"><span style="font-size:13px;">°</span></div>
-      <div class="plan-row"><span class="ob-lbl" style="font-size:13px;">Height</span><input class="plan-date" type="number" inputmode="decimal" id="obH" placeholder="70" aria-label="Height"><span style="font-size:13px;">${unit}</span></div>
-      <div class="plan-row"><span class="ob-lbl" style="font-size:13px;">Distance</span><input class="plan-date" type="number" inputmode="decimal" id="obD" placeholder="700" aria-label="Distance"><span style="font-size:13px;">${unit}</span></div>
-      ${p.obMsg ? `<div class="plan-msg">${esc(p.obMsg)}</div>` : ""}
+      <div class="plan-row"><span style="font-size:13px;">From</span><input class="plan-date" type="number" inputmode="decimal" id="obA1" placeholder="e.g. 240" aria-label="From compass degrees"><span style="font-size:13px;">to</span><input class="plan-date" type="number" inputmode="decimal" id="obA2" placeholder="e.g. 260" aria-label="To compass degrees"><span style="font-size:13px;">°</span></div>
+      <div class="plan-row"><span class="ob-lbl" style="font-size:13px;">Height</span><input class="plan-date" type="number" inputmode="decimal" id="obH" placeholder="e.g. 70" aria-label="Height"><span style="font-size:13px;">${unit}</span></div>
+      <div class="plan-row"><span class="ob-lbl" style="font-size:13px;">Distance</span><input class="plan-date" type="number" inputmode="decimal" id="obD" placeholder="e.g. 700" aria-label="Distance"><span style="font-size:13px;">${unit}</span></div>
+      <div class="plan-msg" id="obErr" style="display:${p.obMsg ? "block" : "none"};color:#e0600f;font-weight:600;">${esc(p.obMsg || "")}</div>
       <div class="plan-seg"><button class="plan-seg-b on" id="obSave">Save</button><button class="plan-seg-b" id="obCancel">Cancel</button></div>
       <div class="note" style="font-size:12.5px;">Compass degrees: north 0, east 90, south 180, west 270. Height is above the ground you stand on.</div></div>`;
   } else if(obs.length < 12){
@@ -3390,11 +3415,20 @@ function renderPlan(app, tabsHtml){
   const oAdd = $("obAdd"); if(oAdd) oAdd.addEventListener("click", () => { p.addObs = true; p.obMsg = ""; p.obType = "trees"; render(); });
   document.querySelectorAll(".ob-type").forEach(b => b.addEventListener("click", () => { p.obType = b.dataset.obtype; document.querySelectorAll(".ob-type").forEach(x => x.classList.toggle("on", x === b)); }));
   const oCan = $("obCancel"); if(oCan) oCan.addEventListener("click", () => { p.addObs = false; p.obMsg = ""; render(); });
+  ["obA1", "obA2", "obH", "obD"].forEach(id => { const e = $(id); if(e) e.addEventListener("input", () => { e.style.outline = ""; }); });
   const oSave = $("obSave");
   if(oSave) oSave.addEventListener("click", () => {
     const u = p.unit || "ft", ty = OB_TYPES.some(q => q[0] === p.obType) ? p.obType : "trees", n = ($("obName").value || "").replace(/[<>&"]/g, "").trim().slice(0, 30) || OB_TYPES.find(q => q[0] === ty)[1];
     const a1 = parseFloat($("obA1").value), a2 = parseFloat($("obA2").value), hh = parseFloat($("obH").value), dd = parseFloat($("obD").value);
-    if(![a1, a2, hh, dd].every(isFinite) || a1 < 0 || a1 > 360 || a2 < 0 || a2 > 360 || hh <= 0 || dd <= 0){ p.obMsg = "Fill in the compass range (0 to 360), the height and the distance, all above zero."; render(); return; }
+    const chk = [["obA1", a1, "the compass start (0 to 360)"], ["obA2", a2, "the compass end (0 to 360)"], ["obH", hh, "a height above zero"], ["obD", dd, "a distance above zero"]];
+    const bad = chk.filter(c => !isFinite(c[1]) || (c[0] === "obA1" || c[0] === "obA2" ? (c[1] < 0 || c[1] > 360) : c[1] <= 0));
+    chk.forEach(c => { const e = $(c[0]); if(e) e.style.outline = bad.some(b => b[0] === c[0]) ? "2px solid #e0600f" : ""; });
+    if(bad.length){
+      const er = $("obErr"); p.obMsg = "Still needed: " + bad.map(b => b[2]).join(", ") + ".";
+      if(er){ er.textContent = p.obMsg; er.style.display = "block"; }
+      const fe = $(bad[0][0]); if(fe){ fe.focus(); try{ fe.scrollIntoView({ block: "center" }); }catch(e){} }
+      return;
+    }
     const list = loadObst(p.loc); list.push({ name: n, type: ty, a1: a1 % 360, a2: a2 % 360, h: lenIn(hh, u), d: lenIn(dd, u) });
     saveObst(p.loc, list); p.addObs = false; p.obMsg = ""; render();
   });
@@ -4007,6 +4041,7 @@ function initLocation(){
     try{ history.replaceState(null, "", location.pathname); }catch(e){}
     state.view = "plan";
     state.plan = planLinkData;
+    try{ const n = importObst(planLinkData.loc, planLinkData.obIn); if(n) planLinkData.obNote = "Added " + n + (n === 1 ? " thing" : " things") + " in the way from this link."; }catch(e){}
     const base = loadLoc() || { name: planLinkData.loc.name, lat: planLinkData.loc.lat, lon: planLinkData.loc.lon };
     boot(base);
     return;
