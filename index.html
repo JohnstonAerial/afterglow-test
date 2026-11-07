@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.4a -->
+<!-- Afterglow v2.4.4b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -367,6 +367,9 @@
   .why{ font-size: 13px; line-height: 1.6; color: var(--slate); border-top: 1px solid var(--line); padding-top: 16px; margin-top: 22px; }
   .why b{ color: var(--sand); }
 
+  /* Keep the page height steady while the forecast loads, so the footer and the cards below don't jump */
+  #app{ min-height: 90vh; min-height: 90svh; }
+  .rc-skel{ min-height: 300px; }
   footer{ text-align:center; font-size: 12px; line-height:1.55; color: var(--slate); margin-top: 36px; font-family:'IBM Plex Mono', monospace; }
   footer a{ text-decoration: underline; text-decoration-color: var(--slate); }
 
@@ -578,7 +581,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" id="footChk" target="_blank" rel="noopener" data-reuse="checklist_tab">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.4.4a</span>
+    <span class="version test">🧪 TEST · v2.4.4b</span>
   </footer>
 </div>
 
@@ -2162,7 +2165,9 @@ function rcSlot(eventIso, mode, az, fc, where){
   const loc = state.loc, key = [loc.lat.toFixed(2), loc.lon.toFixed(2), eventIso].join("|");
   const draw = rc => { if(el.isConnected) el.innerHTML = rcCardHtml(rc, mode, minsLeft, fc, where); };
   if(state.rc && state.rc.key === key && Date.now() - state.rc.at < 300000) { draw(state.rc.list); return; }
-  rcLoad(loc, eventIso, az).then(list => { state.rc = { key, at: Date.now(), list }; draw(list); }).catch(() => {});
+  // Hold the card's space while the reports load, so the cards below don't jump when it appears
+  el.innerHTML = `<div class="rc-card rc-none rc-skel"><div class="rc-head"><span>Reality check</span><span>Checking airport reports…</span></div></div>`;
+  rcLoad(loc, eventIso, az).then(list => { state.rc = { key, at: Date.now(), list }; draw(list); }).catch(() => { if(el.isConnected) el.innerHTML = ""; });
 }
 function renderToday(app, tabsHtml){
   const { daily, hourly, activeDay, mode, loc } = state;
