@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.4b -->
+<!-- Afterglow v2.4.4c -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -581,7 +581,7 @@
     Forecasts via Open&#8209;Meteo · Moon times by Astronomy Engine · not a substitute for checking the sky yourself.<br>
     <a href="https://github.com/JohnstonAerial/afterglow-test/blob/main/HOW-TO.md" target="_blank" rel="noopener">How to use Afterglow</a> · <a href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener">About, how it's scored &amp; privacy</a> · <a href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" style="white-space:nowrap">Buy me a coffee <svg class="cup" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#f3e3c8"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="#f3e3c8" stroke-width="1.8"/><path d="M3 9h14v2.2H3z" fill="#7a4a2b"/><path d="M7 2.5c-1 1.2 1 2.2 0 3.4M11 2.5c-1 1.2 1 2.2 0 3.4M15 2.5c-1 1.2 1 2.2 0 3.4" fill="none" stroke="#a2abc1" stroke-width="1.2" stroke-linecap="round"/></svg></a> if this helped you catch an epic sky.<br>
     Also from Johnston Aerial:<br><a href="https://checklist.johnstonaerial.com/" id="footChk" target="_blank" rel="noopener" data-reuse="checklist_tab">Free Drone Preflight Checklist</a>
-    <span class="version test">🧪 TEST · v2.4.4b</span>
+    <span class="version test">🧪 TEST · v2.4.4c</span>
   </footer>
 </div>
 
@@ -4293,6 +4293,43 @@ function applyBigText(on){
       });
     });
   }
+</script>
+<!-- Hidden "don't count my visits" switch: tap the version text 5 times -->
+<script>
+(function () {
+  var KEY = 'agNoTrack', el = document.querySelector('footer .version');
+  if (!el) return;
+  var n = 0, t0 = 0;
+  function isOff() { try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } }
+  function show() {
+    var old = document.getElementById('ntPanel'); if (old) old.remove();
+    var off = isOff();
+    var d = document.createElement('div'); d.id = 'ntPanel'; d.setAttribute('role', 'dialog');
+    d.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;width:min(88%,340px);padding:14px 16px;border-radius:12px;background:#1b1b1f;color:#f3efe6;border:1px solid #c9a24a;font:14px/1.4 system-ui,sans-serif;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.4)';
+    var m = document.createElement('div');
+    m.textContent = off ? 'Visit counting is off on this device.' : 'Visit counting is on for this device.';
+    m.style.marginBottom = '10px';
+    var b = document.createElement('button'); b.type = 'button';
+    b.textContent = off ? 'Turn counting on' : 'Turn counting off';
+    b.style.cssText = 'font:inherit;padding:8px 14px;margin:0 4px;border-radius:8px;border:1px solid #c9a24a;background:#c9a24a;color:#1b1b1f;cursor:pointer';
+    b.onclick = function () {
+      try { if (off) localStorage.removeItem(KEY); else localStorage.setItem(KEY, '1'); } catch (e) {}
+      show();
+    };
+    var c = document.createElement('button'); c.type = 'button'; c.textContent = 'Close';
+    c.style.cssText = 'font:inherit;padding:8px 14px;margin:0 4px;border-radius:8px;border:1px solid #888;background:transparent;color:#f3efe6;cursor:pointer';
+    c.onclick = function () { d.remove(); };
+    d.appendChild(m); d.appendChild(b); d.appendChild(c);
+    document.body.appendChild(d);
+  }
+  el.addEventListener('click', function () {
+    var now = Date.now();
+    if (now - t0 > 4000) n = 0;
+    if (n === 0) t0 = now;
+    n++;
+    if (n >= 5) { n = 0; show(); }
+  });
+})();
 </script>
 </body>
 </html>
