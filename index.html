@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.4f -->
+<!-- Afterglow v2.4.4g -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -388,6 +388,9 @@
   .loading, .err{ text-align:center; padding: 60px 20px; color: var(--slate); font-size: 14px; }
   .err{ color: var(--rose); }
 
+  .upd-row{ display:flex; align-items:center; justify-content:flex-end; gap:10px; margin:-6px 2px 12px; font-size:12.5px; color:var(--slate); }
+  .upd-btn{ font:inherit; font-size:12.5px; color:var(--gold); background:transparent; border:1px solid var(--line, rgba(128,128,128,.35)); border-radius:999px; padding:5px 12px; cursor:pointer; min-height:30px; }
+  .upd-btn:disabled{ opacity:.55; cursor:default; }
   .stale-bar{ margin: 0 0 18px; padding: 14px 16px; border-radius: 14px;
     background: rgba(242,184,75,0.08); border: 1px solid rgba(242,184,75,0.30); }
   .stale-head{ font-size: 14px; color: var(--gold); line-height: 1.45; }
@@ -567,7 +570,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.4f</div>
+    <div class="test-ver">🧪 TEST · v2.4.4g</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -965,6 +968,7 @@ let state = {
   mode: "morning", // or "evening"
   view: "today", // or "outlook" / "plan" — which top-level screen is showing
   sample: { morning: null, evening: null }, // sun-path cloud readings
+  updatedAt: null, // when the forecast on screen was fetched
   stale: null // set when showing a cached forecast we couldn't refresh
 };
 
@@ -2292,6 +2296,8 @@ function renderToday(app, tabsHtml){
     <button class="toggle-btn ${mode==='evening'?'active':''}" data-mode="evening">Sunset</button>
   </div>`;
 
+  html += `<div class="upd-row"><span id="updTime">${state.updatedAt ? "Updated " + new Date(state.updatedAt).toLocaleTimeString([], { hour:"numeric", minute:"2-digit" }) : ""}</span><button class="upd-btn" id="updBtn" aria-label="Refresh the forecast">↻ Refresh</button></div>`;
+
   html += `<div class="hero">
     <div class="hero-swatch" style="background:${gradient}"></div>
     <div class="hero-content">
@@ -2359,7 +2365,9 @@ function renderToday(app, tabsHtml){
   const bm = $("blurbMore"); if(bm) bm.addEventListener("click", () => { state.blurbMore = !state.blurbMore; $("blurbRest").hidden = !state.blurbMore; bm.textContent = state.blurbMore ? "Less" : "More"; });
   const mt = $("moreTimes"); if(mt) mt.addEventListener("click", () => { state.moreTimes = !state.moreTimes; $("moreTimesBox").hidden = !state.moreTimes; mt.textContent = state.moreTimes ? "Fewer times" : "More twilight times"; });
   const staleBtn = $("staleRetry");
-  if(staleBtn) staleBtn.addEventListener("click", () => boot(state.loc));
+  if(staleBtn) staleBtn.addEventListener("click", () => boot(state.loc, true));
+  const updBtn = $("updBtn");
+  if(updBtn) updBtn.addEventListener("click", () => { updBtn.disabled = true; updBtn.textContent = "Refreshing…"; boot(state.loc, true); });
 }
 
 /* ---------- Outlook (agenda list) ----------
@@ -3843,14 +3851,16 @@ function pickInitialView(daily, lat, lon){
   return { activeDay: daily.time.length > 1 ? 1 : 0, mode: "morning" };
 }
 
-async function boot(loc){
+async function boot(loc, keep){
+  const keepDay = keep && state.daily ? { day: state.activeDay, mode: state.mode } : null;
   $("locName").textContent = loc.name || "Choose location";
   state.loc = loc;
   state.stale = null;
+  if(keepDay) state.rc = null; // a refresh also pulls a fresh airport and satellite check
   const esc = (t) => String(t).replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
   const say = (msg) => { $("app").innerHTML = `<div class="loading">${msg}</div>`; };
 
-  say('Reading the sky over ' + esc(loc.name) + '…');
+  if(!keepDay) say('Reading the sky over ' + esc(loc.name) + '…');
 
   try{
     const data = await withRetry(
@@ -3869,8 +3879,9 @@ async function boot(loc){
     // to the blind ceiling rather than costing us the forecast.
     state.sample = await fetchSunPathSamples(loc, data.daily);
     const initial = pickInitialView(data.daily, loc.lat, loc.lon);
-    state.activeDay = initial.activeDay;
-    state.mode = initial.mode;
+    state.activeDay = keepDay ? Math.min(keepDay.day, data.daily.time.length - 1) : initial.activeDay;
+    state.mode = keepDay ? keepDay.mode : initial.mode;
+    state.updatedAt = Date.now();
     cacheForecast(loc, data, state.sample);
     render();
   }catch(e){
@@ -3885,8 +3896,9 @@ async function boot(loc){
       state.tz = cached.tz || null;
       state.sample = cached.sample || { morning: null, evening: null };
       const initial = pickInitialView(cached.daily, loc.lat, loc.lon);
-      state.activeDay = initial.activeDay;
-      state.mode = initial.mode;
+      state.activeDay = keepDay ? Math.min(keepDay.day, cached.daily.time.length - 1) : initial.activeDay;
+      state.mode = keepDay ? keepDay.mode : initial.mode;
+      state.updatedAt = cached.savedAt;
       state.stale = { savedAt: cached.savedAt, reason: info.headline };
       render();
       return;
