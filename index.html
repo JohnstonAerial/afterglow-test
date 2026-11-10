@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.4i -->
+<!-- Afterglow v2.4.4j -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -217,6 +217,14 @@
   .rc-sat-row span{ background: var(--card); border:1px solid var(--line); border-radius:8px; padding:4px 0; }
   .rc-sat-row small{ display:block; color: var(--slate); font-size:10.5px; }
   .rc-note{ margin-top:8px; font-size:12px; line-height:1.4; color: var(--slate); }
+  details.rc-card > summary{ list-style:none; cursor:pointer; position:relative; padding-right:26px; }
+  details.rc-card > summary::-webkit-details-marker{ display:none; }
+  details.rc-card > summary::after{ content:"▾"; position:absolute; right:0; top:-1px; color: var(--slate); font-size:14px; transition: transform .15s; }
+  details.rc-card[open] > summary::after{ transform: rotate(180deg); }
+  .rc-sum{ margin-top:8px; font-size:13.5px; line-height:1.4; color: var(--sand); }
+  details.rc-card[open] .rc-sum{ display:none; }
+  .rc-skel > summary{ pointer-events:none; }
+  .rc-skel .rc-sum{ background: var(--line); border-radius:6px; animation: rcPulse 1.4s ease-in-out infinite; }
   .rc-ok{ --rc:#7bd88f; } .rc-bad{ --rc: var(--ember); } .rc-none{ --rc: var(--slate); }
   html[data-theme="light"] .rc-ok{ --rc:#116329; }
   .plan-fold{ border:1px solid var(--line); background: var(--card); border-radius:14px; margin-bottom:12px; }
@@ -578,7 +586,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.4i</div>
+    <div class="test-ver">🧪 TEST · v2.4.4j</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2213,7 +2221,10 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
     ? `<div class="rc-note">Airport reports can't see high cloud; the satellite line can, but it shows the sky now, not at ${evName.toLowerCase()}, and NOAA calls it beta. The score is unchanged.</div>`
     : `<div class="rc-note">Airport reports can't see high cloud, so this checks for blockers, not color. The score is unchanged.</div>`;
   const head = `<div class="rc-head"><span>Reality check</span><span>${evName} in ${left}</span></div>`;
-  if(!rc.length) return `<div class="rc-card rc-none">${head}<div class="rc-verdict">No recent airport reports ${dirTxt}</div><div class="rc-text">No airport ${dirTxt} has reported in the last 2 hours, so there is nothing to compare with the forecast.</div>${satB}${note}</div>`;
+  const satSum = sat ? ` · High cloud ${sat.high}%` : "";
+  const openAttr = (state.fold && state.fold.rc === false) ? "" : " open";
+  const wrap = (cls, sum, inner) => `<details class="rc-card ${cls}" data-fold="rc"${openAttr}><summary>${head}<div class="rc-sum">${sum}${satSum}</div></summary>${inner}</details>`;
+  if(!rc.length) return wrap("rc-none", "No recent airport reports", `<div class="rc-verdict">No recent airport reports ${dirTxt}</div><div class="rc-text">No airport ${dirTxt} has reported in the last 2 hours, so there is nothing to compare with the forecast.</div>${satB}${note}`);
   const pcts = rc.map(r => r.sky.pct).sort((a, b) => a - b);
   const agg = pcts.length === 2 ? (pcts[0] + pcts[1]) / 2 : pcts[Math.floor(pcts.length / 2)];
   const rep = rc.slice().sort((a, b) => Math.abs(a.sky.pct - agg) - Math.abs(b.sky.pct - agg))[0].sky;
@@ -2224,7 +2235,7 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
     const code = r.sky.pct === 0 ? "CLR" : r.sky.code + (r.sky.base != null ? " " + (Math.round(r.sky.base / 100) * 100).toLocaleString("en-US") + " ft" : "");
     return `<div class="rc-row"><span><b>${rcEsc(r.id)}</b> ${rcEsc(r.name)}<br><small>${fmtDist(r.km).split(" · ")[0]} ${compassDir(r.brg)} · ${fmt(new Date(r.obs * 1000))}</small></span><b>${code}</b></div>`;
   }).join("");
-  return `<div class="rc-card ${bad ? "rc-bad" : "rc-ok"}">${head}<div class="rc-verdict">${bad ? "Disagrees with the forecast" : "Agrees with the forecast"}</div><div class="rc-text">Forecast says low and mid cloud ${fc}% ${where === "toward the sun" ? dirTxt : where}. Airports ${dirTxt} report ${phr}.</div>${rows}${satB}${note}</div>`;
+  return wrap(bad ? "rc-bad" : "rc-ok", bad ? "Disagrees with the forecast" : "Agrees with the forecast", `<div class="rc-verdict">${bad ? "Disagrees with the forecast" : "Agrees with the forecast"}</div><div class="rc-text">Forecast says low and mid cloud ${fc}% ${where === "toward the sun" ? dirTxt : where}. Airports ${dirTxt} report ${phr}.</div>${rows}${satB}${note}`);
 }
 function rcSkelHtml(mode, minsLeft, where){
   const ob = Math.floor(Date.now() / 1000);
@@ -2240,7 +2251,7 @@ function rcSlot(eventIso, mode, az, fc, where, fcHigh){
   const minsLeft = (new Date(eventIso).getTime() - Date.now()) / 60000;
   if(!(minsLeft > 0 && minsLeft <= 180)) return;
   const loc = state.loc, key = [loc.lat.toFixed(2), loc.lon.toFixed(2), eventIso].join("|");
-  const draw = (rc, sat) => { if(el.isConnected) el.innerHTML = rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh); };
+  const draw = (rc, sat) => { if(!el.isConnected) return; el.innerHTML = rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh); const d = el.querySelector("details.rc-card"); if(d) d.addEventListener("toggle", () => { state.fold = state.fold || {}; state.fold.rc = d.open; }); };
   if(state.rc && state.rc.key === key && Date.now() - state.rc.at < 300000) { draw(state.rc.list, state.rc.sat); return; }
   // Hold the card's space while the reports load, so the cards below don't jump when it appears
   el.innerHTML = rcSkelHtml(mode, minsLeft, where);
