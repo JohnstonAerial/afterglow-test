@@ -1,0 +1,42 @@
+name: Satellite cloud grid
+
+# Every 30 minutes: read the newest GOES-19 Cloud Cover Layers file and publish
+# a small 0.25 degree grid to the sat-data branch (not the Pages branch, so no
+# Pages builds). App URL:
+#   https://raw.githubusercontent.com/JohnstonAerial/afterglow-test/sat-data/latest.json
+on:
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sat-grid
+  cancel-in-progress: true
+
+jobs:
+  grid:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/sat
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: .github/sat/requirements.txt
+      - run: pip install -r .github/sat/requirements.txt
+      - run: mkdir -p out && python .github/sat/sat_grid.py out/latest.json
+      - name: Publish to sat-data (one commit, force-pushed so history stays small)
+        run: |
+          cd out
+          git init -q -b sat-data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add latest.json
+          git commit -q -m "Satellite cloud grid $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" sat-data
