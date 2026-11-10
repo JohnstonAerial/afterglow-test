@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.4h -->
+<!-- Afterglow v2.4.4i -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -380,7 +380,15 @@
 
   /* Keep the page height steady while the forecast loads, so the footer and the cards below don't jump */
   #app{ min-height: 90vh; min-height: 90svh; }
-  .rc-skel{ min-height: 300px; }
+  /* Placeholder: the real tile's own markup with dummy text, so it is the same height (and grows with the text-size setting) and nothing below jumps when the data arrives */
+  .rc-skel, .rc-skel *{ color: transparent !important; }
+  .rc-skel .rc-head, .rc-skel .rc-head span{ color: var(--slate) !important; }
+  .rc-skel .rc-verdict, .rc-skel .rc-text, .rc-skel .rc-row > span, .rc-skel .rc-row > b, .rc-skel .rc-sat-head span, .rc-skel .rc-sat-row span, .rc-skel .rc-note{ background: var(--line); border-radius:6px; border-color: transparent; }
+  .rc-skel .rc-sat-row span{ background: var(--line); }
+  .rc-skel .rc-row{ border-top-color: transparent; }
+  .rc-skel .rc-verdict, .rc-skel .rc-text, .rc-skel .rc-sat-head, .rc-skel .rc-note{ animation: rcPulse 1.4s ease-in-out infinite; }
+  @keyframes rcPulse{ 0%,100%{ opacity:1 } 50%{ opacity:.45 } }
+  @media (prefers-reduced-motion: reduce){ .rc-skel .rc-verdict, .rc-skel .rc-text, .rc-skel .rc-sat-head, .rc-skel .rc-note{ animation:none; } }
   .about-seo{ margin:0 0 14px; font-size:12px; line-height:1.55; }
   footer{ text-align:center; font-size: 12px; line-height:1.55; color: var(--slate); margin-top: 36px; font-family:'IBM Plex Mono', monospace; }
   footer a{ text-decoration: underline; text-decoration-color: var(--slate); }
@@ -570,7 +578,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.4h</div>
+    <div class="test-ver">🧪 TEST · v2.4.4i</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2218,6 +2226,14 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
   }).join("");
   return `<div class="rc-card ${bad ? "rc-bad" : "rc-ok"}">${head}<div class="rc-verdict">${bad ? "Disagrees with the forecast" : "Agrees with the forecast"}</div><div class="rc-text">Forecast says low and mid cloud ${fc}% ${where === "toward the sun" ? dirTxt : where}. Airports ${dirTxt} report ${phr}.</div>${rows}${satB}${note}</div>`;
 }
+function rcSkelHtml(mode, minsLeft, where){
+  const ob = Math.floor(Date.now() / 1000);
+  const fake = ["KXXX", "KXXY", "KXXZ"].map(id => ({ id, name: "Placeholder airport name", km: 10, brg: 200, obs: ob, sky: { pct: 0, code: "CLR", base: null } }));
+  const sat = { scan: new Date(), pts: [0, 40, 80, 120, 160, 240].map(km => ({ km, high: 20, lowmid: 5 })), high: 20, lowmid: 5, maxHigh: 30 };
+  return rcCardHtml(fake, mode, minsLeft, 10, where, sat, 20)
+    .replace(/rc-ok|rc-bad/, "rc-none rc-skel")
+    .replace(/(<div class="rc-head"><span>Reality check<\/span><span>)[^<]*/, "$1Checking…");
+}
 function rcSlot(eventIso, mode, az, fc, where, fcHigh){
   const el = document.getElementById("rcSlot");
   if(!el) return;
@@ -2227,7 +2243,7 @@ function rcSlot(eventIso, mode, az, fc, where, fcHigh){
   const draw = (rc, sat) => { if(el.isConnected) el.innerHTML = rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh); };
   if(state.rc && state.rc.key === key && Date.now() - state.rc.at < 300000) { draw(state.rc.list, state.rc.sat); return; }
   // Hold the card's space while the reports load, so the cards below don't jump when it appears
-  el.innerHTML = `<div class="rc-card rc-none rc-skel"><div class="rc-head"><span>Reality check</span><span>Checking airport reports…</span></div></div>`;
+  el.innerHTML = rcSkelHtml(mode, minsLeft, where);
   Promise.allSettled([rcLoad(loc, eventIso, az), satLoad(loc, az)]).then(([a, b]) => {
     const list = a.status === "fulfilled" ? a.value : null, sat = b.status === "fulfilled" ? b.value : null;
     if(!list && !sat){ if(el.isConnected) el.innerHTML = ""; return; }
