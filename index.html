@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.4g -->
+<!-- Afterglow v2.4.4h -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -570,7 +570,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.4g</div>
+    <div class="test-ver">🧪 TEST · v2.4.4h</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2186,25 +2186,26 @@ async function satLoad(loc, az){
   const avg = f => Math.round(pts.reduce((a, p) => a + p[f], 0) / pts.length);
   return { scan, pts, high: avg("high"), lowmid: avg("lowmid"), maxHigh: Math.max(...pts.map(p => p.high)) };
 }
-function satHtml(sat, fcHigh){
+function satHtml(sat, fcHigh, dirTxt){
   if(!sat) return "";
   const word = sat.high < 10 ? "little or none" : sat.high < 30 ? "a little" : sat.high < 60 ? "some" : sat.high < 85 ? "a lot" : "a thick layer";
   const cells = sat.pts.map(p => `<span><small>${p.km} km</small><b>${p.high}%</b></span>`).join("");
   const fcTxt = fcHigh != null ? ` Forecast high cloud: ${fcHigh}%.` : "";
   return `<div class="rc-sat"><div class="rc-sat-head"><span>Satellite · ${fmt(sat.scan)}</span><span>High cloud ${sat.high}%</span></div>`
-    + `<div class="rc-text">High cloud toward the sun right now: ${word} (${sat.maxHigh > sat.high ? `${sat.high}% average, up to ${sat.maxHigh}%` : `${sat.high}%`}). Low and mid cloud: ${sat.lowmid}%.${fcTxt}</div>`
+    + `<div class="rc-text">High cloud ${dirTxt}, as of this scan: ${word} (${sat.maxHigh > sat.high ? `${sat.high}% average, up to ${sat.maxHigh}%` : `${sat.high}%`}). Low and mid cloud: ${sat.lowmid}%.${fcTxt}</div>`
     + `<div class="rc-sat-row">${cells}</div></div>`;
 }
 function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
   const evName = mode === "evening" ? "Sunset" : "Sunrise";
   const h = Math.floor(minsLeft / 60), m = Math.round(minsLeft % 60);
   const left = h >= 1 ? `${h} h${m ? " " + m + " min" : ""}` : `${Math.max(1, m)} min`;
-  const satB = satHtml(sat, fcHigh);
+  const dirTxt = "toward where the sun will " + (mode === "evening" ? "set" : "rise");
+  const satB = satHtml(sat, fcHigh, dirTxt);
   const note = sat
     ? `<div class="rc-note">Airport reports can't see high cloud; the satellite line can, but it shows the sky now, not at ${evName.toLowerCase()}, and NOAA calls it beta. The score is unchanged.</div>`
     : `<div class="rc-note">Airport reports can't see high cloud, so this checks for blockers, not color. The score is unchanged.</div>`;
   const head = `<div class="rc-head"><span>Reality check</span><span>${evName} in ${left}</span></div>`;
-  if(!rc.length) return `<div class="rc-card rc-none">${head}<div class="rc-verdict">No recent reports toward the sun</div><div class="rc-text">No airport toward the sun has reported in the last 2 hours, so there is nothing to compare with the forecast.</div>${satB}${note}</div>`;
+  if(!rc.length) return `<div class="rc-card rc-none">${head}<div class="rc-verdict">No recent airport reports ${dirTxt}</div><div class="rc-text">No airport ${dirTxt} has reported in the last 2 hours, so there is nothing to compare with the forecast.</div>${satB}${note}</div>`;
   const pcts = rc.map(r => r.sky.pct).sort((a, b) => a - b);
   const agg = pcts.length === 2 ? (pcts[0] + pcts[1]) / 2 : pcts[Math.floor(pcts.length / 2)];
   const rep = rc.slice().sort((a, b) => Math.abs(a.sky.pct - agg) - Math.abs(b.sky.pct - agg))[0].sky;
@@ -2215,7 +2216,7 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
     const code = r.sky.pct === 0 ? "CLR" : r.sky.code + (r.sky.base != null ? " " + (Math.round(r.sky.base / 100) * 100).toLocaleString("en-US") + " ft" : "");
     return `<div class="rc-row"><span><b>${rcEsc(r.id)}</b> ${rcEsc(r.name)}<br><small>${fmtDist(r.km).split(" · ")[0]} ${compassDir(r.brg)} · ${fmt(new Date(r.obs * 1000))}</small></span><b>${code}</b></div>`;
   }).join("");
-  return `<div class="rc-card ${bad ? "rc-bad" : "rc-ok"}">${head}<div class="rc-verdict">${bad ? "Disagrees with the forecast" : "Agrees with the forecast"}</div><div class="rc-text">Forecast says low and mid cloud ${fc}% ${where}. Airports toward the sun report ${phr}.</div>${rows}${satB}${note}</div>`;
+  return `<div class="rc-card ${bad ? "rc-bad" : "rc-ok"}">${head}<div class="rc-verdict">${bad ? "Disagrees with the forecast" : "Agrees with the forecast"}</div><div class="rc-text">Forecast says low and mid cloud ${fc}% ${where === "toward the sun" ? dirTxt : where}. Airports ${dirTxt} report ${phr}.</div>${rows}${satB}${note}</div>`;
 }
 function rcSlot(eventIso, mode, az, fc, where, fcHigh){
   const el = document.getElementById("rcSlot");
