@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.4e -->
+<!-- Afterglow v2.4.4f -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -209,6 +209,13 @@
   .rc-row{ display:flex; justify-content:space-between; gap:8px; padding:7px 0; border-top:1px solid var(--line); font:12.5px ui-monospace,Menlo,monospace; color: var(--sand); }
   .rc-row small{ color: var(--slate); font:inherit; }
   .rc-row b:last-child{ white-space:nowrap; }
+  .rc-sat{ border-top:1px solid var(--line); margin-top:4px; padding-top:9px; }
+  .rc-sat-head{ display:flex; justify-content:space-between; gap:8px; font:12.5px ui-monospace,Menlo,monospace; color: var(--sand); }
+  .rc-sat-head span:first-child{ letter-spacing:.06em; text-transform:uppercase; color: var(--slate); }
+  .rc-sat .rc-text{ margin:5px 0 8px; }
+  .rc-sat-row{ display:grid; grid-template-columns:repeat(6,1fr); gap:4px; text-align:center; font:12px ui-monospace,Menlo,monospace; color: var(--sand); }
+  .rc-sat-row span{ background: var(--card); border:1px solid var(--line); border-radius:8px; padding:4px 0; }
+  .rc-sat-row small{ display:block; color: var(--slate); font-size:10.5px; }
   .rc-note{ margin-top:8px; font-size:12px; line-height:1.4; color: var(--slate); }
   .rc-ok{ --rc:#7bd88f; } .rc-bad{ --rc: var(--ember); } .rc-none{ --rc: var(--slate); }
   html[data-theme="light"] .rc-ok{ --rc:#116329; }
@@ -560,7 +567,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.4e</div>
+    <div class="test-ver">🧪 TEST · v2.4.4f</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2144,13 +2151,56 @@ async function rcLoad(loc, eventIso, az){
   out.sort((a, b) => a.km - b.km);
   return out.slice(0, 3);
 }
-function rcCardHtml(rc, mode, minsLeft, fc, where){
+// ---------- Satellite cloud layers toward the sun ----------
+// A small grid made every 30 minutes by a GitHub Action from GOES-19 Cloud Cover Layers (NOAA beta).
+// Covers the lower 48 and nearby. Unlike airport reports it sees high cloud, the part that gives color.
+// TODO before public: point this at the public repo's sat-data branch.
+const AG_SAT_URL = "https://raw.githubusercontent.com/JohnstonAerial/afterglow-test/sat-data/latest.json";
+const SAT_KM = [0, 40, 80, 120, 160, 240];
+async function satLoad(loc, az){
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 9000);
+  let j;
+  try{
+    const r = await fetch(AG_SAT_URL, { signal: ctl.signal, cache: "no-cache" });
+    if(!r.ok) throw new Error("sat " + r.status);
+    j = await r.json();
+  } finally { clearTimeout(t); }
+  const scan = new Date(j.scan), age = (Date.now() - scan.getTime()) / 60000;
+  if(!(age >= -10 && age <= 120)) return null;          // too old to say anything about now
+  const g = j.grid, dec = b => { const bin = atob(b), a = new Uint8Array(bin.length); for(let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; };
+  const L = { low: dec(j.layers.low), mid: dec(j.layers.mid), high: dec(j.layers.high), top: dec(j.layers.top) };
+  const pts = [];
+  SAT_KM.forEach(km => {
+    const p = km ? projectPoint(loc.lat, loc.lon, az, km) : { lat: loc.lat, lon: loc.lon };
+    const i = Math.floor((p.lat - g.lat0) / g.step), k = Math.floor((p.lon - g.lon0) / g.step);
+    if(i < 0 || i >= g.nlat || k < 0 || k >= g.nlon) return;
+    const c = i * g.nlon + k, v = { low: L.low[c], mid: L.mid[c], high: L.high[c], top: L.top[c] };
+    if(v.low === 255 || v.mid === 255 || v.high === 255 || v.top === 255) return;
+    pts.push({ km, lowmid: Math.max(v.low, v.mid), high: Math.max(v.high, v.top) });
+  });
+  if(pts.length < 3) return null;                        // outside the satellite's area
+  const avg = f => Math.round(pts.reduce((a, p) => a + p[f], 0) / pts.length);
+  return { scan, pts, high: avg("high"), lowmid: avg("lowmid"), maxHigh: Math.max(...pts.map(p => p.high)) };
+}
+function satHtml(sat, fcHigh){
+  if(!sat) return "";
+  const word = sat.high < 10 ? "little or none" : sat.high < 30 ? "a little" : sat.high < 60 ? "some" : sat.high < 85 ? "a lot" : "a thick layer";
+  const cells = sat.pts.map(p => `<span><small>${p.km} km</small><b>${p.high}%</b></span>`).join("");
+  const fcTxt = fcHigh != null ? ` Forecast high cloud: ${fcHigh}%.` : "";
+  return `<div class="rc-sat"><div class="rc-sat-head"><span>Satellite · ${fmt(sat.scan)}</span><span>High cloud ${sat.high}%</span></div>`
+    + `<div class="rc-text">High cloud toward the sun right now: ${word} (${sat.maxHigh > sat.high ? `${sat.high}% average, up to ${sat.maxHigh}%` : `${sat.high}%`}). Low and mid cloud: ${sat.lowmid}%.${fcTxt}</div>`
+    + `<div class="rc-sat-row">${cells}</div></div>`;
+}
+function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
   const evName = mode === "evening" ? "Sunset" : "Sunrise";
   const h = Math.floor(minsLeft / 60), m = Math.round(minsLeft % 60);
   const left = h >= 1 ? `${h} h${m ? " " + m + " min" : ""}` : `${Math.max(1, m)} min`;
-  const note = `<div class="rc-note">Airport reports can't see high cloud, so this checks for blockers, not color. The score is unchanged.</div>`;
+  const satB = satHtml(sat, fcHigh);
+  const note = sat
+    ? `<div class="rc-note">Airport reports can't see high cloud; the satellite line can, but it shows the sky now, not at ${evName.toLowerCase()}, and NOAA calls it beta. The score is unchanged.</div>`
+    : `<div class="rc-note">Airport reports can't see high cloud, so this checks for blockers, not color. The score is unchanged.</div>`;
   const head = `<div class="rc-head"><span>Reality check</span><span>${evName} in ${left}</span></div>`;
-  if(!rc.length) return `<div class="rc-card rc-none">${head}<div class="rc-verdict">No recent reports toward the sun</div><div class="rc-text">No airport toward the sun has reported in the last 2 hours, so there is nothing to compare with the forecast.</div>${note}</div>`;
+  if(!rc.length) return `<div class="rc-card rc-none">${head}<div class="rc-verdict">No recent reports toward the sun</div><div class="rc-text">No airport toward the sun has reported in the last 2 hours, so there is nothing to compare with the forecast.</div>${satB}${note}</div>`;
   const pcts = rc.map(r => r.sky.pct).sort((a, b) => a - b);
   const agg = pcts.length === 2 ? (pcts[0] + pcts[1]) / 2 : pcts[Math.floor(pcts.length / 2)];
   const rep = rc.slice().sort((a, b) => Math.abs(a.sky.pct - agg) - Math.abs(b.sky.pct - agg))[0].sky;
@@ -2161,19 +2211,23 @@ function rcCardHtml(rc, mode, minsLeft, fc, where){
     const code = r.sky.pct === 0 ? "CLR" : r.sky.code + (r.sky.base != null ? " " + (Math.round(r.sky.base / 100) * 100).toLocaleString("en-US") + " ft" : "");
     return `<div class="rc-row"><span><b>${rcEsc(r.id)}</b> ${rcEsc(r.name)}<br><small>${fmtDist(r.km).split(" · ")[0]} ${compassDir(r.brg)} · ${fmt(new Date(r.obs * 1000))}</small></span><b>${code}</b></div>`;
   }).join("");
-  return `<div class="rc-card ${bad ? "rc-bad" : "rc-ok"}">${head}<div class="rc-verdict">${bad ? "Disagrees with the forecast" : "Agrees with the forecast"}</div><div class="rc-text">Forecast says low and mid cloud ${fc}% ${where}. Airports toward the sun report ${phr}.</div>${rows}${note}</div>`;
+  return `<div class="rc-card ${bad ? "rc-bad" : "rc-ok"}">${head}<div class="rc-verdict">${bad ? "Disagrees with the forecast" : "Agrees with the forecast"}</div><div class="rc-text">Forecast says low and mid cloud ${fc}% ${where}. Airports toward the sun report ${phr}.</div>${rows}${satB}${note}</div>`;
 }
-function rcSlot(eventIso, mode, az, fc, where){
+function rcSlot(eventIso, mode, az, fc, where, fcHigh){
   const el = document.getElementById("rcSlot");
   if(!el) return;
   const minsLeft = (new Date(eventIso).getTime() - Date.now()) / 60000;
   if(!(minsLeft > 0 && minsLeft <= 180)) return;
   const loc = state.loc, key = [loc.lat.toFixed(2), loc.lon.toFixed(2), eventIso].join("|");
-  const draw = rc => { if(el.isConnected) el.innerHTML = rcCardHtml(rc, mode, minsLeft, fc, where); };
-  if(state.rc && state.rc.key === key && Date.now() - state.rc.at < 300000) { draw(state.rc.list); return; }
+  const draw = (rc, sat) => { if(el.isConnected) el.innerHTML = rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh); };
+  if(state.rc && state.rc.key === key && Date.now() - state.rc.at < 300000) { draw(state.rc.list, state.rc.sat); return; }
   // Hold the card's space while the reports load, so the cards below don't jump when it appears
   el.innerHTML = `<div class="rc-card rc-none rc-skel"><div class="rc-head"><span>Reality check</span><span>Checking airport reports…</span></div></div>`;
-  rcLoad(loc, eventIso, az).then(list => { state.rc = { key, at: Date.now(), list }; draw(list); }).catch(() => { if(el.isConnected) el.innerHTML = ""; });
+  Promise.allSettled([rcLoad(loc, eventIso, az), satLoad(loc, az)]).then(([a, b]) => {
+    const list = a.status === "fulfilled" ? a.value : null, sat = b.status === "fulfilled" ? b.value : null;
+    if(!list && !sat){ if(el.isConnected) el.innerHTML = ""; return; }
+    state.rc = { key, at: Date.now(), list: list || [], sat }; draw(list || [], sat);
+  });
 }
 function renderToday(app, tabsHtml){
   const { daily, hourly, activeDay, mode, loc } = state;
@@ -2293,7 +2347,7 @@ function renderToday(app, tabsHtml){
 
   html += checklistBtnHtml(state.loc, "todayChk");
   app.innerHTML = html;
-  rcSlot(eventIso, mode, azimuth, s.beam != null ? Math.max(s.beamLow, s.beamMid) : Math.max(s.low, s.mid), s.beam != null ? "toward the sun" : "at your spot");
+  rcSlot(eventIso, mode, azimuth, s.beam != null ? Math.max(s.beamLow, s.beamMid) : Math.max(s.low, s.mid), s.beam != null ? "toward the sun" : "at your spot", s.high);
 
   document.querySelectorAll(".toggle-btn").forEach(b => b.addEventListener("click", () => {
     state.mode = b.dataset.mode; render();
