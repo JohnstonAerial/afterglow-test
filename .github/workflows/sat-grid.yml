@@ -6,7 +6,7 @@ name: Satellite cloud grid
 #   https://raw.githubusercontent.com/JohnstonAerial/afterglow-test/sat-data/latest.json
 on:
   schedule:
-    - cron: "7,37 * * * *"
+    - cron: "3,18,33,48 * * * *"
   workflow_dispatch:
 
 permissions:
