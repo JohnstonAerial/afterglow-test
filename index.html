@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.4o -->
+<!-- Afterglow v2.4.4p -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -304,6 +304,7 @@
   @media print{
     @page{ size: letter; margin: 0.5in; }
     body > *:not(#printRoot){ display:none !important; }
+    body::before, body::after{ display:none !important; content:none !important; }
     html, body{ background:#fff !important; min-height:0 !important; height:auto !important; padding:0 !important; margin:0 !important; overflow:visible !important; }
     #printRoot{ display:block !important; color:#111; font:12.5px -apple-system, "Segoe UI", Roboto, sans-serif; }
     #printRoot h1{ font:700 22px Georgia, serif; margin:0 0 2px; color:#111; }
@@ -586,7 +587,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.4o</div>
+    <div class="test-ver">🧪 TEST · v2.4.4p</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
