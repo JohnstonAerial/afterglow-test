@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.4m -->
+<!-- Afterglow v2.4.4n -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -586,7 +586,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.4m</div>
+    <div class="test-ver">🧪 TEST · v2.4.4n</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2240,7 +2240,7 @@ function satHtml(sat, fcHigh, dirTxt){
   const word = sat.high < 10 ? "little or none" : sat.high < 30 ? "a little" : sat.high < 60 ? "some" : sat.high < 85 ? "a lot" : "a thick layer";
   const cells = sat.pts.map(p => `<span><small>${p.km} km</small><b>${p.high}%</b></span>`).join("");
   const fcTxt = fcHigh != null ? ` Forecast high cloud: ${fcHigh}%.` : "";
-  return `<div class="rc-sat"><div class="rc-sat-head"><span>Satellite · ${fmt(sat.scan)}</span><span>High cloud ${sat.high}%</span></div>`
+  return `<div class="rc-sat"><div class="rc-sat-head"><span>Satellite · ${fmt(frameN(sat.scan))}</span><span>High cloud ${sat.high}%</span></div>`
     + `<div class="rc-text">High cloud ${dirTxt}, as of this scan: ${word} (${sat.maxHigh > sat.high ? `${sat.high}% average, up to ${sat.maxHigh}%` : `${sat.high}%`}). Low and mid cloud: ${sat.lowmid}%.${fcTxt}</div>`
     + `<div class="rc-sat-row">${cells}</div></div>`;
 }
@@ -2266,7 +2266,7 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
   const bad = (agg - fc >= 35 && agg >= 60) || (fc - agg >= 35 && fc >= 60);
   const rows = rc.map(r => {
     const code = r.sky.pct === 0 ? "CLR" : r.sky.code + (r.sky.base != null ? " " + (Math.round(r.sky.base / 100) * 100).toLocaleString("en-US") + " ft" : "");
-    return `<div class="rc-row"><span><b>${rcEsc(r.id)}</b> ${rcEsc(r.name)}<br><small>${fmtDist(r.km).split(" · ")[0]} ${compassDir(r.brg)} · ${fmt(new Date(r.obs * 1000))}</small></span><b>${code}</b></div>`;
+    return `<div class="rc-row"><span><b>${rcEsc(r.id)}</b> ${rcEsc(r.name)}<br><small>${fmtDist(r.km).split(" · ")[0]} ${compassDir(r.brg)} · ${fmt(frameN(new Date(r.obs * 1000)))}</small></span><b>${code}</b></div>`;
   }).join("");
   return wrap(bad ? "rc-bad" : "rc-ok", bad ? "Disagrees with the forecast" : "Agrees with the forecast", `<div class="rc-verdict">${bad ? "Disagrees with the forecast" : "Agrees with the forecast"}</div><div class="rc-text">Forecast says low and mid cloud ${fc}% ${where === "toward the sun" ? dirTxt : where}. Airports ${dirTxt} report ${phr}.</div>${rows}${satB}${note}`);
 }
