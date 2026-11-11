@@ -1,6 +1,6 @@
 name: Satellite cloud grid
 
-# Every 30 minutes: read the newest GOES-19 Cloud Cover Layers file and publish
+# Every 15 minutes: read the newest GOES-19 Cloud Cover Layers file and publish
 # a small 0.25 degree grid to the sat-data branch (not the Pages branch, so no
 # Pages builds). App URL:
 #   https://raw.githubusercontent.com/JohnstonAerial/afterglow-test/sat-data/latest.json

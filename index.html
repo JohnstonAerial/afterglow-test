@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.4r -->
+<!-- Afterglow v2.4.4s -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -406,6 +406,7 @@
   .loading, .err{ text-align:center; padding: 60px 20px; color: var(--slate); font-size: 14px; }
   .err{ color: var(--rose); }
 
+  .tz-note{ font-size:12px; line-height:1.4; color:var(--slate); text-align:right; margin:-6px 2px 12px; }
   .upd-row{ display:flex; align-items:center; justify-content:flex-end; gap:10px; margin:-6px 2px 12px; font-size:12.5px; color:var(--slate); }
   .upd-btn{ font:inherit; font-size:12.5px; color:var(--gold); background:transparent; border:1px solid var(--line, rgba(128,128,128,.35)); border-radius:999px; padding:5px 12px; cursor:pointer; min-height:30px; }
   .upd-btn:disabled{ opacity:.55; cursor:default; }
@@ -585,7 +586,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.4r</div>
+    <div class="test-ver">🧪 TEST · v2.4.4s</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2185,6 +2186,11 @@ async function rcFetchPointOnce(lat, lon){
 function rcStationSky(st){
   const layers = (st.clouds || []).map(c => ({ code: String(c.cover || c.code || "").toUpperCase(), base: (c.base != null && isFinite(c.base)) ? c.base : null }))
     .filter(c => c.code in RC_COVER);
+  // No cloud layers is a clear sky only when the report says so (CLR, SKC...). A station with no sky sensor reports nothing at all: skip it.
+  if(!layers.length){
+    const cov = String(st.cover || "").toUpperCase();
+    if(!(cov in RC_COVER && RC_COVER[cov] === 0) && !/\b(CLR|SKC|NSC|NCD|CAVOK)\b/.test(String(st.rawOb || ""))) return null;
+  }
   let top = { code: "CLR", base: null, pct: 0 };
   layers.forEach(l => { const pct = RC_COVER[l.code]; if(pct > top.pct || (pct === top.pct && pct > 0 && l.base != null && (top.base == null || l.base < top.base))) top = { code: l.code, base: l.base, pct }; });
   return top;
@@ -2205,13 +2211,15 @@ async function rcLoad(loc, eventIso, az){
     const bd = bearingDist(loc.lat, loc.lon, st.lat, st.lon);
     if(bd.km > 260) return;
     if(bd.km > 20 && Math.abs(angDiff(az, bd.brg)) > 40) return;
-    out.push({ id: st.icaoId, name: String(st.name || "").split(",")[0].replace(/\s+(Intl|International|Airport|Regional|Rgnl|Municipal|Muni)\b.*$/i, "").trim(), km: bd.km, brg: bd.brg, obs: st.obsTime, sky: rcStationSky(st) });
+    const sky = rcStationSky(st);
+    if(!sky) return;
+    out.push({ id: st.icaoId, name: String(st.name || "").split(",")[0].replace(/\s+(Intl|International|Airport|Regional|Rgnl|Municipal|Muni)\b.*$/i, "").trim(), km: bd.km, brg: bd.brg, obs: st.obsTime, sky });
   }));
   out.sort((a, b) => a.km - b.km);
   return out.slice(0, 3);
 }
 // ---------- Satellite cloud layers toward the sun ----------
-// A small grid made every 30 minutes by a GitHub Action from GOES-19 Cloud Cover Layers (NOAA beta).
+// A small grid made every 15 minutes by a GitHub Action from GOES-19 Cloud Cover Layers (NOAA beta).
 // Covers the lower 48 and nearby. Unlike airport reports it sees high cloud, the part that gives color.
 // TODO before public: point this at the public repo's sat-data branch.
 const AG_SAT_URL = "https://raw.githubusercontent.com/JohnstonAerial/afterglow-test/sat-data/latest.json";
@@ -2244,7 +2252,7 @@ async function satLoad(loc, az){
 function satHtml(sat, fcHigh, dirTxt){
   if(!sat) return "";
   const word = sat.high < 10 ? "little or none" : sat.high < 30 ? "a little" : sat.high < 60 ? "some" : sat.high < 85 ? "a lot" : "a thick layer";
-  const cells = sat.pts.map(p => `<span><small>${p.km} km</small><b>${p.high}%</b></span>`).join("");
+  const cells = sat.pts.map(p => `<span><small>${Math.round(p.km / 1.609344 / 5) * 5} mi</small><b>${p.high}%</b></span>`).join("");
   const fcTxt = fcHigh != null ? ` Forecast high cloud: ${fcHigh}%.` : "";
   return `<div class="rc-sat"><div class="rc-sat-head"><span>Satellite · ${fmt(frameN(sat.scan))}</span><span>High cloud ${sat.high}%</span></div>`
     + `<div class="rc-text">High cloud ${dirTxt}, as of this scan: ${word} (${sat.maxHigh > sat.high ? `${sat.high}% average, up to ${sat.maxHigh}%` : `${sat.high}%`}). Low and mid cloud: ${sat.lowmid}%.${fcTxt}</div>`
@@ -2275,7 +2283,7 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
     const code = r.sky.pct === 0 ? "CLR" : r.sky.code + (r.sky.base != null ? " " + (Math.round(r.sky.base / 100) * 100).toLocaleString("en-US") + " ft" : "");
     return `<div class="rc-row"><span><b>${rcEsc(r.id)}</b> ${rcEsc(r.name)}<br><small>${fmtDist(r.km).split(" · ")[0]} ${compassDir(r.brg)} · ${fmt(frameN(new Date(r.obs * 1000)))}</small></span><b>${code}</b></div>`;
   }).join("");
-  return wrap(bad ? "rc-bad" : "rc-ok", bad ? "Disagrees with the forecast" : "Agrees with the forecast", `<div class="rc-verdict">${bad ? "Disagrees with the forecast" : "Agrees with the forecast"}</div><div class="rc-text">Forecast says low and mid cloud ${fc}% ${where === "toward the sun" ? dirTxt : where}. Airports ${dirTxt} report ${phr}.</div>${rows}${satB}${note}`);
+  return wrap(bad ? "rc-bad" : "rc-ok", bad ? "Disagrees with the forecast" : "Agrees with the forecast", `<div class="rc-verdict">${bad ? "Disagrees with the forecast" : "Agrees with the forecast"}</div><div class="rc-text">Forecast says low cloud (below about 10,000 ft) ${fc}% ${where === "toward the sun" ? dirTxt : where}. Airports ${dirTxt} report ${phr}.</div>${rows}${satB}${note}`);
 }
 function rcSkelHtml(mode, minsLeft, where){
   const ob = Math.floor(Date.now() / 1000);
@@ -2303,16 +2311,17 @@ function placeLocalToMs(iso, tz){
     return t;
   }catch(e){ return naive; }
 }
-function rcSlot(eventIso, mode, az, fc, where, fcHigh){
+function rcSlot(eventIso, mode, az, fc, where, fcHigh, quiet){
   const el = document.getElementById("rcSlot");
   if(!el) return;
+  state.rcArgs = [eventIso, mode, az, fc, where, fcHigh];
   const minsLeft = (placeLocalToMs(eventIso, state.tz) - Date.now()) / 60000;
   if(!(minsLeft > 0 && minsLeft <= 180)){ el.innerHTML = '<div class="rc-hint">Reality check appears within 3 hours of sunrise or sunset, comparing airport and satellite reports to the forecast.</div>'; return; }
   const loc = state.loc, key = [loc.lat.toFixed(2), loc.lon.toFixed(2), eventIso].join("|");
   const draw = (rc, sat) => { if(!el.isConnected) return; el.innerHTML = rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh); const d = el.querySelector("details.rc-card"); if(d) d.addEventListener("toggle", () => { state.fold = state.fold || {}; state.fold.rc = d.open; }); };
-  if(state.rc && state.rc.key === key && Date.now() - state.rc.at < 300000) { draw(state.rc.list, state.rc.sat); return; }
+  if(state.rc && state.rc.key === key && Date.now() - state.rc.at < 600000) { draw(state.rc.list, state.rc.sat); return; }
   // Hold the card's space while the reports load, so the cards below don't jump when it appears
-  el.innerHTML = rcSkelHtml(mode, minsLeft, where);
+  if(!(quiet && el.querySelector("details.rc-card:not(.rc-skel)"))) el.innerHTML = rcSkelHtml(mode, minsLeft, where);
   Promise.allSettled([rcLoad(loc, eventIso, az), satLoad(loc, az)]).then(([a, b]) => {
     const list = a.status === "fulfilled" ? a.value : null, sat = b.status === "fulfilled" ? b.value : null;
     if(!list && !sat){ if(el.isConnected) el.innerHTML = ""; return; }
@@ -2320,6 +2329,24 @@ function rcSlot(eventIso, mode, az, fc, where, fcHigh){
     draw(list, sat);
   });
 }
+// Keep the Reality check current while the app stays open: the countdown each minute, fresh reports every 10 minutes,
+// and straight away when you come back to the app. Also makes the tile appear on its own at the 3-hour mark.
+// When the place is in another time zone than the phone, say whose clock the times use.
+function tzNoteHtml(){
+  try{
+    const tz = state.tz; if(!tz) return "";
+    const now = new Date(), off = z => { const p = new Intl.DateTimeFormat("en-US", Object.assign({ hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }, z ? { timeZone: z } : {})).formatToParts(now).reduce((o, x) => (o[x.type] = x.value, o), {}); return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute); };
+    if(off(tz) === off(null)) return "";
+    const abbr = (new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "short" }).formatToParts(now).find(x => x.type === "timeZoneName") || {}).value || "";
+    return `<div class="tz-note">Sun, moon and report times are this place's local time${abbr ? " (" + rcEsc(abbr) + ")" : ""}, not your phone's.</div>`;
+  }catch(e){ return ""; }
+}
+function rcTick(){
+  if(document.hidden || !state.rcArgs || !document.getElementById("rcSlot")) return;
+  rcSlot(...state.rcArgs, true);
+}
+setInterval(rcTick, 60000);
+document.addEventListener("visibilitychange", () => { if(!document.hidden) rcTick(); });
 function renderToday(app, tabsHtml){
   const { daily, hourly, activeDay, mode, loc } = state;
 
@@ -2384,6 +2411,7 @@ function renderToday(app, tabsHtml){
   </div>`;
 
   html += `<div class="upd-row"><span id="updTime">${state.updatedAt ? "Updated " + new Date(state.updatedAt).toLocaleTimeString([], { hour:"numeric", minute:"2-digit" }) : ""}</span><button class="upd-btn" id="updBtn" aria-label="Refresh the forecast">↻ Refresh</button></div>`;
+  html += tzNoteHtml();
 
   html += `<div class="hero">
     <div class="hero-swatch" style="background:${gradient}"></div>
@@ -2440,7 +2468,8 @@ function renderToday(app, tabsHtml){
 
   html += checklistBtnHtml(state.loc, "todayChk");
   app.innerHTML = html;
-  rcSlot(eventIso, mode, azimuth, s.beam != null ? Math.max(s.beamLow, s.beamMid) : Math.max(s.low, s.mid), s.beam != null ? "toward the sun" : "at your spot", s.high);
+  // Airport sensors only see cloud below 12,000 ft, so they are compared with the forecast's LOW cloud only (mid cloud is mostly above what they can see).
+  rcSlot(eventIso, mode, azimuth, s.beam != null ? s.beamLow : s.low, s.beam != null ? "toward the sun" : "at your spot", s.high);
 
   document.querySelectorAll(".toggle-btn").forEach(b => b.addEventListener("click", () => {
     state.mode = b.dataset.mode; render();
