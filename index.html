@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.5a -->
+<!-- Afterglow v2.4.5b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -588,7 +588,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.5a</div>
+    <div class="test-ver">🧪 TEST · v2.4.5b</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2198,9 +2198,13 @@ function rcStationSky(st){
   layers.forEach(l => { const pct = RC_COVER[l.code]; if(pct > top.pct || (pct === top.pct && pct > 0 && l.base != null && (top.base == null || l.base < top.base))) top = { code: l.code, base: l.base, pct }; });
   return top;
 }
-async function rcLoad(loc, eventIso, az){
+// The forecast's "toward the sun" cloud is read at one spot, SUN_PATH_SAMPLE_KM out along the sun's line, so the airports that
+// can fairly check it are the ones out THERE, not the ones nearest you (2.4.5b). The list shows one near you, one in between
+// and the one closest to that spot; list.cmp holds the skies the verdict compares with the forecast (empty = nothing to compare).
+const RC_SPOT_BAND_KM = 70;
+async function rcLoad(loc, eventIso, az, beam){
   const pts = [[loc.lat, loc.lon]];
-  [80, 160].forEach(km => { const p = projectPoint(loc.lat, loc.lon, az, km); pts.push([p.lat, p.lon]); });
+  [SUN_PATH_SAMPLE_KM / 2, SUN_PATH_SAMPLE_KM].forEach(km => { const p = projectPoint(loc.lat, loc.lon, az, km); pts.push([p.lat, p.lon]); });
   // One lookup failing should not wipe out the stations the others found; only fail when all of them do.
   const settled = await Promise.allSettled(pts.map(p => rcFetchPoint(p[0], p[1])));
   if(settled.every(x => x.status === "rejected")) throw new Error("airport reports unavailable");
@@ -2216,10 +2220,21 @@ async function rcLoad(loc, eventIso, az){
     if(bd.km > 20 && Math.abs(angDiff(az, bd.brg)) > 40) return;
     const sky = rcStationSky(st);
     if(!sky) return;
-    out.push({ id: st.icaoId, name: String(st.name || "").split(",")[0].replace(/\s+(Intl|International|Airport|Regional|Rgnl|Municipal|Muni)\b.*$/i, "").trim(), km: bd.km, brg: bd.brg, obs: st.obsTime, sky });
+    out.push({ id: st.icaoId, name: String(st.name || "").split(",")[0].replace(/\s+(Intl|International|Airport|Regional|Rgnl|Municipal|Muni)\b.*$/i, "").trim(), lat: st.lat, lon: st.lon, km: bd.km, brg: bd.brg, obs: st.obsTime, sky });
   }));
   out.sort((a, b) => a.km - b.km);
-  return out.slice(0, 3);
+  if(!beam){ const l = out.slice(0, 3); l.cmp = l.filter(r => r.km <= 60).map(r => r.sky); return l; }
+  const spot = projectPoint(loc.lat, loc.lon, az, SUN_PATH_SAMPLE_KM);
+  out.forEach(r => { r.toSpot = bearingDist(spot.lat, spot.lon, r.lat, r.lon).km; });
+  const far = out.filter(r => r.toSpot <= RC_SPOT_BAND_KM).sort((a, b) => a.toSpot - b.toSpot);
+  const pick = [];
+  if(far[0]){ far[0].spot = true; pick.push(far[0]); }
+  if(out[0] && pick.indexOf(out[0]) < 0) pick.push(out[0]);
+  const rest = out.filter(r => pick.indexOf(r) < 0);
+  if(rest.length){ const half = SUN_PATH_SAMPLE_KM / 2; rest.sort((a, b) => Math.abs(a.km - half) - Math.abs(b.km - half)); pick.push(rest[0]); }
+  pick.sort((a, b) => a.km - b.km);
+  pick.cmp = far.slice(0, 3).map(r => r.sky);
+  return pick;
 }
 // ---------- Satellite cloud layers toward the sun ----------
 // A small grid made every 15 minutes by a GitHub Action from GOES-19 Cloud Cover Layers (NOAA beta).
@@ -2276,17 +2291,23 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
   const wrap = (cls, sum, inner) => `<details class="rc-card ${cls}" data-fold="rc"${openAttr}><summary>${head}<div class="rc-sum">${sum}${satSum}</div></summary>${inner}</details>`;
   if(rc === null) return wrap("rc-none", "Airport reports unavailable", `<div class="rc-verdict">Airport reports unavailable right now</div><div class="rc-text">The airport lookup didn't answer, so there is nothing to compare with the forecast. Tap Refresh to try again.</div>${satB}${note}`);
   if(!rc.length) return wrap("rc-none", "No recent airport reports", `<div class="rc-verdict">No recent airport reports ${dirTxt}</div><div class="rc-text">No airport ${dirTxt} has reported in the last 2 hours, so there is nothing to compare with the forecast.</div>${satB}${note}`);
-  const pcts = rc.map(r => r.sky.pct).sort((a, b) => a - b);
+  const beamSpot = where === "toward the sun";
+  const spotTxt = beamSpot ? `about ${fmtDist(SUN_PATH_SAMPLE_KM)} out ${dirTxt}` : where;
+  const rowsOf = () => rc.map(r => {
+    const code = r.sky.pct === 0 ? "CLR" : r.sky.code + (r.sky.base != null ? " " + (Math.round(r.sky.base / 100) * 100).toLocaleString("en-US") + " ft" : "");
+    return `<div class="rc-row"><span><b>${rcEsc(r.id)}</b> ${rcEsc(r.name)}<br><small>${fmtDist(r.km).split(" · ")[0]} ${compassDir(r.brg)} · ${fmt(frameN(new Date(r.obs * 1000)))}${r.spot ? " · where the forecast looks" : ""}</small></span><b>${code}</b></div>`;
+  }).join("");
+  const cmp = rc.cmp || rc.map(r => r.sky);
+  // No airport out where the forecast looks (over water, or none reporting): say so instead of judging by airports near you.
+  if(!cmp.length) return wrap("rc-none", "Can't check the forecast here", `<div class="rc-verdict">Can't check the forecast ${beamSpot ? "out there" : "here"}</div><div class="rc-text">Forecast says low cloud (below about 10,000 ft) ${fc}% ${spotTxt}. ${beamSpot ? "No airport out there has reported in the last 2 hours, so that can't be checked. Nearer airports are listed below." : "No airport close to you has reported in the last 2 hours, so that can't be checked. The nearest ones are listed below."}</div>${rowsOf()}${satB}${note}`);
+  const pcts = cmp.map(k => k.pct).sort((a, b) => a - b);
   const agg = pcts.length === 2 ? (pcts[0] + pcts[1]) / 2 : pcts[Math.floor(pcts.length / 2)];
-  const rep = rc.slice().sort((a, b) => Math.abs(a.sky.pct - agg) - Math.abs(b.sky.pct - agg))[0].sky;
+  const rep = cmp.slice().sort((a, b) => Math.abs(a.pct - agg) - Math.abs(b.pct - agg))[0];
   const baseTxt = rep.base != null ? ` at ${(Math.round(rep.base / 100) * 100).toLocaleString("en-US")} ft` : "";
   const phr = rep.pct === 0 ? "clear skies below 12,000 ft" : (RC_WORDS[rep.code] || "cloud") + baseTxt;
   const bad = (agg - fc >= 35 && agg >= 60) || (fc - agg >= 35 && fc >= 60);
-  const rows = rc.map(r => {
-    const code = r.sky.pct === 0 ? "CLR" : r.sky.code + (r.sky.base != null ? " " + (Math.round(r.sky.base / 100) * 100).toLocaleString("en-US") + " ft" : "");
-    return `<div class="rc-row"><span><b>${rcEsc(r.id)}</b> ${rcEsc(r.name)}<br><small>${fmtDist(r.km).split(" · ")[0]} ${compassDir(r.brg)} · ${fmt(frameN(new Date(r.obs * 1000)))}</small></span><b>${code}</b></div>`;
-  }).join("");
-  return wrap(bad ? "rc-bad" : "rc-ok", bad ? "Disagrees with the forecast" : "Agrees with the forecast", `<div class="rc-verdict">${bad ? "Disagrees with the forecast" : "Agrees with the forecast"}</div><div class="rc-text">Forecast says low cloud (below about 10,000 ft) ${fc}% ${where === "toward the sun" ? dirTxt : where}. Airports ${dirTxt} report ${phr}.</div>${rows}${satB}${note}`);
+  const rows = rowsOf();
+  return wrap(bad ? "rc-bad" : "rc-ok", bad ? "Disagrees with the forecast" : "Agrees with the forecast", `<div class="rc-verdict">${bad ? "Disagrees with the forecast" : "Agrees with the forecast"}</div><div class="rc-text">Forecast says low cloud (below about 10,000 ft) ${fc}% ${spotTxt}. ${beamSpot ? "Airports out there report" : "Airports near you report"} ${phr}.</div>${rows}${satB}${note}`);
 }
 function rcSkelHtml(mode, minsLeft, where){
   const ob = Math.floor(Date.now() / 1000);
@@ -2325,7 +2346,7 @@ function rcSlot(eventIso, mode, az, fc, where, fcHigh, quiet){
   if(state.rc && state.rc.key === key && Date.now() - state.rc.at < 600000) { draw(state.rc.list, state.rc.sat); return; }
   // Hold the card's space while the reports load, so the cards below don't jump when it appears
   if(!(quiet && el.querySelector("details.rc-card:not(.rc-skel)"))) el.innerHTML = rcSkelHtml(mode, minsLeft, where);
-  Promise.allSettled([rcLoad(loc, eventIso, az), satLoad(loc, az)]).then(([a, b]) => {
+  Promise.allSettled([rcLoad(loc, eventIso, az, where === "toward the sun"), satLoad(loc, az)]).then(([a, b]) => {
     const list = a.status === "fulfilled" ? a.value : null, sat = b.status === "fulfilled" ? b.value : null;
     if(!list && !sat){ if(el.isConnected) el.innerHTML = ""; return; }
     if(list) state.rc = { key, at: Date.now(), list, sat }; // a failed airport lookup is not remembered, so the next draw tries again
