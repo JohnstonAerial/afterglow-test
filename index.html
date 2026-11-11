@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.4l -->
+<!-- Afterglow v2.4.4m -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -586,7 +586,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.4l</div>
+    <div class="test-ver">🧪 TEST · v2.4.4m</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -1742,6 +1742,29 @@ function solarPosition(date){
   return { decl, eqTime, lambda };
 }
 
+/* ---------- Place time frame ----------
+   The forecast gives sunrise/sunset/hourly times as the PLACE's wall-clock time with no offset, and the app reads them with new Date(iso),
+   which puts them in the viewer's own time zone. That is a "naive" moment: right on screen, but not a real instant unless you are in the
+   place's time zone. Anything that does sun or moon maths needs the real instant, so it converts naive -> real going in (frameR) and
+   real -> naive coming out (frameN), keeping every time on the card in the place's own clock. With no time zone known, or the same zone,
+   both are a no-op. */
+function frameR(d){
+  const tz = state && state.tz;
+  if(!tz || !(d instanceof Date) || isNaN(d)) return d;
+  const p2 = n => String(n).padStart(2, "0");
+  const iso = d.getFullYear() + "-" + p2(d.getMonth() + 1) + "-" + p2(d.getDate()) + "T" + p2(d.getHours()) + ":" + p2(d.getMinutes()) + ":" + p2(d.getSeconds());
+  const ms = placeLocalToMs(iso, tz);
+  return isNaN(ms) ? d : new Date(ms);
+}
+function frameN(d){
+  const tz = state && state.tz;
+  if(!tz || !(d instanceof Date) || isNaN(d)) return d;
+  try{
+    const p = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }).formatToParts(d).reduce((o, x) => (o[x.type] = x.value, o), {});
+    return new Date(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
+  }catch(e){ return d; }
+}
+
 // Sun's position in the sky (altitude + azimuth) for a given instant, using
 // the same low-precision NOAA/Meeus approach as solarPosition() above. Shared
 // by solarAzimuth() (existing call sites) and the Map tab's altitude readout,
@@ -1771,7 +1794,7 @@ function solarHorizontal(date, lat, lon){
 }
 
 function solarAzimuth(date, lat, lon){
-  return solarHorizontal(date, lat, lon).az;
+  return solarHorizontal(frameR(date), lat, lon).az; // date is a naive place-clock moment (see Place time frame)
 }
 
 function compassDir(deg){
@@ -1785,7 +1808,8 @@ function compassDir(deg){
    instead of a known clock time. "dawn" = first light before sunrise,
    "dusk" = last light after sunset. Returns null in the rare case the sun
    doesn't cross that altitude at all that day (deep polar latitudes). */
-function civilTwilight(eventDate, lat, lon, which, zenith){
+function civilTwilight(eventDateNaive, lat, lon, which, zenith){
+  const eventDate = frameR(eventDateNaive);
   const { decl, eqTime } = solarPosition(eventDate);
   if(zenith == null) zenith = 96;
   const cosHA = (dcos(zenith) - dsin(lat) * dsin(decl)) / (dcos(lat) * dcos(decl));
@@ -1797,7 +1821,7 @@ function civilTwilight(eventDate, lat, lon, which, zenith){
   utcMinutes = ((utcMinutes % 1440) + 1440) % 1440;
 
   const dayStartUTC = Date.UTC(eventDate.getUTCFullYear(), eventDate.getUTCMonth(), eventDate.getUTCDate());
-  return new Date(dayStartUTC + utcMinutes * 60000);
+  return frameN(new Date(dayStartUTC + utcMinutes * 60000));
 }
 
 /* ---------- Blue hour window ----------
@@ -1918,6 +1942,13 @@ function computeMoonInfo(dayStart, lat, lon, sunriseIso, sunsetIso, endAt){
   };
 }
 
+// Today tab: dayStart and the sunrise/sunset strings are the place's wall clock. Work in real time, hand back place wall-clock times.
+function computeMoonInfoPlace(dayStart, lat, lon, sunriseIso, sunsetIso){
+  const next = new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate() + 1);
+  const m = computeMoonInfo(frameR(dayStart), lat, lon, frameR(new Date(sunriseIso)).toISOString(), frameR(new Date(sunsetIso)).toISOString(), frameR(next));
+  m.moonrise = frameN(m.moonrise); m.moonset = frameN(m.moonset);
+  return m;
+}
 function moonCardHTML(m){
   const riseStr = m.moonrise ? `${fmt(m.moonrise)} <small>${compassDir(m.moonriseAz)}</small>` : `<small>Doesn't rise today</small>`;
   const setStr  = m.moonset  ? `${fmt(m.moonset)} <small>${compassDir(m.moonsetAz)}${m.moonsetNextDay ? ' · tomorrow' : ''}</small>`   : `<small>Doesn't set today</small>`;
@@ -1992,13 +2023,15 @@ function timelapseLabel(score){
   return "Flat";
 }
 
-function scanTimelapseWindow(dayStart, lat, lon, hourly){
-  const upWindow = findMoonUpWindow(dayStart, lat, lon);
+function scanTimelapseWindow(dayStart, lat, lon, hourly, toReal){
+  // toReal (optional): turns the place's wall-clock moments (dayStart, the hourly times) into real ones. Without it they are used as they are.
+  const real = toReal || (x => x);
+  const upWindow = findMoonUpWindow(real(dayStart), lat, lon);
   if(!upWindow) return null;
 
   const points = [];
   hourly.time.forEach((t, i) => {
-    const ti = new Date(t).getTime();
+    const ti = real(new Date(t)).getTime();
     if(ti < upWindow.start.getTime() || ti > upWindow.end.getTime()) return;
     const cloud = ((hourly.cloud_cover_mid[i] ?? 0) + (hourly.cloud_cover_high[i] ?? 0)) / 2;
     const wind = Array.isArray(hourly.wind_speed_700hPa) ? (hourly.wind_speed_700hPa[i] ?? null) : null;
@@ -2388,8 +2421,8 @@ function renderToday(app, tabsHtml){
   const skyExtra = (s.hazeFromVis ? ` · <span class="nw">Vis ${s.vis < 1609 ? "&lt;1" : Math.round(s.vis / 1609)} mi</span>` : "") + (s.precip >= 20 ? ` · <span class="nw">Rain ${Math.round(s.precip)}%</span>` : "");
   html += uiFold("sky", `Sky breakdown <span class="sub"><span class="nw">High ${s.high}%</span> · <span class="nw">Mid ${s.mid}%</span> · <span class="nw">Low ${s.low}%</span>${skyExtra}</span>`, skyInner);
 
-  const moon = computeMoonInfo(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, sunrise, sunset);
-  const timelapse = scanTimelapseWindow(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, hourly);
+  const moon = computeMoonInfoPlace(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, sunrise, sunset);
+  const timelapse = scanTimelapseWindow(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, hourly, frameR);
   let tlSum = "";
   if(timelapse && timelapse.points && timelapse.points.length){
     if(timelapse.bestRun && timelapse.bestRun.avg >= 45){ const bp = timelapse.bestRun.points; tlSum = ` · <span class="nw">Timelapse ${timelapseLabel(Math.round(timelapse.bestRun.avg))}, ${bp.length === 1 ? "~" : ""}${fmt(bp[0].time)}</span>`; }
@@ -3886,12 +3919,10 @@ function describeAge(ms){
 // Default to whichever event (sunrise/sunset) hasn't happened yet, rather
 // than always opening to today's sunrise even if it's already evening.
 function pickInitialView(daily, lat, lon, tz){
-  // The forecast's sunrise/sunset are the place's own clock times. Turn them into real moments (using the place's time zone) so a place in another time zone opens on its own next event, not the viewer's.
-  const now = new Date();
-  const real = iso => (tz && !isNaN(placeLocalToMs(iso, tz))) ? new Date(placeLocalToMs(iso, tz)).toISOString() : iso;
-  const sr0 = real(daily.sunrise[0]), ss0 = real(daily.sunset[0]);
-  const morningBlue = blueHourBounds(sr0, ss0, "morning", lat, lon);
-  const eveningBlue = blueHourBounds(sr0, ss0, "evening", lat, lon);
+  // Sunrise/sunset are the place's clock times, so compare them with the place's "now" (same frame), not the viewer's.
+  const now = tz ? frameN(new Date()) : new Date();
+  const morningBlue = blueHourBounds(daily.sunrise[0], daily.sunset[0], "morning", lat, lon);
+  const eveningBlue = blueHourBounds(daily.sunrise[0], daily.sunset[0], "evening", lat, lon);
   // Still pre-dawn or in the morning blue hour -> stay on today's sunrise.
   if(now < morningBlue.end) return { activeDay: 0, mode: "morning" };
   // Past morning blue hour but not yet past evening blue hour -> today's sunset.
