@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.5f -->
+<!-- Afterglow v2.4.5g -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.5f</div>
+    <div class="test-ver">🧪 TEST · v2.4.5g</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -1701,6 +1701,33 @@ function fmt(d){
   const dt = (d instanceof Date) ? d : new Date(d);
   return dt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
+/* 2.4.5g: score the peak of the color, not the moment of sunset. High cloud usually lights up 15 to 20 minutes after sunset
+   (and just before sunrise), so the forecast is read at event +17 min (evening) or -17 min (morning), blended linearly between the
+   two nearest forecast hours. The old at-the-event score is kept as .atEvent for comparison on the test copy. */
+const PEAK_OFFSET_MIN = 17;
+function scoreWindow(hourly, evtIso, mode, beam){
+  const t = hourly && hourly.time; if(!t || !evtIso) return null;
+  const idx0 = nearestHourIdx(t, evtIso);
+  const old = scoreEvent(hourly, idx0, beam);
+  if(!old) return null;
+  const target = new Date(evtIso).getTime() + (mode === "evening" ? 1 : -1) * PEAK_OFFSET_MIN * 60000;
+  let k = -1;
+  for(let i = 0; i < t.length - 1; i++){ if(new Date(t[i]).getTime() <= target && target <= new Date(t[i+1]).getTime()){ k = i; break; } }
+  if(k < 0) { old.atEvent = old.score; return old; }
+  const a = new Date(t[k]).getTime(), b = new Date(t[k+1]).getTime(), f = b > a ? (target - a) / (b - a) : 0;
+  const mix = arr => {
+    if(!arr) return arr;
+    const x = arr[k], y = arr[k+1];
+    if(x == null || y == null || !isFinite(x) || !isFinite(y)) return [x != null && isFinite(x) ? x : y];
+    return [x + (y - x) * f];
+  };
+  const h2 = { time: [t[k]] };
+  Object.keys(hourly).forEach(key => { if(key !== "time" && Array.isArray(hourly[key])) h2[key] = mix(hourly[key]); });
+  const sc = scoreEvent(h2, 0, beam);
+  if(!sc) { old.atEvent = old.score; return old; }
+  sc.atEvent = old.score; sc.atEventX = old.scoreX;
+  return sc;
+}
 function nearestHourIdx(hourlyTimes, targetIso){
   const target = new Date(targetIso).getTime();
   let best = 0, bestDiff = Infinity;
@@ -2441,8 +2468,7 @@ function renderToday(app, tabsHtml){
   const sunrise = daily.sunrise[activeDay];
   const sunset = daily.sunset[activeDay];
   const eventIso = mode === "evening" ? sunset : sunrise;
-  const idx = nearestHourIdx(hourly.time, eventIso);
-  const s = scoreEvent(hourly, idx, sampleAt(state.sample[mode], eventIso));
+  const s = scoreWindow(hourly, eventIso, mode, sampleAt(state.sample[mode], eventIso));
   if(!s){ app.innerHTML = tabsHtml + '<div class="err">Could not compute a forecast for this day.</div>'; return; }
 
   const gradient = swatchGradient(s, mode);
@@ -2510,7 +2536,7 @@ function renderToday(app, tabsHtml){
         <div class="score-num">${s.score}</div>
         <div class="score-label">${label(s.score)} ${mode === "evening" ? "sunset" : "sunrise"}</div>
       </div>
-      ${document.querySelector(".test-ver") && s.scoreX != null ? `<div class="score-x" title="Test copy only">Experimental score: <b>${s.scoreX}</b> ${label(s.scoreX)} · test only</div>` : ""}
+      ${document.querySelector(".test-ver") && s.scoreX != null ? `<div class="score-x" title="Test copy only">Experimental score: <b>${s.scoreX}</b> ${label(s.scoreX)} · test only</div>${document.querySelector(".test-ver") && s.atEvent != null ? `<div class="score-x" title="Test copy only">At the moment of ${mode === "evening" ? "sunset" : "sunrise"} (old way): <b>${s.atEvent}</b> ${label(s.atEvent)} · test only</div>` : ""}` : ""}
       ${(() => { const [b1, b2] = splitBlurb(blurb(s, mode)); return `<div class="hero-sub">${b1}${b2 ? ` <span id="blurbRest"${state.blurbMore ? "" : " hidden"}>${b2}</span> <button class="more-link" id="blurbMore">${state.blurbMore ? "Less" : "More"}</button>` : ""}</div>`; })()}
       ${s.score >= 26 ? `<div class="hero-sub" style="margin-top:8px;">${afterglowTip(eventIso, mode)}</div>` : ""}
       <div class="hero-times">
@@ -2604,8 +2630,7 @@ function agWhy(sc){
 function agendaCardHTML(dayIdx, mode, daily, hourly){
   const evt = mode === "evening" ? daily.sunset[dayIdx] : daily.sunrise[dayIdx];
   if(!evt) return `<div class="agenda-card"><div class="k">–</div><div class="label-word">No data</div></div>`;
-  const j = nearestHourIdx(hourly.time, evt);
-  const s = scoreEvent(hourly, j, sampleAt(state.sample[mode], evt));
+  const s = scoreWindow(hourly, evt, mode, sampleAt(state.sample[mode], evt));
   if(!s) return `<div class="agenda-card"><div class="k">–</div><div class="label-word">No data</div></div>`;
   const eventLabel = mode === "evening" ? "Sunset" : "Sunrise";
   return `<div class="agenda-card" data-day="${dayIdx}" data-mode="${mode}">
@@ -2626,7 +2651,7 @@ function renderOutlook(app, tabsHtml){
     ["morning", "evening"].forEach(mode => {
       const evt = mode === "evening" ? daily.sunset[i] : daily.sunrise[i];
       let sc = null;
-      if(evt){ const j = nearestHourIdx(hourly.time, evt); sc = scoreEvent(hourly, j, sampleAt(state.sample[mode], evt)); }
+      if(evt){ sc = scoreWindow(hourly, evt, mode === "evening" ? "evening" : "morning", sampleAt(state.sample[mode], evt)); }
       cells.push({ i, mode, evt, sc });
       if(i < 7 && sc && evt && new Date(evt).getTime() >= Date.now() && (!best || sc.score > best.sc.score)) best = { i, mode, sc };
     });
@@ -2873,7 +2898,7 @@ function skyCardHtml(p, sun, esc){
   const rows = [];
   [["evening", "Sunset", sk.daily.sunset[i], sun.set], ["morning", "Sunrise", sk.daily.sunrise[i], sun.rise]].forEach(([mode, name, evt, t]) => {
     if(!evt) return;
-    const j = nearestHourIdx(sk.hourly.time, evt), sc = scoreEvent(sk.hourly, j, sampleAt(sk.sample && sk.sample[mode], evt));
+    const sc = scoreWindow(sk.hourly, evt, mode, sampleAt(sk.sample && sk.sample[mode], evt));
     if(!sc) return;
     rows.push(`<div class="plan-row2"><span>${name}${t ? " " + fmtZ(t, p.loc.tz) : ""}</span><b class="${sc.score >= 44 ? "plan-good" : ""}">${label(sc.score)} · ${sc.score}</b></div>`);
   });
@@ -3203,7 +3228,7 @@ function planSkyLine(p, sun, mode){
   const sk = p.sky; if(!sk || !sk.daily) return "";
   const i = sk.daily.time.indexOf(p.date); if(i < 0) return "";
   const evt = mode === "morning" ? sk.daily.sunrise[i] : sk.daily.sunset[i]; if(!evt) return "";
-  const sc = scoreEvent(sk.hourly, nearestHourIdx(sk.hourly.time, evt), sampleAt(sk.sample && sk.sample[mode], evt));
+  const sc = scoreWindow(sk.hourly, evt, mode, sampleAt(sk.sample && sk.sample[mode], evt));
   return sc ? label(sc.score) + " (" + sc.score + ")" : "";
 }
 function saveIcs(ics, fname){
