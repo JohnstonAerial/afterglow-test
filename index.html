@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.4v -->
+<!-- Afterglow v2.4.5a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -468,8 +468,8 @@
   .plan-name-lbl{ display:block; font-size:12.5px; color: var(--slate); margin: 6px 0 4px; }
   .plan-tap-row{ margin: 0 0 8px; }
   .hdr-top{ flex-wrap: wrap; row-gap: 8px; }
-  .header-actions{ margin-left: auto; gap: 6px; }
-  .header-actions .hdr-help, #notifBtn, #textBtn{ padding-left: 9px; padding-right: 9px; }
+  .header-actions{ flex: 1 1 300px; gap: 6px; }
+  #notifBtn, #textBtn{ padding-left: 9px; padding-right: 9px; }
   .day-nav{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:2px; }
   .far-note{ font-size:12.5px; line-height:1.4; text-align:center; color: rgba(245,236,224,0.7); margin:4px 0 2px; }
   .day-nav .eyebrow{ margin:0; text-align:center; flex:1; white-space:nowrap; letter-spacing:0.1em; }
@@ -499,11 +499,13 @@
   .hdr-help:hover{ color: var(--gold); border-color: var(--slate); }
   /* ---------- Theme button and dropdown (2.1.0) ---------- */
   .header-actions{ position: relative; }
-  .hdr-help{ font-weight: 700; font-size: 15px; padding: 6px 12px; min-width: 36px; text-align:center; }
+  .hdr-help{ font-weight: 600; font-size: 14px; padding: 7px 14px; min-width: 36px; text-align:center; margin-right:auto; }
+  #unitBtn{ background: transparent; border: 1px solid var(--line); border-radius: 10px; color: var(--sand); font: inherit; font-size: 14px; font-weight:600; padding: 7px 10px; cursor: pointer; line-height: 1; min-width: 40px; }
+  #unitBtn:hover{ color: var(--gold); border-color: var(--slate); }
   #themeBtn{ background: transparent; border: 1px solid var(--line); border-radius: 10px; color: var(--sand); padding: 6px 10px; cursor: pointer; line-height: 1; display:inline-flex; align-items:center; justify-content:center; }
   #themeBtn:hover{ color: var(--gold); border-color: var(--slate); }
   #themeBtn[aria-expanded="true"]{ border-color: var(--gold); color: var(--gold); }
-  .header-actions .hdr-help, #notifBtn, #textBtn, #themeBtn{ padding-left: 9px; padding-right: 9px; }
+  #notifBtn, #textBtn, #themeBtn{ padding-left: 9px; padding-right: 9px; }
   .theme-panel{ position:absolute; right:0; top: calc(100% + 8px); z-index: 6000; width: 230px; padding: 10px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 12px 32px rgba(0,0,0,0.35); }
   .theme-panel[hidden]{ display:none; }
   .theme-title{ font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--slate); margin: 2px 4px 8px; }
@@ -586,12 +588,13 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.4v</div>
+    <div class="test-ver">🧪 TEST · v2.4.5a</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
+      <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help and about">Help</a>
       <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
-      <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help and about">?</a>
+      <button id="unitBtn" title="Units" aria-label="Units">mi</button>
       <button id="textBtn" title="Larger text" aria-label="Larger text" aria-pressed="false">Aa</button>
       <button id="themeBtn" title="Theme" aria-label="Theme: Auto" aria-haspopup="true" aria-expanded="false"></button>
       <button id="notifBtn" title="Notifications" aria-label="Notifications">🔔</button>
@@ -2252,7 +2255,7 @@ async function satLoad(loc, az){
 function satHtml(sat, fcHigh, dirTxt){
   if(!sat) return "";
   const word = sat.high < 10 ? "little or none" : sat.high < 30 ? "a little" : sat.high < 60 ? "some" : sat.high < 85 ? "a lot" : "a thick layer";
-  const cells = sat.pts.map(p => `<span><small>${Math.round(p.km / 1.609344 / 5) * 5} mi</small><b>${p.high}%</b></span>`).join("");
+  const cells = sat.pts.map(p => `<span><small>${agUnits() === "km" ? p.km + " km" : Math.round(p.km / 1.609344 / 5) * 5 + " mi"}</small><b>${p.high}%</b></span>`).join("");
   const fcTxt = fcHigh != null ? ` Forecast high cloud: ${fcHigh}%.` : "";
   return `<div class="rc-sat"><div class="rc-sat-head"><span>Satellite · ${fmt(frameN(sat.scan))}</span><span>High cloud ${sat.high}%</span></div>`
     + `<div class="rc-text">High cloud ${dirTxt}, as of this scan: ${word} (${sat.maxHigh > sat.high ? `${sat.high}% average, up to ${sat.maxHigh}%` : `${sat.high}%`}). Low and mid cloud: ${sat.lowmid}%.${fcTxt}</div>`
@@ -2451,12 +2454,12 @@ function renderToday(app, tabsHtml){
     ${statCard("Low cloud", s.low, "%", "Blocks the horizon when high", var2color(s.low, 100, 40, true))}
     ${statCard("Mid cloud", s.mid, "%", "Thin mid cloud catches color; a heavy deck blocks", var2color(s.mid, 100, 50, true))}
     ${s.hazeFromVis
-      ? (s.vis < 1609 ? `<div class="card"><div class="label">Visibility</div><div class="value">Under 1 mi <small>Fog or very low visibility. Under ~9mi starts flattening color</small></div><div class="bar"><i style="width:${Math.max(2, Math.min(100, (s.vis / 15000) * 100))}%; background:${var2color(Math.min(100, (s.vis / 15000) * 100), 100, 70)}"></i></div></div>` : statCard("Visibility", Math.round(s.vis / 1609), " mi", "Direct haze reading — under ~9mi starts flattening color", var2color(Math.min(100, (s.vis / 15000) * 100), 100, 70)))
+      ? (s.vis < 1609 ? `<div class="card"><div class="label">Visibility</div><div class="value">${agUnits() === "km" ? "Under 1.6 km" : "Under 1 mi"} <small>Fog or very low visibility. Under ~${agUnits() === "km" ? "15 km" : "9 mi"} starts flattening color</small></div><div class="bar"><i style="width:${Math.max(2, Math.min(100, (s.vis / 15000) * 100))}%; background:${var2color(Math.min(100, (s.vis / 15000) * 100), 100, 70)}"></i></div></div>` : statCard("Visibility", Math.round(s.vis / (agUnits() === "km" ? 1000 : 1609)), agUnits() === "km" ? " km" : " mi", "Direct haze reading — under ~" + (agUnits() === "km" ? "15 km" : "9 mi") + " starts flattening color", var2color(Math.min(100, (s.vis / 15000) * 100), 100, 70)))
       : statCard("Humidity", s.hum, "%", "Fallback haze proxy — visibility unavailable", var2color(s.hum, 100, 80, true))}
   </div>`;
 
   skyInner += `<div class="why"><b>How this is scored</b> — Afterglow weighs high-altitude cloud cover (the layer that catches direct light and turns pink/orange), low and mid cloud (which physically block the view of the horizon or the light source), and humidity (haze mutes saturation even on an otherwise clear evening). It's a heuristic, not a guarantee — always worth a look outside 20 minutes before showtime.</div>`;
-  const skyExtra = (s.hazeFromVis ? ` · <span class="nw">Vis ${s.vis < 1609 ? "&lt;1" : Math.round(s.vis / 1609)} mi</span>` : "") + (s.precip >= 20 ? ` · <span class="nw">Rain ${Math.round(s.precip)}%</span>` : "");
+  const skyExtra = (s.hazeFromVis ? ` · <span class="nw">Vis ${fmtVis(s.vis)}</span>` : "") + (s.precip >= 20 ? ` · <span class="nw">Rain ${Math.round(s.precip)}%</span>` : "");
   html += uiFold("sky", `Sky breakdown <span class="sub"><span class="nw">High ${s.high}%</span> · <span class="nw">Mid ${s.mid}%</span> · <span class="nw">Low ${s.low}%</span>${skyExtra}</span>`, skyInner);
 
   const moon = computeMoonInfoPlace(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, sunrise, sunset);
@@ -2833,7 +2836,7 @@ function planQrSvg(text){
 }
 // Things in the way, drawn on the printed compass as shaded wedges over their compass range.
 function obstWedges(p, pt, cx, cy, R){
-  const obs = loadObst(p.loc).slice(0, 12), unit = p.unit || "ft", esc = t => String(t).replace(/[<>&"]/g, "");
+  const obs = loadObst(p.loc).slice(0, 12), unit = planUnit(), esc = t => String(t).replace(/[<>&"]/g, "");
   let out = "";
   obs.forEach((o, i) => {
     let span = ((o.a2 - o.a1) % 360 + 360) % 360; if(span < 5) span = 5;
@@ -2892,7 +2895,7 @@ function planPrintHtml(p, pl, qr){
     if(sun.setAz != null) subj += row("At sunset", lightPhrase(sun.setAz, bd.brg).t);
     if(sun.riseAz != null) subj += row("At sunrise", lightPhrase(sun.riseAz, bd.brg).t);
   }
-  const drone = p.vmode !== "ground", hFt = drone ? (p.alt == null ? 400 : p.alt) : 0, obs = loadObst(p.loc), unit = p.unit || "ft";
+  const drone = p.vmode !== "ground", hFt = drone ? (p.alt == null ? 400 : p.alt) : 0, obs = loadObst(p.loc), unit = planUnit();
   let fly = "";
   if(drone || obs.length){
     const m = mode, flat = planVisibility(p, pl, 0, m, []), dv = drone ? planVisibility(p, pl, hFt, m, []) : null;
@@ -3023,16 +3026,16 @@ function planVisibility(p, pl, hFt, mode, obs){
 function lenOut(ft, unit){ return unit === "m" ? Math.round(ft * FT_M) + " m" : Math.round(ft) + " ft"; }
 function lenIn(v, unit){ return unit === "m" ? v / FT_M : v; }
 function planViewCardHtml(p, pl, esc){
-  const tz = p.loc.tz, ft = d => fmtZ(d, tz), unit = p.unit || "ft";
+  const tz = p.loc.tz, ft = d => fmtZ(d, tz), unit = planUnit();
   const drone = p.vmode !== "ground", hFt = drone ? Math.max(0, p.alt == null ? 400 : p.alt) : 0;
   const obs = loadObst(p.loc);
   let h = `<div class="card" style="margin-bottom:10px;"><div class="label">Viewing from</div>
-    <div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${drone ? "" : "on"}" data-vm="ground">Ground</button><button class="plan-seg-b ${drone ? "on" : ""}" data-vm="drone">Drone</button><button class="plan-seg-b" data-unit="${unit === "ft" ? "m" : "ft"}" aria-label="Switch units">${unit === "ft" ? "Use meters" : "Use feet"}</button></div>`;
+    <div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${drone ? "" : "on"}" data-vm="ground">Ground</button><button class="plan-seg-b ${drone ? "on" : ""}" data-vm="drone">Drone</button><button class="plan-seg-b" data-unit="${unit === "ft" ? "m" : "ft"}" aria-label="Switch units for the whole app">${unit === "ft" ? "Use meters" : "Use feet"}</button></div>`;
   if(drone){
     const shown = unit === "m" ? Math.round(hFt * FT_M) : Math.round(hFt);
     h += `<div class="plan-row"><span style="font-size:13.5px;flex:1;">Height above takeoff</span><input class="plan-date" style="max-width:110px;text-align:right;" type="number" inputmode="decimal" min="0" max="${unit === "m" ? 1000 : 3000}" id="planAlt" value="${shown}" aria-label="Height above takeoff in ${unit === "m" ? "meters" : "feet"}"><span style="font-size:13.5px;">${unit}</span></div>
     <div class="plan-seg" style="margin:6px 0;">${[100, 200, 300, 400].map(v => `<button class="plan-seg-b" data-altq="${v}">${unit === "m" ? Math.round(v * FT_M) : v}</button>`).join("")}</div>
-    <div class="note" style="font-size:12.5px;">${hFt > 400 ? "Above the usual 400 ft limit. " : "400 ft is the Part 107 limit above the takeoff point. "}Horizon dips ${dipDeg(hFt).toFixed(1)}° at this height.</div>`;
+    <div class="note" style="font-size:12.5px;">${unit === "m" ? (hFt > 400 ? "Above the usual 122 m (400 ft) limit. " : "122 m (400 ft) is the US Part 107 limit above the takeoff point. ") : (hFt > 400 ? "Above the usual 400 ft limit. " : "400 ft is the Part 107 limit above the takeoff point. ")}Horizon dips ${dipDeg(hFt).toFixed(1)}° at this height.</div>`;
   }
   h += `</div>`;
   const block = (mode, label) => {
@@ -3177,6 +3180,7 @@ function restoreUi(){
     const q = o.plan;
     if(q && q.loc && isFinite(q.loc.lat) && isFinite(q.loc.lon)){
       if(q.loc.name === "Current location") q.loc.name = MYLOC;
+      try{ if(q.unit === "m" && !localStorage.getItem(UNITS_KEY)) setUnits("km"); }catch(e){}
       const stale = q.date && q.date < planToday(q.loc.tz);
       state.plan = { loc: q.loc, date: stale ? null : (q.date || null), subject: q.subject && isFinite(q.subject.lat) ? q.subject : null,
         min: q.min, minKey: q.loc.lat.toFixed(3) + "," + q.loc.lon.toFixed(3), minSet: stale ? false : !!q.minSet, tap: q.tap, finder: q.finder, calMode: q.calMode, cal: q.cal || null, calTitle: q.calTitle || "", calNotes: q.calNotes || "", vmode: q.vmode, alt: q.alt, unit: q.unit, searching: false, results: [], msg: "" };
@@ -3193,7 +3197,45 @@ function bearingDist(lat1, lon1, lat2, lon2){
 }
 // Signed angle from b to a, -180..180. Positive = a is clockwise of b (to the right when you face b).
 function angDiff(a, b){ return ((a - b + 540) % 360) - 180; }
-function fmtDist(km){ const mi = km / 1.609344; return (mi < 10 ? mi.toFixed(1) : Math.round(mi)) + " mi · " + (km < 10 ? km.toFixed(1) : Math.round(km)) + " km"; }
+// ---------- Units (2.4.5): one choice for the whole app ----------
+// "mi" = miles and feet, "km" = kilometers and meters. First visit follows the device's region (miles in the US and UK), then the choice is remembered.
+// Cloud bases in airport reports stay in feet (aviation reports them in feet everywhere).
+const UNITS_KEY = "ag_units";
+function unitsDefault(){
+  try{
+    const tag = (navigator.languages && navigator.languages[0]) || navigator.language || "en-US";
+    let region = ""; try{ region = new Intl.Locale(tag).maximize().region || ""; }catch(e){ const m = /[-_]([A-Za-z]{2})\b/.exec(tag); region = m ? m[1].toUpperCase() : ""; }
+    return (!region || ["US", "GB", "LR", "MM"].indexOf(region) >= 0) ? "mi" : "km";
+  }catch(e){ return "mi"; }
+}
+function agUnits(){
+  if(state.units) return state.units;
+  let v = null; try{ v = localStorage.getItem(UNITS_KEY); }catch(e){}
+  state.units = (v === "mi" || v === "km") ? v : unitsDefault();
+  return state.units;
+}
+function setUnits(v){
+  state.units = v === "km" ? "km" : "mi";
+  try{ localStorage.setItem(UNITS_KEY, state.units); }catch(e){}
+  paintUnitBtn();
+}
+function planUnit(){ return agUnits() === "km" ? "m" : "ft"; }
+function paintUnitBtn(){
+  const b = document.getElementById("unitBtn"); if(!b) return;
+  const km = agUnits() === "km";
+  b.textContent = km ? "km" : "mi";
+  b.setAttribute("aria-label", km ? "Units: kilometers and meters. Tap for miles and feet." : "Units: miles and feet. Tap for kilometers and meters.");
+  b.title = km ? "Units: kilometers and meters" : "Units: miles and feet";
+}
+function fmtDist(km){
+  if(agUnits() === "km") return (km < 10 ? km.toFixed(1) : Math.round(km)) + " km";
+  const mi = km / 1.609344; return (mi < 10 ? mi.toFixed(1) : Math.round(mi)) + " mi";
+}
+// Visibility (metres in) as a short text in the chosen unit.
+function fmtVis(m){
+  if(agUnits() === "km") return m < 1000 ? "&lt;1 km" : Math.round(m / 1000) + " km";
+  return m < 1609 ? "&lt;1 mi" : Math.round(m / 1609) + " mi";
+}
 // How the Sun/Moon sits against the line from you to the subject. You are facing the subject.
 function lightPhrase(azDeg, brg){
   const r = angDiff(azDeg, brg), a = Math.abs(r), side = r > 0 ? "right" : "left";
@@ -3566,7 +3608,7 @@ function renderPlan(app, tabsHtml){
   cap("sum", i0);
   const foldBody = (key, title, inner, force, cls) => `<details class="plan-fold${cls ? " " + cls : ""}" data-fold="${key}"${(p.fold[key] || force) ? " open" : ""}><summary>${title}</summary><div class="fold-body">${inner}${FOLD_CLOSE}</div></details>`;
   const vDrone = p.vmode !== "ground", vFt = vDrone ? Math.max(0, p.alt == null ? 400 : p.alt) : 0, vObs = loadObst(p.loc).length;
-  const vTitle = "Height &amp; things in the way<span class=\"sub\">" + (vDrone ? (p.unit === "m" ? Math.round(vFt * 0.3048) + " m" : Math.round(vFt) + " ft") : "From the ground") + " · " + (vObs ? vObs + " in the way" : "nothing in the way") + "</span>";
+  const vTitle = "Height &amp; things in the way<span class=\"sub\">" + (vDrone ? lenOut(vFt, planUnit()) : "From the ground") + " · " + (vObs ? vObs + " in the way" : "nothing in the way") + "</span>";
   html += (parts.time || "") + (parts.hz || "");
   html += foldBody("view", vTitle, parts.view || "", false, "two");
   html += (parts.subj || "") + (parts.sky || "") + (parts.chk || "") + (parts.find || "");
@@ -3728,17 +3770,17 @@ function renderPlan(app, tabsHtml){
   const lenChg = () => { const h = Math.max(0, Math.min(12, parseInt($("calLenH").value) || 0)), m = Math.max(0, Math.min(59, parseInt($("calLenM").value) || 0)); calSet({ lenKind: "fixed", lenMin: Math.max(15, h * 60 + m) }); };
   ["calLenH", "calLenM"].forEach(id => { const e = $(id); if(e) e.addEventListener("change", lenChg); });
   document.querySelectorAll("[data-vm]").forEach(b => b.addEventListener("click", () => { p.vmode = b.dataset.vm; if(p.alt == null) p.alt = 400; saveUi(); render(); }));
-  document.querySelectorAll("[data-unit]").forEach(b => b.addEventListener("click", () => { p.unit = b.dataset.unit; saveUi(); render(); }));
+  document.querySelectorAll("[data-unit]").forEach(b => b.addEventListener("click", () => { setUnits(b.dataset.unit === "m" ? "km" : "mi"); saveUi(); render(); }));
   document.querySelectorAll("[data-altq]").forEach(b => b.addEventListener("click", () => { p.alt = +b.dataset.altq; saveUi(); render(); }));
   const altIn = $("planAlt");
-  if(altIn) altIn.addEventListener("change", () => { const v = parseFloat(altIn.value); if(isFinite(v) && v >= 0) p.alt = lenIn(v, p.unit || "ft"); saveUi(); render(); });
+  if(altIn) altIn.addEventListener("change", () => { const v = parseFloat(altIn.value); if(isFinite(v) && v >= 0) p.alt = lenIn(v, planUnit()); saveUi(); render(); });
   const oAdd = $("obAdd"); if(oAdd) oAdd.addEventListener("click", () => { p.addObs = true; p.obMsg = ""; p.obType = "trees"; render(); });
   document.querySelectorAll(".ob-type").forEach(b => b.addEventListener("click", () => { p.obType = b.dataset.obtype; document.querySelectorAll(".ob-type").forEach(x => x.classList.toggle("on", x === b)); }));
   const oCan = $("obCancel"); if(oCan) oCan.addEventListener("click", () => { p.addObs = false; p.obMsg = ""; render(); });
   ["obA1", "obA2", "obH", "obD"].forEach(id => { const e = $(id); if(e) e.addEventListener("input", () => { e.style.outline = ""; }); });
   const oSave = $("obSave");
   if(oSave) oSave.addEventListener("click", () => {
-    const u = p.unit || "ft", ty = OB_TYPES.some(q => q[0] === p.obType) ? p.obType : "trees", n = ($("obName").value || "").replace(/[<>&"]/g, "").trim().slice(0, 30) || OB_TYPES.find(q => q[0] === ty)[1];
+    const u = planUnit(), ty = OB_TYPES.some(q => q[0] === p.obType) ? p.obType : "trees", n = ($("obName").value || "").replace(/[<>&"]/g, "").trim().slice(0, 30) || OB_TYPES.find(q => q[0] === ty)[1];
     const a1 = parseFloat($("obA1").value), a2 = parseFloat($("obA2").value), hh = parseFloat($("obH").value), dd = parseFloat($("obD").value);
     const chk = [["obA1", a1, "the compass start (0 to 360)"], ["obA2", a2, "the compass end (0 to 360)"], ["obH", hh, "a height above zero"], ["obD", dd, "a distance above zero"]];
     const bad = chk.filter(c => !isFinite(c[1]) || (c[0] === "obA1" || c[0] === "obA2" ? (c[1] < 0 || c[1] > 360) : c[1] <= 0));
@@ -4466,6 +4508,18 @@ function applyBigText(on){
   let on = false;
   try{ on = localStorage.getItem(BIGTEXT_KEY) === "1"; }catch(e){}
   applyBigText(on);
+  paintUnitBtn();
+  const ub = document.getElementById("unitBtn");
+  if(ub) ub.addEventListener("click", () => {
+    setUnits(agUnits() === "km" ? "mi" : "km");
+    const t = document.createElement("div"); t.setAttribute("role", "status");
+    t.style.cssText = "position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;max-width:88%;padding:10px 16px;border-radius:12px;background:#1b1b1f;color:#f3efe6;border:1px solid #c9a24a;font:14px/1.3 system-ui,sans-serif;text-align:center;";
+    t.textContent = agUnits() === "km" ? "Units: kilometers and meters" : "Units: miles and feet";
+    document.querySelectorAll(".unit-toast").forEach(x => x.remove()); t.className = "unit-toast";
+    document.body.appendChild(t); setTimeout(() => t.remove(), 2500);
+    try{ saveUi(); }catch(e){}
+    if(state.daily) render();
+  });
   const btn = document.getElementById("textBtn");
   if(btn) btn.addEventListener("click", () => {
     on = !on;
