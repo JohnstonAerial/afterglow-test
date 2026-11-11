@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.5e -->
+<!-- Afterglow v2.4.5f -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.5e</div>
+    <div class="test-ver">🧪 TEST · v2.4.5f</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2246,7 +2246,7 @@ async function rcLoad(loc, eventIso, az, beam){
     out.push({ id: st.icaoId, name: String(st.name || "").split(",")[0].replace(/\s+(Intl|International|Airport|Regional|Rgnl|Municipal|Muni)\b.*$/i, "").trim(), lat: st.lat, lon: st.lon, km: bd.km, brg: bd.brg, obs: st.obsTime, sky });
   }));
   out.sort((a, b) => a.km - b.km);
-  if(!beam){ const l = out.slice(0, 3); l.cmp = l.filter(r => r.km <= 60).map(r => r.sky); return l; }
+  if(!beam){ const l = out.slice(0, 3); l.cmpNear = l.filter(r => r.km <= 60).map(r => r.sky); l.cmp = []; return l; }
   const spot = projectPoint(loc.lat, loc.lon, az, SUN_PATH_SAMPLE_KM);
   out.forEach(r => { r.toSpot = bearingDist(spot.lat, spot.lon, r.lat, r.lon).km; });
   const far = out.filter(r => r.toSpot <= RC_SPOT_BAND_KM).sort((a, b) => a.toSpot - b.toSpot);
@@ -2257,6 +2257,7 @@ async function rcLoad(loc, eventIso, az, beam){
   if(rest.length){ const half = SUN_PATH_SAMPLE_KM / 2; rest.sort((a, b) => Math.abs(a.km - half) - Math.abs(b.km - half)); pick.push(rest[0]); }
   pick.sort((a, b) => a.km - b.km);
   pick.cmp = far.slice(0, 3).map(r => r.sky);
+  pick.cmpNear = out.filter(r => r.km <= 40).slice(0, 3).map(r => r.sky);   // out is sorted nearest first
   return pick;
 }
 // ---------- Satellite cloud layers toward the sun ----------
@@ -2331,23 +2332,44 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
   };
   if(rc === null) return wrap("rc-none", "Airport reports unavailable", `<div class="rc-verdict">Airport reports unavailable right now</div><div class="rc-text">The airport lookup didn't answer, so there is nothing to compare with the forecast. Tap Refresh to try again.</div>${satB}${note}`);
   if(!rc.length) return wrap("rc-none", "No recent airport reports", `<div class="rc-verdict">No recent airport reports ${dirTxt}</div><div class="rc-text">No airport ${dirTxt} has reported in the last 2 hours, so there is nothing to compare with the forecast.</div>${satB}${note}`);
+  // 2.4.5f: two checks. Near you (airports within about 25 mi against the forecast for your spot) and, when the forecast
+  // has a toward-the-sun reading, out where it looks (airports near that spot against the forecast there).
+  // Matching rule: airports only see below 12,000 ft. When they report cloud, the forecast is given credit for its low OR mid
+  // cloud (a deck at 5,500 ft above a mountain airport is "mid" to the model). When they are clear, only forecast LOW cloud counts.
   const beamSpot = where === "toward the sun";
-  const spotTxt = beamSpot ? `about ${fmtDist(SUN_PATH_SAMPLE_KM)} out ${dirTxt}` : where;
-  const rowsOf = () => rc.map(r => {
+  const F = (fc && typeof fc === "object") ? fc : { low: beamSpot ? 0 : fc, mid: 0, bLow: beamSpot ? fc : null, bMid: 0 };
+  const rows = rc.map(r => {
     const code = r.sky.pct === 0 ? "CLR" : r.sky.code + (r.sky.base != null ? " " + (Math.round(r.sky.base / 100) * 100).toLocaleString("en-US") + " ft" : "");
     return `<div class="rc-row"><span><b>${rcEsc(r.id)}</b> ${rcEsc(r.name)}<br><small>${fmtDist(r.km).split(" · ")[0]} ${compassDir(r.brg)} · ${fmt(frameN(new Date(r.obs * 1000)))}${r.spot ? " · where the forecast looks" : ""}</small></span><b>${code}</b></div>`;
   }).join("");
-  const cmp = rc.cmp || rc.map(r => r.sky);
-  // No airport out where the forecast looks (over water, or none reporting): say so instead of judging by airports near you.
-  if(!cmp.length) return wrap("rc-none", "Can't check the forecast here", `<div class="rc-verdict">Can't check the forecast ${beamSpot ? "out there" : "here"}</div><div class="rc-text">Forecast says low cloud (below about 10,000 ft) ${fc}% ${spotTxt}. ${beamSpot ? "No airport out there has reported in the last 2 hours, so that can't be checked. Nearer airports are listed below." : "No airport close to you has reported in the last 2 hours, so that can't be checked. The nearest ones are listed below."}</div>${rowsOf()}${satB}${note}`);
-  const pcts = cmp.map(k => k.pct).sort((a, b) => a - b);
-  const agg = pcts.length === 2 ? (pcts[0] + pcts[1]) / 2 : pcts[Math.floor(pcts.length / 2)];
-  const rep = cmp.slice().sort((a, b) => Math.abs(a.pct - agg) - Math.abs(b.pct - agg))[0];
-  const baseTxt = rep.base != null ? ` at ${(Math.round(rep.base / 100) * 100).toLocaleString("en-US")} ft` : "";
-  const phr = rep.pct === 0 ? "clear skies below 12,000 ft" : (RC_WORDS[rep.code] || "cloud") + baseTxt;
-  const bad = (agg - fc >= 35 && agg >= 60) || (fc - agg >= 35 && fc >= 60);
-  const rows = rowsOf();
-  return wrap(bad ? "rc-bad" : "rc-ok", bad ? "Disagrees with the forecast" : "Agrees with the forecast", `<div class="rc-verdict">${bad ? "Disagrees with the forecast" : "Agrees with the forecast"}</div><div class="rc-text">Forecast says low cloud (below about 10,000 ft) ${fc}% ${spotTxt}. ${beamSpot ? "Airports out there report" : "Airports near you report"} ${phr}.</div>${rows}${satB}${note}`);
+  const judge = (skies, fLow, fMid) => {
+    if(!skies || !skies.length || fLow == null) return null;
+    const pcts = skies.map(k => k.pct).sort((x, y) => x - y);
+    const agg = pcts.length === 2 ? (pcts[0] + pcts[1]) / 2 : pcts[Math.floor(pcts.length / 2)];
+    const rep = skies.slice().sort((x, y) => Math.abs(x.pct - agg) - Math.abs(y.pct - agg))[0];
+    const baseTxt = rep.base != null ? ` at ${(Math.round(rep.base / 100) * 100).toLocaleString("en-US")} ft` : "";
+    const phr = rep.pct === 0 ? "clear skies below 12,000 ft" : (RC_WORDS[rep.code] || "cloud") + baseTxt;
+    const fcTxt = "forecast low cloud " + Math.round(fLow) + "%" + (agg >= 25 && fMid != null ? ", mid " + Math.round(fMid) + "%" : "");
+    const bad = (agg >= 60 && agg - Math.max(fLow, fMid || 0) >= 35) || (fLow >= 60 && fLow - agg >= 35);
+    return { bad, phr, fcTxt };
+  };
+  const near = judge(rc.cmpNear || (beamSpot ? null : rc.map(r => r.sky)), F.low, F.mid);
+  const far = beamSpot ? judge(rc.cmp || rc.map(r => r.sky), F.bLow, F.bMid) : null;
+  const farWhere = `About ${fmtDist(SUN_PATH_SAMPLE_KM)} out ${dirTxt}`;
+  let text = "";
+  if(near) text += `Near you: ${near.fcTxt}, airports report ${near.phr}.<br>`;
+  else text += `Near you: no airport has reported in the last 2 hours.<br>`;
+  if(beamSpot) text += far ? `${farWhere}: ${far.fcTxt}, airports report ${far.phr}.` : `${farWhere}: forecast low cloud ${Math.round(F.bLow)}%, but no airport out there has reported in the last 2 hours, so that can't be checked.`;
+  let cls, hl;
+  if(!near && !far){ cls = "rc-none"; hl = "Can't check the forecast here"; }
+  else if((near && near.bad) || (far && far.bad)){
+    cls = "rc-bad";
+    hl = (near && near.bad && far && far.bad) || !beamSpot ? "Disagrees with the forecast" : (near && near.bad) ? "Disagrees with the forecast near you" : "Disagrees with the forecast toward the sun";
+  }
+  else if(beamSpot && !far){ cls = "rc-none"; hl = "Agrees near you, can't check farther out"; }
+  else if(beamSpot && !near){ cls = "rc-ok"; hl = "Agrees with the forecast toward the sun"; }
+  else { cls = "rc-ok"; hl = "Agrees with the forecast"; }
+  return wrap(cls, hl, `<div class="rc-verdict">${hl}</div><div class="rc-text">${text.replace(/<br>$/, "")}</div>${rows}${satB}${note}`);
 }
 function rcSkelHtml(mode, minsLeft, where){
   const ob = Math.floor(Date.now() / 1000);
@@ -2536,7 +2558,7 @@ function renderToday(app, tabsHtml){
   html += checklistBtnHtml(state.loc, "todayChk");
   app.innerHTML = html;
   // Airport sensors only see cloud below 12,000 ft, so they are compared with the forecast's LOW cloud only (mid cloud is mostly above what they can see).
-  rcSlot(eventIso, mode, azimuth, s.beam != null ? s.beamLow : s.low, s.beam != null ? "toward the sun" : "at your spot", s.high);
+  rcSlot(eventIso, mode, azimuth, { low: s.low, mid: s.mid, bLow: s.beam != null ? s.beamLow : null, bMid: s.beam != null ? s.beamMid : null }, s.beam != null ? "toward the sun" : "at your spot", s.high);
 
   document.querySelectorAll(".toggle-btn").forEach(b => b.addEventListener("click", () => {
     state.mode = b.dataset.mode; render();
