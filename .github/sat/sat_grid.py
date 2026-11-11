@@ -81,7 +81,7 @@ def main(out):
         n = np.bincount(cell[good], minlength=nlat * nlon)
         pct = np.full(nlat * nlon, 255, dtype=np.uint8)
         has = n > 0
-        pct[has] = np.clip(np.rint(100 * s[has] / n[has]), 0, 100).astype(np.uint8)
+        pct[has] = np.clip(np.rint(s[has] / n[has]), 0, 100).astype(np.uint8)
         layers[name] = base64.b64encode(pct.tobytes()).decode("ascii")
     t = ds.variables["t"][:].item()
     scan = dt.datetime(2000, 1, 1, 12, tzinfo=dt.timezone.utc) + dt.timedelta(seconds=float(t))
