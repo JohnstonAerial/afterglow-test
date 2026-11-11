@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.4q -->
+<!-- Afterglow v2.4.4r -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -201,7 +201,7 @@
   .map-readout .card{ flex: 1; text-align: center; }
   .map-note{ font-size: 12.5px; line-height: 1.5; color: var(--slate); }
   /* Reality check: airport reports toward the sun, shown in the last 3 hours before the event */
-  .rc-hint{ font-size:12px; line-height:1.4; color: var(--slate); margin:10px 2px 4px; }
+  .rc-hint{ font-size:12px; line-height:1.5; color: var(--slate); text-align:center; margin:22px 10px 22px; }
   .rc-card{ border:1px solid var(--line); border-left:4px solid var(--rc, var(--slate)); background: var(--card); border-radius:14px; padding:14px 16px 12px; margin:14px 0 12px; }
   .rc-head{ display:flex; justify-content:space-between; gap:8px; align-items:baseline; font:600 11px/1.2 ui-monospace,Menlo,monospace; letter-spacing:.14em; text-transform:uppercase; color: var(--slate); }
   .rc-head span:last-child{ font-weight:400; letter-spacing:0; text-transform:none; font-size:12px; }
@@ -585,7 +585,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.4q</div>
+    <div class="test-ver">🧪 TEST · v2.4.4r</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2307,7 +2307,7 @@ function rcSlot(eventIso, mode, az, fc, where, fcHigh){
   const el = document.getElementById("rcSlot");
   if(!el) return;
   const minsLeft = (placeLocalToMs(eventIso, state.tz) - Date.now()) / 60000;
-  if(!(minsLeft > 0 && minsLeft <= 180)){ el.innerHTML = '<div class="rc-hint">Reality check appears within 3 hours of ' + (mode === "evening" ? "sunset" : "sunrise") + ', comparing airport and satellite reports to the forecast.</div>'; return; }
+  if(!(minsLeft > 0 && minsLeft <= 180)){ el.innerHTML = '<div class="rc-hint">Reality check appears within 3 hours of sunrise or sunset, comparing airport and satellite reports to the forecast.</div>'; return; }
   const loc = state.loc, key = [loc.lat.toFixed(2), loc.lon.toFixed(2), eventIso].join("|");
   const draw = (rc, sat) => { if(!el.isConnected) return; el.innerHTML = rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh); const d = el.querySelector("details.rc-card"); if(d) d.addEventListener("toggle", () => { state.fold = state.fold || {}; state.fold.rc = d.open; }); };
   if(state.rc && state.rc.key === key && Date.now() - state.rc.at < 300000) { draw(state.rc.list, state.rc.sat); return; }
