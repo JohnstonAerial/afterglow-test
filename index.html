@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.4n -->
+<!-- Afterglow v2.4.4o -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -586,7 +586,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.4n</div>
+    <div class="test-ver">🧪 TEST · v2.4.4o</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2170,7 +2170,11 @@ const AG_METAR_PROXY = "https://uas-metar.fisherofmen58.workers.dev";
 const RC_COVER = { SKC: 0, CLR: 0, NSC: 0, NCD: 0, CAVOK: 0, FEW: 18, SCT: 44, BKN: 75, OVC: 100, OVX: 100, VV: 100 };
 const RC_WORDS = { FEW: "a few clouds", SCT: "scattered cloud", BKN: "a broken deck", OVC: "overcast", OVX: "overcast", VV: "overcast" };
 const rcEsc = t => String(t).replace(/[<>&"]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
-async function rcFetchPoint(lat, lon){
+async function rcFetchPoint(lat, lon, again){
+  try{ return await rcFetchPointOnce(lat, lon); }
+  catch(e){ if(again) throw e; await new Promise(r => setTimeout(r, 700)); return rcFetchPoint(lat, lon, true); } // one quiet retry
+}
+async function rcFetchPointOnce(lat, lon){
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 9000);
   try{
     const r = await fetch(`${AG_METAR_PROXY}/metar?lat=${lat.toFixed(2)}&lon=${lon.toFixed(2)}`, { signal: ctl.signal });
@@ -2189,7 +2193,10 @@ function rcStationSky(st){
 async function rcLoad(loc, eventIso, az){
   const pts = [[loc.lat, loc.lon]];
   [80, 160].forEach(km => { const p = projectPoint(loc.lat, loc.lon, az, km); pts.push([p.lat, p.lon]); });
-  const lists = await Promise.all(pts.map(p => rcFetchPoint(p[0], p[1])));
+  // One lookup failing should not wipe out the stations the others found; only fail when all of them do.
+  const settled = await Promise.allSettled(pts.map(p => rcFetchPoint(p[0], p[1])));
+  if(settled.every(x => x.status === "rejected")) throw new Error("airport reports unavailable");
+  const lists = settled.map(x => x.status === "fulfilled" ? x.value : []);
   const seen = {}, nowS = Date.now() / 1000, out = [];
   lists.forEach(l => l.forEach(st => {
     if(!st || !st.icaoId || seen[st.icaoId] || st.lat == null || st.lon == null) return;
@@ -2257,6 +2264,7 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
   const satSum = sat ? ` · High cloud ${sat.high}%` : "";
   const openAttr = (state.fold && state.fold.rc === false) ? "" : " open";
   const wrap = (cls, sum, inner) => `<details class="rc-card ${cls}" data-fold="rc"${openAttr}><summary>${head}<div class="rc-sum">${sum}${satSum}</div></summary>${inner}</details>`;
+  if(rc === null) return wrap("rc-none", "Airport reports unavailable", `<div class="rc-verdict">Airport reports unavailable right now</div><div class="rc-text">The airport lookup didn't answer, so there is nothing to compare with the forecast. Tap Refresh to try again.</div>${satB}${note}`);
   if(!rc.length) return wrap("rc-none", "No recent airport reports", `<div class="rc-verdict">No recent airport reports ${dirTxt}</div><div class="rc-text">No airport ${dirTxt} has reported in the last 2 hours, so there is nothing to compare with the forecast.</div>${satB}${note}`);
   const pcts = rc.map(r => r.sky.pct).sort((a, b) => a - b);
   const agg = pcts.length === 2 ? (pcts[0] + pcts[1]) / 2 : pcts[Math.floor(pcts.length / 2)];
@@ -2309,7 +2317,8 @@ function rcSlot(eventIso, mode, az, fc, where, fcHigh){
   Promise.allSettled([rcLoad(loc, eventIso, az), satLoad(loc, az)]).then(([a, b]) => {
     const list = a.status === "fulfilled" ? a.value : null, sat = b.status === "fulfilled" ? b.value : null;
     if(!list && !sat){ if(el.isConnected) el.innerHTML = ""; return; }
-    state.rc = { key, at: Date.now(), list: list || [], sat }; draw(list || [], sat);
+    if(list) state.rc = { key, at: Date.now(), list, sat }; // a failed airport lookup is not remembered, so the next draw tries again
+    draw(list, sat);
   });
 }
 function renderToday(app, tabsHtml){
