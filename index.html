@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.5c -->
+<!-- Afterglow v2.4.5d -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -589,7 +589,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.5c</div>
+    <div class="test-ver">🧪 TEST · v2.4.5d</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -1602,7 +1602,9 @@ function scoreEvent(hourly, idx, beam){
     const lowFx = beam.low <= X_FREE ? 1 : Math.max(X_FLOOR, 1 - (1 - X_FLOOR) * (beam.low - X_FREE) / (X_SOLID - X_FREE));
     const midFx = Math.max(0.25, 1 - (beam.mid / 100) * 0.55);
     const hc = Math.max(beam.low, beam.mid);
-    const credit = X_CREDIT * Math.exp(-Math.pow(hc - X_PEAK, 2) / (2 * X_SIGMA * X_SIGMA));
+    // Only an otherwise empty sky gets this: full credit with no cloud overhead, fading to none once the overhead cloud reaches the ideal amount (an overcast sky gets none).
+    const empty = Math.max(0, 1 - cover / CANVAS_PEAK);
+    const credit = X_CREDIT * empty * Math.exp(-Math.pow(hc - X_PEAK, 2) / (2 * X_SIGMA * X_SIGMA));
     // A lit band on the horizon under an otherwise empty sky can lift the canvas to 0.70 at most (a Good morning, not a Great one).
     const canvasX = Math.max(canvas, Math.min(0.70, canvas + credit * (1 - canvas)));
     scoreX = Math.round(Math.max(2, Math.min(98, 100 * canvasX * clarity * lowFx * midFx * ceiling)));
