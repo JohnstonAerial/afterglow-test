@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.4t -->
+<!-- Afterglow v2.4.4u -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -406,7 +406,7 @@
   .loading, .err{ text-align:center; padding: 60px 20px; color: var(--slate); font-size: 14px; }
   .err{ color: var(--rose); }
 
-  .tz-note{ font-size:12px; line-height:1.4; color:var(--slate); text-align:right; margin:-6px 2px 12px; }
+  .tz-note{ font-size:12px; line-height:1.5; color:var(--slate); text-align:center; margin:22px 10px 22px; }
   .upd-row{ display:flex; align-items:center; justify-content:flex-end; gap:10px; margin:-6px 2px 12px; font-size:12.5px; color:var(--slate); }
   .upd-btn{ font:inherit; font-size:12.5px; color:var(--gold); background:transparent; border:1px solid var(--line, rgba(128,128,128,.35)); border-radius:999px; padding:5px 12px; cursor:pointer; min-height:30px; }
   .upd-btn:disabled{ opacity:.55; cursor:default; }
@@ -586,7 +586,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.4t</div>
+    <div class="test-ver">🧪 TEST · v2.4.4u</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2338,7 +2338,9 @@ function tzNoteHtml(){
     const now = new Date(), off = z => { const p = new Intl.DateTimeFormat("en-US", Object.assign({ hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }, z ? { timeZone: z } : {})).formatToParts(now).reduce((o, x) => (o[x.type] = x.value, o), {}); return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute); };
     if(off(tz) === off(null)) return "";
     const abbr = (new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "short" }).formatToParts(now).find(x => x.type === "timeZoneName") || {}).value || "";
-    return `<div class="tz-note">Sun, moon and report times are this place's local time${abbr ? " (" + rcEsc(abbr) + ")" : ""}, not your device's.</div>`;
+    const city = String((state.loc && state.loc.name) || "").split(",")[0].trim();
+    const who = (city && city !== MYLOC) ? city + " time" : "this location's time";
+    return `<div class="tz-note">Times shown are ${rcEsc(who)}${abbr ? " (" + rcEsc(abbr) + ")" : ""}, not your device's.</div>`;
   }catch(e){ return ""; }
 }
 function rcTick(){
