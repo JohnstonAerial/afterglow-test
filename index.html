@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.5b -->
+<!-- Afterglow v2.4.5c -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -116,6 +116,7 @@
   }
   .eyebrow{ font-family:'IBM Plex Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(245,230,211,0.65); margin-bottom: 6px; }
   .score-row{ display:flex; align-items:flex-end; gap: 14px; margin-bottom: 4px;}
+  .score-x{ font-family: ui-monospace, Menlo, monospace; font-size:12px; letter-spacing:.04em; color:#e8743b; margin:2px 0 8px; }
   .score-num{ font-family: Georgia, 'Times New Roman', serif; font-size: 68px; line-height: 0.9; font-weight: 600; color: var(--sand); text-shadow: 0 2px 12px rgba(0,0,0,0.35); }
   .score-label{ font-size: 20px; font-weight: 600; padding-bottom: 8px; color: var(--sand); }
   .hero-sub{ font-size: 14px; color: rgba(245,230,211,0.8); max-width: 46ch; line-height: 1.5; }
@@ -588,7 +589,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.5b</div>
+    <div class="test-ver">🧪 TEST · v2.4.5c</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -1589,7 +1590,25 @@ function scoreEvent(hourly, idx, beam){
 
   const score = Math.round(Math.max(2, Math.min(98, 100 * canvas * clarity * beamF * ceiling)));
 
-  return { score, low, mid, high, midCanvas, hum, precip, vis, hazeFactor, hazeFromVis: vis != null,
+  // ---- EXPERIMENTAL score (2.4.5c, shown in the test copy only, next to the real one; nothing else uses it) ----
+  // Two changes, from the 2026-11-11 sunrise that scored 7 "Flat" but was an upper-Fair morning:
+  // 1. Softer block: broken cloud along the sun's line lets the sun through gaps. No penalty up to 55% low cloud out there,
+  //    then a straight line down to 0.10 at 95% (a near-solid deck still blocks hard).
+  // 2. Horizon credit: broken low or mid cloud out along the sun's line is itself something for the light to catch.
+  //    Most credit at about half cover, none when it is clear or solid; it only fills the canvas a clear sky leaves empty.
+  let scoreX = score;
+  if(hasBeam){
+    const X_FREE = 55, X_SOLID = 95, X_FLOOR = 0.10, X_CREDIT = 0.70, X_PEAK = 50, X_SIGMA = 22;
+    const lowFx = beam.low <= X_FREE ? 1 : Math.max(X_FLOOR, 1 - (1 - X_FLOOR) * (beam.low - X_FREE) / (X_SOLID - X_FREE));
+    const midFx = Math.max(0.25, 1 - (beam.mid / 100) * 0.55);
+    const hc = Math.max(beam.low, beam.mid);
+    const credit = X_CREDIT * Math.exp(-Math.pow(hc - X_PEAK, 2) / (2 * X_SIGMA * X_SIGMA));
+    // A lit band on the horizon under an otherwise empty sky can lift the canvas to 0.70 at most (a Good morning, not a Great one).
+    const canvasX = Math.max(canvas, Math.min(0.70, canvas + credit * (1 - canvas)));
+    scoreX = Math.round(Math.max(2, Math.min(98, 100 * canvasX * clarity * lowFx * midFx * ceiling)));
+  }
+
+  return { score, scoreX, low, mid, high, midCanvas, hum, precip, vis, hazeFactor, hazeFromVis: vis != null,
            murk: murkFactor < 1, canvas, clarity,
            beam: hasBeam ? beamF : null, beamLow: hasBeam ? beam.low : null, beamMid: hasBeam ? beam.mid : null };
 }
@@ -2448,6 +2467,7 @@ function renderToday(app, tabsHtml){
         <div class="score-num">${s.score}</div>
         <div class="score-label">${label(s.score)} ${mode === "evening" ? "sunset" : "sunrise"}</div>
       </div>
+      ${document.querySelector(".test-ver") && s.scoreX != null ? `<div class="score-x" title="Test copy only">Experimental score: <b>${s.scoreX}</b> ${label(s.scoreX)} · test only</div>` : ""}
       ${(() => { const [b1, b2] = splitBlurb(blurb(s, mode)); return `<div class="hero-sub">${b1}${b2 ? ` <span id="blurbRest"${state.blurbMore ? "" : " hidden"}>${b2}</span> <button class="more-link" id="blurbMore">${state.blurbMore ? "Less" : "More"}</button>` : ""}</div>`; })()}
       ${s.score >= 26 ? `<div class="hero-sub" style="margin-top:8px;">${afterglowTip(eventIso, mode)}</div>` : ""}
       <div class="hero-times">
