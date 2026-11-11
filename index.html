@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.4u -->
+<!-- Afterglow v2.4.4v -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -586,7 +586,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.4u</div>
+    <div class="test-ver">🧪 TEST · v2.4.4v</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2233,7 +2233,7 @@ async function satLoad(loc, az){
     j = await r.json();
   } finally { clearTimeout(t); }
   const scan = new Date(j.scan), age = (Date.now() - scan.getTime()) / 60000;
-  if(!(age >= -10 && age <= 120)) return null;          // too old to say anything about now
+  if(!(age >= -10 && age <= 60)) return null;           // a healthy scan is under about 20 minutes old; older means the feed is stuck
   const g = j.grid, dec = b => { const bin = atob(b), a = new Uint8Array(bin.length); for(let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; };
   const L = { low: dec(j.layers.low), mid: dec(j.layers.mid), high: dec(j.layers.high), top: dec(j.layers.top) };
   const pts = [];
