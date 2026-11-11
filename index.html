@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.4k -->
+<!-- Afterglow v2.4.4l -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -586,7 +586,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.4k</div>
+    <div class="test-ver">🧪 TEST · v2.4.4l</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -3885,10 +3885,13 @@ function describeAge(ms){
 /* ---------- Boot ---------- */
 // Default to whichever event (sunrise/sunset) hasn't happened yet, rather
 // than always opening to today's sunrise even if it's already evening.
-function pickInitialView(daily, lat, lon){
+function pickInitialView(daily, lat, lon, tz){
+  // The forecast's sunrise/sunset are the place's own clock times. Turn them into real moments (using the place's time zone) so a place in another time zone opens on its own next event, not the viewer's.
   const now = new Date();
-  const morningBlue = blueHourBounds(daily.sunrise[0], daily.sunset[0], "morning", lat, lon);
-  const eveningBlue = blueHourBounds(daily.sunrise[0], daily.sunset[0], "evening", lat, lon);
+  const real = iso => (tz && !isNaN(placeLocalToMs(iso, tz))) ? new Date(placeLocalToMs(iso, tz)).toISOString() : iso;
+  const sr0 = real(daily.sunrise[0]), ss0 = real(daily.sunset[0]);
+  const morningBlue = blueHourBounds(sr0, ss0, "morning", lat, lon);
+  const eveningBlue = blueHourBounds(sr0, ss0, "evening", lat, lon);
   // Still pre-dawn or in the morning blue hour -> stay on today's sunrise.
   if(now < morningBlue.end) return { activeDay: 0, mode: "morning" };
   // Past morning blue hour but not yet past evening blue hour -> today's sunset.
@@ -3924,7 +3927,7 @@ async function boot(loc, keep){
     // so they go out after core. Both are optional — a failure just falls back
     // to the blind ceiling rather than costing us the forecast.
     state.sample = await fetchSunPathSamples(loc, data.daily);
-    const initial = pickInitialView(data.daily, loc.lat, loc.lon);
+    const initial = pickInitialView(data.daily, loc.lat, loc.lon, data.timezone);
     state.activeDay = keepDay ? Math.min(keepDay.day, data.daily.time.length - 1) : initial.activeDay;
     state.mode = keepDay ? keepDay.mode : initial.mode;
     state.updatedAt = Date.now();
@@ -3941,7 +3944,7 @@ async function boot(loc, keep){
       state.hourly = cached.hourly;
       state.tz = cached.tz || null;
       state.sample = cached.sample || { morning: null, evening: null };
-      const initial = pickInitialView(cached.daily, loc.lat, loc.lon);
+      const initial = pickInitialView(cached.daily, loc.lat, loc.lon, cached.tz);
       state.activeDay = keepDay ? Math.min(keepDay.day, cached.daily.time.length - 1) : initial.activeDay;
       state.mode = keepDay ? keepDay.mode : initial.mode;
       state.updatedAt = cached.savedAt;
