@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.5d -->
+<!-- Afterglow v2.4.5e -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -227,8 +227,10 @@
   details.rc-card[open] .rc-sum{ display:none; }
   .rc-skel > summary{ pointer-events:none; }
   .rc-skel .rc-sum{ background: var(--line); border-radius:6px; animation: rcPulse 1.4s ease-in-out infinite; }
-  .rc-ok{ --rc:#7bd88f; } .rc-bad{ --rc: var(--ember); } .rc-none{ --rc: var(--slate); }
+  .rc-ok{ --rc:#7bd88f; } .rc-bad{ --rc: var(--ember); } .rc-none{ --rc: var(--slate); } .rc-warn{ --rc:#e6a93c; }
+  .rc-flag{ margin-top:6px; font-size:13.5px; line-height:1.4; font-weight:600; color: var(--rc, var(--slate)); }
   html[data-theme="light"] .rc-ok{ --rc:#116329; }
+  html[data-theme="light"] .rc-warn{ --rc:#8a5a00; }
   .plan-fold{ border:1px solid var(--line); background: var(--card); border-radius:14px; margin-bottom:12px; }
   .plan-fold > summary{ list-style:none; cursor:pointer; padding:14px 16px; font-size:14px; color: var(--sand); display:flex; justify-content:space-between; align-items:center; }
   .plan-fold > summary::-webkit-details-marker{ display:none; }
@@ -589,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.5d</div>
+    <div class="test-ver">🧪 TEST · v2.4.5e</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2309,7 +2311,24 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
   const head = `<div class="rc-head"><span>Reality check</span><span>${evName} in ${left}</span></div>`;
   const satSum = sat ? ` · High cloud ${sat.high}%` : "";
   const openAttr = (state.fold && state.fold.rc === false) ? "" : " open";
-  const wrap = (cls, sum, inner) => `<details class="rc-card ${cls}" data-fold="rc"${openAttr}><summary>${head}<div class="rc-sum">${sum}${satSum}</div></summary>${inner}</details>`;
+  // Satellite flag (2.4.5e): the headline is only about low cloud at the airports. When the satellite's high cloud is far from
+  // the forecast's (40 points or more), say so under the headline and turn the card amber, so a green "Agrees" never stands alone.
+  let flag = "";
+  if(sat && fcHigh != null && isFinite(fcHigh) && Math.abs(sat.high - fcHigh) >= 40){
+    const more = sat.high > fcHigh, fcH = Math.round(fcHigh);
+    flag = more
+      ? `Satellite sees high cloud the forecast doesn't (${sat.high}% against a forecast ${fcH}%). ${fcH < 30 ? "If it holds until " + evName.toLowerCase() + ", there could be more color than the score suggests." : "The sky may differ from what the score assumes."}`
+      : `Satellite doesn't see the high cloud the forecast expects (${sat.high}% against a forecast ${fcH}%). The sky may differ from what the score assumes.`;
+  }
+  const wrap = (cls, sum, inner) => {
+    if(flag){
+      if(cls !== "rc-bad") cls = "rc-warn";
+      if(sum === "Agrees with the forecast"){ sum = "Airports agree, satellite differs"; inner = inner.replace('<div class="rc-verdict">Agrees with the forecast</div>', '<div class="rc-verdict">Airports agree, satellite differs</div>'); }
+      else sum += " · satellite differs";
+      inner = inner.replace('</div><div class="rc-text">', `</div><div class="rc-flag">${flag}</div><div class="rc-text">`);
+    }
+    return `<details class="rc-card ${cls}" data-fold="rc"${openAttr}><summary>${head}<div class="rc-sum">${sum}${satSum}</div></summary>${inner}</details>`;
+  };
   if(rc === null) return wrap("rc-none", "Airport reports unavailable", `<div class="rc-verdict">Airport reports unavailable right now</div><div class="rc-text">The airport lookup didn't answer, so there is nothing to compare with the forecast. Tap Refresh to try again.</div>${satB}${note}`);
   if(!rc.length) return wrap("rc-none", "No recent airport reports", `<div class="rc-verdict">No recent airport reports ${dirTxt}</div><div class="rc-text">No airport ${dirTxt} has reported in the last 2 hours, so there is nothing to compare with the forecast.</div>${satB}${note}`);
   const beamSpot = where === "toward the sun";
