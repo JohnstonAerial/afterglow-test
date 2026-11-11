@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.4s -->
+<!-- Afterglow v2.4.4t -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -586,7 +586,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.4s</div>
+    <div class="test-ver">🧪 TEST · v2.4.4t</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2338,7 +2338,7 @@ function tzNoteHtml(){
     const now = new Date(), off = z => { const p = new Intl.DateTimeFormat("en-US", Object.assign({ hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }, z ? { timeZone: z } : {})).formatToParts(now).reduce((o, x) => (o[x.type] = x.value, o), {}); return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute); };
     if(off(tz) === off(null)) return "";
     const abbr = (new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "short" }).formatToParts(now).find(x => x.type === "timeZoneName") || {}).value || "";
-    return `<div class="tz-note">Sun, moon and report times are this place's local time${abbr ? " (" + rcEsc(abbr) + ")" : ""}, not your phone's.</div>`;
+    return `<div class="tz-note">Sun, moon and report times are this place's local time${abbr ? " (" + rcEsc(abbr) + ")" : ""}, not your device's.</div>`;
   }catch(e){ return ""; }
 }
 function rcTick(){
@@ -2882,7 +2882,7 @@ function planPrintHtml(p, pl, qr){
   if(sun.rise) light += row("Sunrise", az(sun.rise, sun.riseAz));
   if(moon.moonrise) light += row("Moonrise", ft(moon.moonrise) + " · " + Math.round(moon.moonriseAz) + "°");
   if(moon.moonset) light += row("Moonset", ft(moon.moonset) + " · " + Math.round(moon.moonsetAz) + "°");
-  light += `<div class="pr-note">${esc(moon.phaseName || "")}${moon.illumPct != null ? ", " + moon.illumPct + "% lit" : ""}. Times are for ${esc(tz || "your phone's time zone")}, calculated.</div>`;
+  light += `<div class="pr-note">${esc(moon.phaseName || "")}${moon.illumPct != null ? ", " + moon.illumPct + "% lit" : ""}. Times are for ${esc(tz || "your device's time zone")}, calculated.</div>`;
   let subj = "";
   if(p.subject){
     const bd = bearingDist(p.loc.lat, p.loc.lon, p.subject.lat, p.subject.lon);
@@ -3441,7 +3441,7 @@ function renderPlan(app, tabsHtml){
   }
   const { sun, moon } = pl;
   loadPlanSky(p);   // before the sky card is built, so a forecast we already hold shows straight away
-  const tzNote = planZoneOk(tz) ? "" : " The time zone for this place wasn't found, so times are shown in your phone's zone.";
+  const tzNote = planZoneOk(tz) ? "" : " The time zone for this place wasn't found, so times are shown in your device's zone.";
 
   let html = tabsHtml;
   const parts = {};
