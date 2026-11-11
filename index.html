@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.4j -->
+<!-- Afterglow v2.4.4k -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -586,7 +586,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.4j</div>
+    <div class="test-ver">🧪 TEST · v2.4.4k</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2245,10 +2245,28 @@ function rcSkelHtml(mode, minsLeft, where){
     .replace(/rc-ok|rc-bad/, "rc-none rc-skel")
     .replace(/(<div class="rc-head"><span>Reality check<\/span><span>)[^<]*/, "$1Checking…");
 }
+// The forecast gives sunrise/sunset as a local time at the PLACE (no offset). Turn that into a real moment using the place's timezone,
+// so the minutes-left count is right when you look at a place in a different time zone than your own.
+function placeLocalToMs(iso, tz){
+  const naive = new Date(iso).getTime(); // read as the browser's own time zone
+  if(!tz || isNaN(naive)) return naive;
+  try{
+    const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(iso);
+    if(!m) return naive;
+    const asUtc = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+    const off = ms => {
+      const p = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }).formatToParts(new Date(ms)).reduce((o, x) => (o[x.type] = x.value, o), {});
+      return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - ms;
+    };
+    let t = asUtc - off(asUtc);
+    t = asUtc - off(t);
+    return t;
+  }catch(e){ return naive; }
+}
 function rcSlot(eventIso, mode, az, fc, where, fcHigh){
   const el = document.getElementById("rcSlot");
   if(!el) return;
-  const minsLeft = (new Date(eventIso).getTime() - Date.now()) / 60000;
+  const minsLeft = (placeLocalToMs(eventIso, state.tz) - Date.now()) / 60000;
   if(!(minsLeft > 0 && minsLeft <= 180)) return;
   const loc = state.loc, key = [loc.lat.toFixed(2), loc.lon.toFixed(2), eventIso].join("|");
   const draw = (rc, sat) => { if(!el.isConnected) return; el.innerHTML = rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh); const d = el.querySelector("details.rc-card"); if(d) d.addEventListener("toggle", () => { state.fold = state.fold || {}; state.fold.rc = d.open; }); };
