@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.5i -->
+<!-- Afterglow v2.4.5j -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.5i</div>
+    <div class="test-ver">🧪 TEST · v2.4.5j</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2281,7 +2281,7 @@ async function rcLoad(loc, eventIso, az, beam){
   out.forEach(r => { r.toSpot = bearingDist(spot.lat, spot.lon, r.lat, r.lon).km; });
   const far = out.filter(r => r.toSpot <= RC_SPOT_BAND_KM).sort((a, b) => a.toSpot - b.toSpot);
   const pick = [];
-  if(far[0]){ far[0].spot = true; pick.push(far[0]); }
+  far.slice(0, 3).forEach(r => { r.spot = true; pick.push(r); });   // 2.4.5j: list every airport the verdict compares, not just the closest
   if(out[0] && pick.indexOf(out[0]) < 0) pick.push(out[0]);
   const rest = out.filter(r => pick.indexOf(r) < 0);
   if(rest.length){ const half = SUN_PATH_SAMPLE_KM / 2; rest.sort((a, b) => Math.abs(a.km - half) - Math.abs(b.km - half)); pick.push(rest[0]); }
@@ -2378,10 +2378,15 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
     const agg = pcts.length === 2 ? (pcts[0] + pcts[1]) / 2 : pcts[Math.floor(pcts.length / 2)];
     const rep = skies.slice().sort((x, y) => Math.abs(x.pct - agg) - Math.abs(y.pct - agg))[0];
     const baseTxt = rep.base != null ? ` at ${(Math.round(rep.base / 100) * 100).toLocaleString("en-US")} ft` : "";
-    const phr = rep.pct === 0 ? "clear skies below 12,000 ft" : (RC_WORDS[rep.code] || "cloud") + baseTxt;
+    let phr = rep.pct === 0 ? "clear skies below 12,000 ft" : (RC_WORDS[rep.code] || "cloud") + baseTxt;
+    // 2.4.5j: when the airports disagree with each other, say so, so the middle report is not read as the whole picture.
+    if(skies.length >= 2){
+      const byPct = skies.slice().sort((x, y) => x.pct - y.pct), lo = byPct[0], hi = byPct[byPct.length - 1];
+      if(hi.pct - lo.pct >= 50) phr = `a mix, from ${lo.pct === 0 ? "clear" : (RC_WORDS[lo.code] || "cloud")} to ${RC_WORDS[hi.code] || "cloud"}, with ${phr} in the middle`;
+    }
     const fcTxt = "forecast low cloud " + Math.round(fLow) + "%" + (agg >= 25 && fMid != null ? ", mid " + Math.round(fMid) + "%" : "");
-    const bad = (agg >= 60 && agg - Math.max(fLow, fMid || 0) >= 35) || (fLow >= 60 && fLow - agg >= 35);
-    return { bad, phr, fcTxt };
+    const more = agg >= 60 && agg - Math.max(fLow, fMid || 0) >= 35, less = fLow >= 60 && fLow - agg >= 35;
+    return { bad: more || less, dir: more ? "more" : less ? "less" : null, phr, fcTxt };
   };
   const near = judge(rc.cmpNear || (beamSpot ? null : rc.map(r => r.sky)), F.low, F.mid);
   const far = beamSpot ? judge(rc.cmp || rc.map(r => r.sky), F.bLow, F.bMid) : null;
@@ -2393,8 +2398,13 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
   let cls, hl;
   if(!near && !far){ cls = "rc-none"; hl = "Can't check the forecast here"; }
   else if((near && near.bad) || (far && far.bad)){
-    cls = "rc-bad";
-    hl = (near && near.bad && far && far.bad) || !beamSpot ? "Disagrees with the forecast" : (near && near.bad) ? "Disagrees with the forecast near you" : "Disagrees with the forecast toward the sun";
+    // 2.4.5j: say which way they differ. Airports with MORE cloud than the forecast means a blocker the score may miss (red);
+    // a forecast HEAVIER than the reports means the score may be low (amber).
+    const nb = near && near.bad, fb = far && far.bad, dirs = [nb ? near.dir : null, fb ? far.dir : null].filter(Boolean);
+    const w = (nb && fb) || !beamSpot ? "" : nb ? " near you" : " toward the sun";
+    cls = dirs.indexOf("more") >= 0 ? "rc-bad" : "rc-warn";
+    hl = dirs.length === 2 && dirs[0] !== dirs[1] ? "Disagrees with the forecast"
+       : dirs[0] === "more" ? "Airports show more cloud than the forecast" + w : "Forecast is heavier than the airport reports" + w;
   }
   else if(beamSpot && !far){ cls = "rc-none"; hl = "Agrees near you, can't check farther out"; }
   else if(beamSpot && !near){ cls = "rc-ok"; hl = "Agrees with the forecast toward the sun"; }
