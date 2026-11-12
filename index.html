@@ -2536,7 +2536,7 @@ function renderToday(app, tabsHtml){
         <div class="score-num">${s.score}</div>
         <div class="score-label">${label(s.score)} ${mode === "evening" ? "sunset" : "sunrise"}</div>
       </div>
-      ${document.querySelector(".test-ver") && s.scoreX != null ? `<div class="score-x" title="Test copy only">Experimental score: <b>${s.scoreX}</b> ${label(s.scoreX)} · test only</div>${document.querySelector(".test-ver") && s.atEvent != null ? `<div class="score-x" title="Test copy only">At the moment of ${mode === "evening" ? "sunset" : "sunrise"} (old way): <b>${s.atEvent}</b> ${label(s.atEvent)} · test only</div>` : ""}` : ""}
+      ${document.querySelector(".test-ver") && s.scoreX != null ? `<div class="score-x" title="Test copy only">Experimental score: <b>${s.scoreX}</b> ${label(s.scoreX)} · test only</div>` : ""}
       ${(() => { const [b1, b2] = splitBlurb(blurb(s, mode)); return `<div class="hero-sub">${b1}${b2 ? ` <span id="blurbRest"${state.blurbMore ? "" : " hidden"}>${b2}</span> <button class="more-link" id="blurbMore">${state.blurbMore ? "Less" : "More"}</button>` : ""}</div>`; })()}
       ${s.score >= 26 ? `<div class="hero-sub" style="margin-top:8px;">${afterglowTip(eventIso, mode)}</div>` : ""}
       <div class="hero-times">
