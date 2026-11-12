@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.5g -->
+<!-- Afterglow v2.4.5h -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.5g</div>
+    <div class="test-ver">🧪 TEST · v2.4.5h</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -1621,13 +1621,16 @@ function scoreEvent(hourly, idx, beam){
    The color often peaks just after the sun is down (evening) or in the
    short stretch before it comes up (morning), so the sun-event time alone
    can send people home too early. Shown for Fair and better. */
-function afterglowTip(eventIso, mode){
+function afterglowTip(eventIso, mode, score){
+  // 2.4.5h: say plainly that the score is for the glow AROUND the event (read PEAK_OFFSET_MIN minutes after sunset / before sunrise), not the instant of sunset or sunrise.
   const t = new Date(eventIso).getTime();
   const min = 60000;
   if(mode === "evening"){
-    return `Stay for the afterglow: the color often peaks 15–20 minutes after sunset (${fmt(new Date(t + 15*min))}–${fmt(new Date(t + 20*min))}).`;
+    const at = fmt(new Date(t + PEAK_OFFSET_MIN*min));
+    return `Scored for the glow around ${at}, about ${PEAK_OFFSET_MIN} minutes after sunset.` + (score >= 26 ? ` Stay for it: the color often peaks 15–20 minutes after sunset.` : "");
   }
-  return `Arrive early: the glow often peaks 15–20 minutes before sunrise (${fmt(new Date(t - 20*min))}–${fmt(new Date(t - 15*min))}).`;
+  const at = fmt(new Date(t - PEAK_OFFSET_MIN*min));
+  return `Scored for the glow around ${at}, about ${PEAK_OFFSET_MIN} minutes before sunrise.` + (score >= 26 ? ` Arrive early: the color often peaks 15–20 minutes before sunrise.` : "");
 }
 
 function label(score){
@@ -2538,7 +2541,7 @@ function renderToday(app, tabsHtml){
       </div>
       ${document.querySelector(".test-ver") && s.scoreX != null ? `<div class="score-x" title="Test copy only">Experimental score: <b>${s.scoreX}</b> ${label(s.scoreX)} · test only</div>` : ""}
       ${(() => { const [b1, b2] = splitBlurb(blurb(s, mode)); return `<div class="hero-sub">${b1}${b2 ? ` <span id="blurbRest"${state.blurbMore ? "" : " hidden"}>${b2}</span> <button class="more-link" id="blurbMore">${state.blurbMore ? "Less" : "More"}</button>` : ""}</div>`; })()}
-      ${s.score >= 26 ? `<div class="hero-sub" style="margin-top:8px;">${afterglowTip(eventIso, mode)}</div>` : ""}
+      <div class="hero-sub" style="margin-top:8px;">${afterglowTip(eventIso, mode, s.score)}</div>
       <div class="hero-times">
         ${(twilight && mode !== "evening") ? `<div class="hero-time-item"><div class="k">${twilightLabel}</div><div class="v">${fmt(twilight)}</div></div>` : ""}
         <div class="hero-time-item"><div class="k">${mode === "evening" ? "Sunset" : "Sunrise"}</div><div class="v">${fmtTime(eventIso)}</div></div>
@@ -2568,7 +2571,7 @@ function renderToday(app, tabsHtml){
       : statCard("Humidity", s.hum, "%", "Fallback haze proxy — visibility unavailable", var2color(s.hum, 100, 80, true))}
   </div>`;
 
-  skyInner += `<div class="why"><b>How this is scored</b> — Afterglow weighs high-altitude cloud cover (the layer that catches direct light and turns pink/orange), low and mid cloud (which physically block the view of the horizon or the light source), and humidity (haze mutes saturation even on an otherwise clear evening). It's a heuristic, not a guarantee — always worth a look outside 20 minutes before showtime.</div>`;
+  skyInner += `<div class="why"><b>How this is scored</b> — Afterglow weighs high-altitude cloud cover (the layer that catches direct light and turns pink/orange), low and mid cloud (which physically block the view of the horizon or the light source), and humidity (haze mutes saturation even on an otherwise clear evening). The score is for the glow around sunrise or sunset, not the exact moment: it reads the forecast about ${PEAK_OFFSET_MIN} minutes after sunset (or before sunrise), when high cloud usually lights up. It's a heuristic, not a guarantee — always worth a look outside 20 minutes before showtime.</div>`;
   const skyExtra = (s.hazeFromVis ? ` · <span class="nw">Vis ${fmtVis(s.vis)}</span>` : "") + (s.precip >= 20 ? ` · <span class="nw">Rain ${Math.round(s.precip)}%</span>` : "");
   html += uiFold("sky", `Sky breakdown <span class="sub"><span class="nw">High ${s.high}%</span> · <span class="nw">Mid ${s.mid}%</span> · <span class="nw">Low ${s.low}%</span>${skyExtra}</span>`, skyInner);
 

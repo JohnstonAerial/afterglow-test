@@ -67,7 +67,7 @@ Afterglow 2.0 is a big redesign of the Plan tab, with a few new tools.
 ## Good to know
 
 - Weather models update a few times a day, so a forecast can change when a new run arrives. Check again closer to the time, especially for sunsets more than a day out.
-- Color often peaks a little after sunset (15–20 minutes) or just before sunrise, so Afterglow shows that window on the main card for Fair and better days.
+- Color often peaks a little after sunset (15–20 minutes) or just before sunrise. The score is for that glow, not the exact moment of sunrise or sunset: it reads the forecast about 17 minutes after sunset or before sunrise, and the main card says when. For Fair and better days it also tells you to stay or arrive early.
 - Scores run from Flat to Fair, Good, Great and Epic. Treat them as a guide to the odds, not a promise.
 
 ## Tech
