@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.5n -->
+<!-- Afterglow v2.4.5o -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.5n</div>
+    <div class="test-ver">🧪 TEST · v2.4.5o</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2334,12 +2334,14 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
   const evName = mode === "evening" ? "Sunset" : "Sunrise";
   const h = Math.floor(minsLeft / 60), m = Math.round(minsLeft % 60);
   const left = h >= 1 ? `${h} h${m ? " " + m + " min" : ""}` : `${Math.max(1, m)} min`;
+  // 2.4.5o: the card now stays up for PEAK_OFFSET_MIN minutes after the event (the glow), so the header can say how long ago it was.
+  const evWhen = minsLeft > 0 ? `${evName} in ${left}` : (Math.round(-minsLeft) < 1 ? `${evName} just now` : `${evName} ${Math.round(-minsLeft)} min ago`);
   const dirTxt = "toward where the sun will " + (mode === "evening" ? "set" : "rise");
   const satB = satHtml(sat, fcHigh, dirTxt);
   const note = sat
-    ? `<div class="rc-note">Airport reports can't see high cloud; the satellite line can, but it shows the sky now, not at ${evName.toLowerCase()}, and NOAA calls it beta. The score is unchanged.</div>`
+    ? `<div class="rc-note">Airport reports can't see high cloud; the satellite line can, but it shows the sky now${minsLeft > 0 ? `, not at ${evName.toLowerCase()}` : ""}, and NOAA calls it beta. The score is unchanged.</div>`
     : `<div class="rc-note">Airport reports can't see high cloud, so this checks for blockers, not color. The score is unchanged.</div>`;
-  const head = `<div class="rc-head"><span>Reality check</span><span>${evName} in ${left}</span></div>`;
+  const head = `<div class="rc-head"><span>Reality check</span><span>${evWhen}</span></div>`;
   const satSum = sat ? ` · High cloud ${sat.high}%` : "";
   const openAttr = (state.fold && state.fold.rc === false) ? "" : " open";
   // Satellite flag (2.4.5e): the headline is only about low cloud at the airports. When the satellite's high cloud is far from
@@ -2348,7 +2350,7 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
   if(sat && fcHigh != null && isFinite(fcHigh) && Math.abs(sat.high - fcHigh) >= 40){
     const more = sat.high > fcHigh, fcH = Math.round(fcHigh);
     flag = more
-      ? `Satellite sees high cloud the forecast doesn't (${sat.high}% against a forecast ${fcH}%). ${fcH < 30 ? "If it holds until " + evName.toLowerCase() + ", there could be more color than the score suggests." : "The sky may differ from what the score assumes."}`
+      ? `Satellite sees high cloud the forecast doesn't (${sat.high}% against a forecast ${fcH}%). ${fcH < 30 ? (minsLeft > 0 ? "If it holds until " + evName.toLowerCase() + ", there could be more color than the score suggests." : "There may be more color than the score suggests.") : "The sky may differ from what the score assumes."}`
       : `Satellite doesn't see the high cloud the forecast expects (${sat.high}% against a forecast ${fcH}%). The sky may differ from what the score assumes.`;
   }
   const wrap = (cls, sum, inner) => {
@@ -2443,7 +2445,7 @@ function rcSlot(eventIso, mode, az, fc, where, fcHigh, quiet){
   if(!el) return;
   state.rcArgs = [eventIso, mode, az, fc, where, fcHigh];
   const minsLeft = (placeLocalToMs(eventIso, state.tz) - Date.now()) / 60000;
-  if(!(minsLeft > 0 && minsLeft <= 180)){ el.innerHTML = '<div class="rc-hint">Reality check appears within 3 hours of sunrise or sunset, comparing airport and satellite reports to the forecast.</div>'; return; }
+  if(!(minsLeft > -PEAK_OFFSET_MIN && minsLeft <= 180)){ el.innerHTML = '<div class="rc-hint">Reality check appears within 3 hours of sunrise or sunset, comparing airport and satellite reports to the forecast.</div>'; return; }
   const loc = state.loc, key = [loc.lat.toFixed(2), loc.lon.toFixed(2), eventIso].join("|");
   const draw = (rc, sat) => { if(!el.isConnected) return; el.innerHTML = rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh); const d = el.querySelector("details.rc-card"); if(d) d.addEventListener("toggle", () => { state.fold = state.fold || {}; state.fold.rc = d.open; }); };
   if(state.rc && state.rc.key === key && Date.now() - state.rc.at < 600000) { draw(state.rc.list, state.rc.sat); return; }
