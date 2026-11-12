@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.5h -->
+<!-- Afterglow v2.4.5i -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.5h</div>
+    <div class="test-ver">🧪 TEST · v2.4.5i</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -1648,7 +1648,7 @@ function blurb(s, mode){
   // Condition-driven cases first — these assert something specific about the sky,
   // so they read the actual values rather than inferring from the score.
   if(s.murk) return `Mid and high cloud are both heavily overcast at once — a thick, solid deck rather than a thin layer that can glow. Expect a diffuse, muted glow instead of clean color.`;
-  if(s.beam != null && s.beam < 0.35) return `Cloud is sitting between you and the ${horizon} horizon, roughly ${SUN_PATH_SAMPLE_KM}km out along the sun's line. The low sun's light will likely be blocked before it ever reaches the sky above you — the limiting factor here is over there, not overhead.`;
+  if(s.beam != null && s.beam < 0.35) return `Cloud is sitting between you and the ${horizon} horizon, roughly ${fmtDist(SUN_PATH_SAMPLE_KM)} out along the sun's line. The low sun's light will likely be blocked before it ever reaches the sky above you — the limiting factor here is over there, not overhead.`;
   if(s.high < 12 && s.mid < 20 && s.low < 20){
     // Clear sky: quote the actual numbers, say what would change it, and only talk about the air when it was measured.
     const pct = v => Math.round(v) + "%";
@@ -2561,7 +2561,7 @@ function renderToday(app, tabsHtml){
 
   let skyInner = `<div class="grid">
     ${s.beam != null ? statCard("Toward the sun", Math.max(s.beamLow, s.beamMid), "%",
-        `Low/mid cloud ${SUN_PATH_SAMPLE_KM}km ${compassDir(azimuth)}, where the light comes from`,
+        `Low/mid cloud ${fmtDist(SUN_PATH_SAMPLE_KM)} ${compassDir(azimuth)}, where the light comes from`,
         var2color(Math.max(s.beamLow, s.beamMid), 100, 45, true)) : ``}
     ${statCard("High cloud", s.high, "%", "Catches color. 30–60% is ideal", var2color(s.high, 45, 60))}
     ${statCard("Low cloud", s.low, "%", "Blocks the horizon when high", var2color(s.low, 100, 40, true))}
@@ -2573,7 +2573,7 @@ function renderToday(app, tabsHtml){
 
   skyInner += `<div class="why"><b>How this is scored</b> — Afterglow weighs high-altitude cloud cover (the layer that catches direct light and turns pink/orange), low and mid cloud (which physically block the view of the horizon or the light source), and humidity (haze mutes saturation even on an otherwise clear evening). The score is for the glow around sunrise or sunset, not the exact moment: it reads the forecast about ${PEAK_OFFSET_MIN} minutes after sunset (or before sunrise), when high cloud usually lights up. It's a heuristic, not a guarantee — always worth a look outside 20 minutes before showtime.</div>`;
   const skyExtra = (s.hazeFromVis ? ` · <span class="nw">Vis ${fmtVis(s.vis)}</span>` : "") + (s.precip >= 20 ? ` · <span class="nw">Rain ${Math.round(s.precip)}%</span>` : "");
-  html += uiFold("sky", `Sky breakdown <span class="sub"><span class="nw">High ${s.high}%</span> · <span class="nw">Mid ${s.mid}%</span> · <span class="nw">Low ${s.low}%</span>${skyExtra}</span>`, skyInner);
+  html += uiFold("sky", `Sky breakdown <span class="sub"><span class="nw">High ${Math.round(s.high)}%</span> · <span class="nw">Mid ${Math.round(s.mid)}%</span> · <span class="nw">Low ${Math.round(s.low)}%</span>${skyExtra}</span>`, skyInner);
 
   const moon = computeMoonInfoPlace(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, sunrise, sunset);
   const timelapse = scanTimelapseWindow(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, hourly, frameR);
