@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.5l -->
+<!-- Afterglow v2.4.5m -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.5l</div>
+    <div class="test-ver">🧪 TEST · v2.4.5m</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2413,7 +2413,8 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
 }
 function rcSkelHtml(mode, minsLeft, where){
   const ob = Math.floor(Date.now() / 1000);
-  const fake = ["KXXX", "KXXY", "KXXZ"].map(id => ({ id, name: "Placeholder airport name", km: 10, brg: 200, obs: ob, sky: { pct: 0, code: "CLR", base: null } }));
+  // 2.4.5m: five rows (the most the real card lists), the last three marked like the airports used in the verdict, so the placeholder is as tall as the real card.
+  const fake = ["KXXX", "KXXY", "KXXZ", "KXYX", "KXYY"].map((id, i) => ({ id, name: "Placeholder airport name", km: 10 + i, brg: 200, obs: ob, spot: i >= 2, sky: { pct: 0, code: "CLR", base: null } }));
   const sat = { scan: new Date(), pts: [0, 40, 80, 120, 160, 240].map(km => ({ km, high: 20, lowmid: 5 })), high: 20, lowmid: 5, maxHigh: 30 };
   return rcCardHtml(fake, mode, minsLeft, 10, where, sat, 20)
     .replace(/rc-ok|rc-bad/, "rc-none rc-skel")
