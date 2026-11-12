@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.5k -->
+<!-- Afterglow v2.4.5l -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.5k</div>
+    <div class="test-ver">🧪 TEST · v2.4.5l</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2361,7 +2361,7 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
     return `<details class="rc-card ${cls}" data-fold="rc"${openAttr}><summary>${head}<div class="rc-sum">${sum}${satSum}</div></summary>${inner}</details>`;
   };
   if(rc === null) return wrap("rc-none", "Airport reports unavailable", `<div class="rc-verdict">Airport reports unavailable right now</div><div class="rc-text">The airport lookup didn't answer, so there is nothing to compare with the forecast. Tap Refresh to try again.</div>${satB}${note}`);
-  if(!rc.length) return wrap("rc-none", "No recent airport reports", `<div class="rc-verdict">No recent airport reports ${dirTxt}</div><div class="rc-text">No airport ${dirTxt} has reported in the last 2 hours, so there is nothing to compare with the forecast.</div>${satB}${note}`);
+  if(!rc.length) return wrap("rc-none", "No recent airport reports", `<div class="rc-verdict">No recent airport reports ${dirTxt}</div><div class="rc-text">No airport ${dirTxt} has a recent sky report (airports off to the side are left out), so there is nothing to compare with the forecast.</div>${satB}${note}`);
   // 2.4.5f: two checks. Near you (airports within about 25 mi against the forecast for your spot) and, when the forecast
   // has a toward-the-sun reading, out where it looks (airports near that spot against the forecast there).
   // Matching rule: airports only see below 12,000 ft. When they report cloud, the forecast is given credit for its low OR mid
@@ -2393,8 +2393,8 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
   const farWhere = `About ${fmtDist(SUN_PATH_SAMPLE_KM)} out ${dirTxt}`;
   let text = "";
   if(near) text += `Near you: ${near.fcTxt}, airports report ${near.phr}.<br>`;
-  else text += `Near you: no airport has reported in the last 2 hours.<br>`;
-  if(beamSpot) text += far ? `${farWhere}: ${far.fcTxt}, airports report ${far.phr}.` : `${farWhere}: forecast low cloud ${Math.round(F.bLow)}%, but no airport out there has reported in the last 2 hours, so that can't be checked.`;
+  else text += `Near you: no airport within ${fmtDist(40).split(" · ")[0]} toward the sun is reporting.<br>`;
+  if(beamSpot) text += far ? `${farWhere}: ${far.fcTxt}, airports report ${far.phr}.` : `${farWhere}: forecast low cloud ${Math.round(F.bLow)}%, but no airport within ${fmtDist(RC_SPOT_BAND_KM).split(" · ")[0]} of that spot is reporting, so that can't be checked.`;
   let cls, hl;
   if(!near && !far){ cls = "rc-none"; hl = "Can't check the forecast here"; }
   else if((near && near.bad) || (far && far.bad)){
