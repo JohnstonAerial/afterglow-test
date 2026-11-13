@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.8e -->
+<!-- Afterglow v2.4.8f -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.8e</div>
+    <div class="test-ver">🧪 TEST · v2.4.8f</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -1744,7 +1744,7 @@ function windAtEvent(hourly, eventIso){
     const w = hourly.wind_speed_10m[i], g = hourly.wind_gusts_10m ? hourly.wind_gusts_10m[i] : null;
     if(w == null) return "";
     const km = agUnits() === "km", f = v => Math.round(km ? v * 1.609344 : v), u = km ? "km/h" : "mph";
-    return f(w) + " " + u + (g != null && g - w >= 5 ? `<small> · gusts ${f(g)}</small>` : "");
+    return f(w) + " " + u + (g != null && g - w >= 5 ? `<small style="display:block;font-size:11px;font-weight:400;opacity:.8;">gusts ${f(g)}</small>` : "");
   }catch(e){ return ""; }
 }
 function nearestHourIdx(hourlyTimes, targetIso){
@@ -2169,8 +2169,13 @@ function timelapseCardHTML(result){
   }
   return `<div class="card" style="grid-column: 1 / -1;">
     <div class="label">Timelapse conditions <small style="text-transform:none;">— moving cloud</small></div>
-    ${timelapseSection("Daytime clouds", result.sun, result.windAvailable, "No daylight forecast hours.")}
-    ${timelapseSection("Cloud crossing the Moon", result.moon, result.windAvailable, "The Moon isn't up during forecast hours today.")}
+    ${(() => {
+      const win = r => (r && r.bestRun && r.bestRun.avg >= 45) ? fmt(r.bestRun.points[0].time) + "|" + fmt(r.bestRun.points[r.bestRun.points.length - 1].time) : null;
+      const same = win(result.sun) && win(result.sun) === win(result.moon);
+      return same
+        ? timelapseSection("Moving cloud (Sun and Moon both up)", result.sun, result.windAvailable, "")
+        : timelapseSection("Daytime clouds", result.sun, result.windAvailable, "No daylight forecast hours.") + timelapseSection("Cloud crossing the Moon", result.moon, result.windAvailable, "The Moon isn't up during forecast hours today.");
+    })()}
     <div class="outlook-note" style="margin-top:12px;">${result.windAvailable
       ? `Total cloud cover plus wind speed aloft, a rough proxy for cloud motion, not a guarantee. Heuristic, not calibrated against real footage yet.`
       : `Wind aloft unavailable right now, so this is scored on cloud cover alone. It can't say how fast that cloud will actually move. Rougher than usual.`}</div>
