@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.8m -->
+<!-- Afterglow v2.4.8n -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.8m</div>
+    <div class="test-ver">🧪 TEST · v2.4.8n</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2508,7 +2508,7 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
   const F = (fc && typeof fc === "object") ? fc : { low: beamSpot ? 0 : fc, mid: 0, bLow: beamSpot ? fc : null, bMid: 0 };
   const rows = rc.map(r => {
     const code = r.sky.pct === 0 ? "CLR" : r.sky.code + (r.sky.base != null ? " " + (Math.round(r.sky.base / 100) * 100).toLocaleString("en-US") + " ft" : "");
-    return `<div class="rc-row"><span><b>${rcEsc(r.id)}</b> ${rcEsc(r.name)}<br><small>${fmtDist(r.km).split(" · ")[0]} ${compassDir(r.brg)} · ${fmt(frameN(new Date(r.obs * 1000)))}${r.spot ? " · counted in the result" : ""}</small></span><b>${code}</b></div>`;
+    return `<div class="rc-row"><span><b>${rcEsc(r.id)}</b> ${rcEsc(r.name)}<br><small>${fmtDist(r.km).split(" · ")[0]} ${compassDir(r.brg)} · ${fmt(frameN(new Date(r.obs * 1000)))}${r.spot ? " · compared with the forecast" : ""}</small></span><b>${code}</b></div>`;
   }).join("");
   const judge = (skies, fLow, fMid) => {
     if(!skies || !skies.length || fLow == null) return null;
