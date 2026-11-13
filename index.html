@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.8d -->
+<!-- Afterglow v2.4.8e -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.8d</div>
+    <div class="test-ver">🧪 TEST · v2.4.8e</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -1092,7 +1092,7 @@ async function fetchCore(loc){
   const params = new URLSearchParams({
     latitude: loc.lat, longitude: loc.lon,
     daily: "sunrise,sunset",
-    hourly: "cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,precipitation_probability,visibility",
+    hourly: "cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,precipitation_probability,visibility,wind_speed_10m,wind_gusts_10m",
     windspeed_unit: "mph",
     timezone: "auto",
     forecast_days: 11
@@ -1735,6 +1735,17 @@ function scoreWindow(hourly, evtIso, mode, beam){
   if(!sc) { old.atEvent = old.score; return old; }
   sc.atEvent = old.score; sc.atEventX = old.scoreX;
   return sc;
+}
+// 2.4.8e: surface wind at the event hour (mph from the forecast, shown in the chosen unit); gusts only when they add 5 mph or more.
+function windAtEvent(hourly, eventIso){
+  try{
+    if(!hourly || !Array.isArray(hourly.wind_speed_10m)) return "";
+    const i = nearestHourIdx(hourly.time, eventIso);
+    const w = hourly.wind_speed_10m[i], g = hourly.wind_gusts_10m ? hourly.wind_gusts_10m[i] : null;
+    if(w == null) return "";
+    const km = agUnits() === "km", f = v => Math.round(km ? v * 1.609344 : v), u = km ? "km/h" : "mph";
+    return f(w) + " " + u + (g != null && g - w >= 5 ? `<small> · gusts ${f(g)}</small>` : "");
+  }catch(e){ return ""; }
 }
 function nearestHourIdx(hourlyTimes, targetIso){
   const target = new Date(targetIso).getTime();
@@ -2594,6 +2605,7 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
         ${mode === "evening" ? bestItem : ""}
         ${(twilight && mode === "evening") ? `<div class="hero-time-item"><div class="k">${twilightLabel}</div><div class="v">${fmt(twilight)}</div></div>` : ""}
         <div class="hero-time-item"><div class="k">Direction</div><div class="v">${azimuthLabel}</div></div>
+        ${(() => { const w = windAtEvent(hourly, eventIso); return w ? `<div class="hero-time-item"><div class="k">Wind</div><div class="v">${w}</div></div>` : ""; })()}
         <div class="hero-time-item"><div class="k">Golden hour</div><div class="v">${fmt(goldenStart)}–${fmt(goldenEnd)}</div></div>
         <div class="hero-time-item"><div class="k">Blue hour</div><div class="v">${fmt(blueStart)}–${fmt(blueEnd)}</div></div>
       </div>
