@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.8i -->
+<!-- Afterglow v2.4.8j -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.8i</div>
+    <div class="test-ver">🧪 TEST · v2.4.8j</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -1823,7 +1823,7 @@ function liveSync(){
   try{
     if(state.shownScore == null) return;
     const s = todayScoreNow();
-    if(s && s.score !== state.shownScore && !state.liveRedraw){ state.liveRedraw = true; try{ render(); } finally { state.liveRedraw = false; } }
+    if(s && (s.score !== state.shownScore || !!s.fc !== state.shownLive) && !state.liveRedraw){ state.liveRedraw = true; try{ render(); } finally { state.liveRedraw = false; } }
   }catch(e){}
 }
 // 2.4.8e: surface wind at the event hour (mph from the forecast, shown in the chosen unit); gusts only when they add 5 mph or more.
@@ -2622,7 +2622,7 @@ function renderToday(app, tabsHtml){
   const eventIso = mode === "evening" ? sunset : sunrise;
   const s = scoreWindow(hourly, eventIso, mode, sampleAt(state.sample[mode], eventIso), liveObsFor(eventIso, mode));
   if(!s){ app.innerHTML = tabsHtml + '<div class="err">Could not compute a forecast for this day.</div>'; return; }
-  state.shownScore = s.score;
+  state.shownScore = s.score; state.shownLive = !!s.fc;
   const sF = s.fc ? Object.assign({}, s, s.fc) : s;   // forecast-only numbers, for the Sky breakdown and the Reality check comparison
   const gradient = swatchGradient(s, mode);
 
