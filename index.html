@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.8a -->
+<!-- Afterglow v2.4.8b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.8a</div>
+    <div class="test-ver">🧪 TEST · v2.4.8b</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2063,14 +2063,16 @@ function timelapseHourScore(cloudPct, windMph){
   // Wind aloft can be unavailable (its request is separate and short-fused).
   // Score on cloud alone in that case — treating "unknown" as 0mph would read
   // as dead calm and silently suppress every window.
+  // 2.4.8b: wind can't make up for no cloud (or a solid deck): outside roughly 12-90% cover there is nothing to see moving, so the hour is capped as Flat.
+  const gated = x => (cloudPct < 12 || cloudPct > 90) ? Math.min(x, 30) : x;
   if(windMph == null){
-    return Math.round(Math.max(0, Math.min(100, cloudComponent)));
+    return Math.round(Math.max(0, Math.min(100, gated(cloudComponent))));
   }
   // Wind speed saturates around 20mph — past that, more speed doesn't add
   // much for a hyperlapse (and starts trading off against frame blur if
   // shooting long exposures).
   const windComponent = Math.min(100, (windMph / 20) * 100);
-  return Math.round(Math.max(0, Math.min(100, cloudComponent * 0.6 + windComponent * 0.4)));
+  return Math.round(Math.max(0, Math.min(100, gated(cloudComponent * 0.6 + windComponent * 0.4))));
 }
 
 function timelapseLabel(score){
@@ -2079,23 +2081,19 @@ function timelapseLabel(score){
   return "Flat";
 }
 
-function scanTimelapseWindow(dayStart, lat, lon, hourly, toReal){
-  // toReal (optional): turns the place's wall-clock moments (dayStart, the hourly times) into real ones. Without it they are used as they are.
-  const real = toReal || (x => x);
-  const upWindow = findMoonUpWindow(real(dayStart), lat, lon);
-  if(!upWindow) return null;
-
+// 2.4.8b: the scan now covers two windows, the hours the Sun is up (daytime clouds) and the hours the Moon is up (cloud crossing the Moon), and counts low cloud too (total cover), so a solid low deck no longer reads as "clear".
+function scanTimelapseOne(win, hourly, real){
+  if(!win) return null;
   const points = [];
   hourly.time.forEach((t, i) => {
     const ti = real(new Date(t)).getTime();
-    if(ti < upWindow.start.getTime() || ti > upWindow.end.getTime()) return;
-    const cloud = ((hourly.cloud_cover_mid[i] ?? 0) + (hourly.cloud_cover_high[i] ?? 0)) / 2;
+    if(ti < win.start.getTime() || ti > win.end.getTime()) return;
+    const lo = hourly.cloud_cover_low ? (hourly.cloud_cover_low[i] ?? 0) : 0, mi = hourly.cloud_cover_mid[i] ?? 0, hi = hourly.cloud_cover_high[i] ?? 0;
+    const cloud = hourly.cloud_cover && hourly.cloud_cover[i] != null ? hourly.cloud_cover[i] : 100 * (1 - (1 - lo / 100) * (1 - mi / 100) * (1 - hi / 100));
     const wind = Array.isArray(hourly.wind_speed_700hPa) ? (hourly.wind_speed_700hPa[i] ?? null) : null;
     points.push({ time: new Date(t), score: timelapseHourScore(cloud, wind), cloud, wind });
   });
-  const windAvailable = Array.isArray(hourly.wind_speed_700hPa);
-  if(points.length === 0) return { upWindow, points, bestRun: null, windAvailable };
-
+  if(points.length === 0) return { win, points, bestRun: null, avgCloud: null };
   // Longest/strongest contiguous run of "workable or better" hours.
   const THRESH = 45;
   let bestRun = null, curRun = [];
@@ -2107,32 +2105,59 @@ function scanTimelapseWindow(dayStart, lat, lon, hourly, toReal){
   };
   points.forEach(p => { if(p.score >= THRESH) curRun.push(p); else closeRun(); });
   closeRun();
+  const avgCloud = points.reduce((s, c) => s + c.cloud, 0) / points.length;
+  return { win, points, bestRun, avgCloud };
+}
 
-  return { upWindow, points, bestRun, windAvailable };
+function scanTimelapseWindow(dayStart, lat, lon, hourly, toReal, sunriseIso, sunsetIso){
+  // toReal (optional): turns the place's wall-clock moments (dayStart, the hourly times) into real ones. Without it they are used as they are.
+  const real = toReal || (x => x);
+  const moonWin = findMoonUpWindow(real(dayStart), lat, lon);
+  const sunWin = (sunriseIso && sunsetIso) ? { start: real(new Date(sunriseIso)), end: real(new Date(sunsetIso)) } : null;
+  const sun = scanTimelapseOne(sunWin, hourly, real), moon = scanTimelapseOne(moonWin, hourly, real);
+  return { sun, moon, windAvailable: Array.isArray(hourly.wind_speed_700hPa) };
+}
+
+// A rough starting interval from the wind aloft: faster cloud wants shorter gaps between frames. Heuristic, not a rule.
+function timelapseTip(run, windAvailable){
+  const pts = run.points, hours = pts.length;
+  const winds = pts.map(p => p.wind).filter(w => w != null);
+  if(!windAvailable || !winds.length) return `Try 3–5 s between frames to start.`;
+  const w = winds.reduce((a, b) => a + b, 0) / winds.length;
+  const iv = Math.max(1, Math.min(8, Math.round(50 / Math.max(w, 5))));
+  const sec = Math.round(hours * 3600 / iv / 24);
+  const clip = sec >= 90 ? `${Math.round(sec / 6) / 10} min` : `${sec} s`;
+  return `Try ${iv} s between frames (about ${Math.round(w)} mph aloft). ${hours} h of shooting makes about a ${clip} clip at 24 fps.`;
+}
+
+function timelapseSection(title, r, windAvailable, emptyMsg){
+  if(!r || !r.points || r.points.length === 0) return `<div style="margin-top:12px;"><div class="label">${title}</div><div class="value" style="font-size:14px;font-weight:400;color:var(--slate)">${emptyMsg}</div></div>`;
+  if(r.bestRun && r.bestRun.avg >= 45){
+    const pts = r.bestRun.points, start = pts[0].time, end = pts[pts.length - 1].time;
+    return `<div style="margin-top:12px;"><div class="label">${title}</div>
+      <div class="value">${timelapseLabel(Math.round(r.bestRun.avg))} <small>best window</small></div>
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:15px; margin-top:4px;">${pts.length === 1 || fmt(start) === fmt(end) ? "around " + fmt(start) : fmt(start) + "–" + fmt(end)}</div>
+      <div class="outlook-note" style="margin-top:6px;">${timelapseTip(r.bestRun, windAvailable)}</div></div>`;
+  }
+  const msg = r.avgCloud >= 75 ? "Mostly solid cloud the whole time, so there's little to see moving." : r.avgCloud <= 15 ? "Mostly clear the whole time, so there's not much drift to catch." : "Cloud is patchy or too slow to make a good timelapse.";
+  return `<div style="margin-top:12px;"><div class="label">${title}</div><div class="value" style="font-size:14px;font-weight:400;color:var(--slate);">${msg}</div></div>`;
 }
 
 function timelapseCardHTML(result){
-  if(!result || !result.points || result.points.length === 0){
+  const noData = !result || ((!result.sun || !result.sun.points.length) && (!result.moon || !result.moon.points.length));
+  if(noData){
     return `<div class="card" style="grid-column: 1 / -1;">
       <div class="label">Timelapse conditions</div>
-      <div class="value" style="font-size:14px;font-weight:400;color:var(--slate)">Moon isn't up during forecast hours today.</div>
+      <div class="value" style="font-size:14px;font-weight:400;color:var(--slate)">No forecast hours to score for this day.</div>
     </div>`;
   }
-  let body;
-  if(result.bestRun && result.bestRun.avg >= 45){
-    const pts = result.bestRun.points;
-    const start = pts[0].time, end = pts[pts.length - 1].time;
-    body = `<div class="value">${timelapseLabel(Math.round(result.bestRun.avg))} <small>best window</small></div>
-      <div style="font-family:'IBM Plex Mono', monospace; font-size:15px; margin-top:4px;">${pts.length === 1 || fmt(start) === fmt(end) ? "around " + fmt(start) : fmt(start) + "–" + fmt(end)}</div>`;
-  } else {
-    body = `<div class="value" style="font-size:14px; font-weight:400; color:var(--slate);">Mostly clear or solid overcast the whole time the Moon's up — not much drift to catch.</div>`;
-  }
   return `<div class="card" style="grid-column: 1 / -1;">
-    <div class="label">Timelapse conditions <small style="text-transform:none;">— cloud crossing the Moon</small></div>
-    ${body}
-    <div class="outlook-note" style="margin-top:10px;">${result.windAvailable
-      ? `Cloud cover + wind speed aloft — a rough proxy for cloud motion, not a guarantee. Heuristic, not calibrated against real footage yet.`
-      : `Wind aloft unavailable right now, so this is scored on cloud cover alone — it can't say anything about how fast that cloud will actually move. Rougher than usual.`}</div>
+    <div class="label">Timelapse conditions <small style="text-transform:none;">— moving cloud</small></div>
+    ${timelapseSection("Daytime clouds", result.sun, result.windAvailable, "No daylight forecast hours.")}
+    ${timelapseSection("Cloud crossing the Moon", result.moon, result.windAvailable, "The Moon isn't up during forecast hours today.")}
+    <div class="outlook-note" style="margin-top:12px;">${result.windAvailable
+      ? `Total cloud cover plus wind speed aloft, a rough proxy for cloud motion, not a guarantee. Heuristic, not calibrated against real footage yet.`
+      : `Wind aloft unavailable right now, so this is scored on cloud cover alone. It can't say how fast that cloud will actually move. Rougher than usual.`}</div>
   </div>`;
 }
 
@@ -2589,12 +2614,11 @@ function renderToday(app, tabsHtml){
   html += uiFold("sky", `Sky breakdown (forecast) <span class="sub"><span class="nw">High ${Math.round(s.high)}%</span> · <span class="nw">Mid ${Math.round(s.mid)}%</span> · <span class="nw">Low ${Math.round(s.low)}%</span>${skyExtra}</span>`, skyInner);
 
   const moon = computeMoonInfoPlace(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, sunrise, sunset);
-  const timelapse = scanTimelapseWindow(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, hourly, frameR);
+  const timelapse = scanTimelapseWindow(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, hourly, frameR, sunrise, sunset);
   let tlSum = "";
-  if(timelapse && timelapse.points && timelapse.points.length){
-    if(timelapse.bestRun && timelapse.bestRun.avg >= 45){ const bp = timelapse.bestRun.points; tlSum = ` · <span class="nw">Timelapse ${timelapseLabel(Math.round(timelapse.bestRun.avg))}, ${bp.length === 1 ? "~" : ""}${fmt(bp[0].time)}</span>`; }
-    else tlSum = ` · <span class="nw">Timelapse: not much drift</span>`;
-  }
+  { const pick = [timelapse.sun, timelapse.moon].filter(r => r && r.bestRun && r.bestRun.avg >= 45).sort((a, b) => b.bestRun.avg - a.bestRun.avg)[0];
+    if(pick){ const bp = pick.bestRun.points; tlSum = ` · <span class="nw">Timelapse ${timelapseLabel(Math.round(pick.bestRun.avg))}, ${bp.length === 1 ? "~" : ""}${fmt(bp[0].time)}</span>`; }
+    else if((timelapse.sun && timelapse.sun.points.length) || (timelapse.moon && timelapse.moon.points.length)) tlSum = ` · <span class="nw">Timelapse: not much drift</span>`; }
   html += uiFold("moon", `${moon.emoji} Moon &amp; timelapse <span class="sub">${moon.phaseName} · <span class="nw">${moon.illumPct}% lit</span>${tlSum}</span>`, `<div class="grid">${moonCardHTML(moon)}${timelapseCardHTML(timelapse)}</div>`);
 
   html += checklistBtnHtml(state.loc, "todayChk");
