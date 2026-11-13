@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.8f -->
+<!-- Afterglow v2.4.8g -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.8f</div>
+    <div class="test-ver">🧪 TEST · v2.4.8g</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -1713,7 +1713,44 @@ function fmt(d){
    (and just before sunrise), so the forecast is read at event +17 min (evening) or -17 min (morning), blended linearly between the
    two nearest forecast hours. The old at-the-event score is kept as .atEvent for comparison on the test copy. */
 const PEAK_OFFSET_MIN = 17;
-function scoreWindow(hourly, evtIso, mode, beam){
+// 2.4.9: live score. Starting about 3 hours out, the forecast cloud layers are blended with what the satellite and airports
+// actually report (obs.w is the weight, up to 60%), then scored with the same model. s.fc keeps the pure forecast numbers.
+function liveBlendLayers(h2, beam, obs){
+  const a = h2.cloud_cover_low, m = h2.cloud_cover_mid, hi = h2.cloud_cover_high;
+  if(!a || !m || !hi) return null;
+  const lerp = (f, o) => f + (o - f) * obs.w;
+  const shift = (low, mid, target) => {
+    const lm = Math.max(low, mid), t = Math.max(0, Math.min(100, lerp(lm, target)));
+    if(lm > 0){ const k = t / lm; return [Math.min(100, low * k), Math.min(100, mid * k)]; }
+    return [0, t];
+  };
+  const h3 = {}; Object.keys(h2).forEach(k => { h3[k] = Array.isArray(h2[k]) ? h2[k].slice() : h2[k]; });
+  if(obs.high != null) h3.cloud_cover_high[0] = Math.max(0, Math.min(100, lerp(hi[0], obs.high)));
+  if(obs.lm != null){ const r = shift(a[0], m[0], obs.lm); h3.cloud_cover_low[0] = r[0]; h3.cloud_cover_mid[0] = r[1]; }
+  let b3 = beam;
+  if(beam && typeof beam.low === "number" && typeof beam.mid === "number" && obs.blm != null){ const r = shift(beam.low, beam.mid, obs.blm); b3 = Object.assign({}, beam, { low: r[0], mid: r[1] }); }
+  return { h3, b3 };
+}
+function scoreWindow(hourly, evtIso, mode, beam, obs){
+  const base = scoreWindowBase(hourly, evtIso, mode, beam, null);
+  if(!base || !obs || !(obs.w > 0)) return base;
+  const t = hourly.time, target = new Date(evtIso).getTime() + (mode === "evening" ? 1 : -1) * PEAK_OFFSET_MIN * 60000;
+  const idx0 = nearestHourIdx(t, evtIso);
+  const hh = { time: [t[idx0]] };
+  Object.keys(hourly).forEach(key => { if(key !== "time" && Array.isArray(hourly[key])) hh[key] = [hourly[key][idx0]]; });
+  // Blend the layers around the same peak-time forecast the base score used (its low/mid/high are already that).
+  hh.cloud_cover_low = [base.low]; hh.cloud_cover_mid = [base.mid]; hh.cloud_cover_high = [base.high];
+  hh.relative_humidity_2m = [base.hum]; hh.precipitation_probability = [base.precip];
+  if(base.vis != null) hh.visibility = [base.vis];
+  const bl = liveBlendLayers(hh, beam, obs); if(!bl) return base;
+  const sc = scoreEvent(bl.h3, 0, bl.b3);
+  if(!sc) return base;
+  sc.atEvent = base.atEvent; sc.atEventX = base.atEventX;
+  sc.fc = { score: base.score, scoreX: base.scoreX, low: base.low, mid: base.mid, high: base.high, beamLow: base.beamLow, beamMid: base.beamMid };
+  sc.live = obs;
+  return sc;
+}
+function scoreWindowBase(hourly, evtIso, mode, beam){
   const t = hourly && hourly.time; if(!t || !evtIso) return null;
   const idx0 = nearestHourIdx(t, evtIso);
   const old = scoreEvent(hourly, idx0, beam);
@@ -1735,6 +1772,59 @@ function scoreWindow(hourly, evtIso, mode, beam){
   if(!sc) { old.atEvent = old.score; return old; }
   sc.atEvent = old.score; sc.atEventX = old.scoreX;
   return sc;
+}
+// 2.4.9: what the satellite and airports say right now, turned into blend inputs. Null when nothing is usable or the event is too far off / long past.
+function liveObsFor(eventIso, mode){
+  try{
+    const r = state.rc; if(!r || !eventIso || !state.loc) return null;
+    const key = [state.loc.lat.toFixed(2), state.loc.lon.toFixed(2), eventIso].join("|");
+    if(r.key !== key || Date.now() - r.at > 40 * 60000) return null;
+    const minsLeft = (placeLocalToMs(eventIso, state.tz) - Date.now()) / 60000;
+    if(!(minsLeft > -PEAK_OFFSET_MIN && minsLeft <= 180)) return null;
+    const w = minsLeft <= 30 ? 0.6 : 0.6 * (180 - minsLeft) / 150;
+    const sat = r.sat, list = r.list;
+    const med = a => { if(!a || !a.length) return null; const s = a.slice().sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
+    const avg = a => { const v = a.filter(x => x != null && isFinite(x)); return v.length ? v.reduce((x, y) => x + y, 0) / v.length : null; };
+    const satAt = km => { if(!sat) return null; let b = null; sat.pts.forEach(p => { if(b == null || Math.abs(p.km - km) < Math.abs(b.km - km)) b = p; }); return b ? b.lowmid : null; };
+    const nearSky = list && list.cmpNear ? med(list.cmpNear.map(k => k.pct)) : null;
+    const farSky = list && list.cmp && list.cmp.length ? med(list.cmp.map(k => k.pct)) : null;
+    const o = {
+      w, mins: minsLeft,
+      high: sat ? sat.high : null,
+      lm: avg([satAt(0), nearSky]),
+      blm: avg([satAt(SUN_PATH_SAMPLE_KM), farSky]),
+      src: { sat: !!sat, apt: !!(list && list.length) }
+    };
+    if(o.high == null && o.lm == null && o.blm == null) return null;
+    return o;
+  }catch(e){ return null; }
+}
+function todayScoreNow(){
+  const { daily, hourly, activeDay, mode } = state;
+  if(!daily || !hourly) return null;
+  const iso = mode === "evening" ? daily.sunset[activeDay] : daily.sunrise[activeDay];
+  return scoreWindow(hourly, iso, mode, sampleAt(state.sample[mode], iso), liveObsFor(iso, mode));
+}
+// One short line saying why the live score differs from the forecast one (nothing when they match).
+function liveWhy(s){
+  try{
+    if(!s || !s.fc || !s.live || s.fc.score === s.score) return "";
+    const o = s.live, f = s.fc, parts = [];
+    if(o.high != null && Math.abs(o.high - f.high) >= 10) parts.push(`satellite high cloud ${Math.round(o.high)}% (forecast ${Math.round(f.high)}%)`);
+    const flm = Math.max(f.low, f.mid), slm = Math.max(s.low, s.mid);
+    if(o.lm != null && Math.abs(o.lm - flm) >= 15) parts.push(`low and mid cloud reported at ${Math.round(o.lm)}% (forecast ${Math.round(flm)}%)`);
+    if(o.blm != null && f.beamLow != null && Math.abs(o.blm - Math.max(f.beamLow, f.beamMid)) >= 15) parts.push(`${Math.round(o.blm)}% low and mid cloud toward the sun (forecast ${Math.round(Math.max(f.beamLow, f.beamMid))}%)`);
+    const why = parts.length ? parts.join("; ") : "the latest reports";
+    return `<div class="hero-sub live-why" style="margin-top:8px;font-size:13px;opacity:.85;">${s.score > f.score ? "Raised" : "Lowered"} from the forecast score of ${f.score}: ${why}.</div>`;
+  }catch(e){ return ""; }
+}
+// Called whenever the Reality check data is drawn: if the live score now differs from the one on screen, redraw.
+function liveSync(){
+  try{
+    if(state.shownScore == null) return;
+    const s = todayScoreNow();
+    if(s && s.score !== state.shownScore && !state.liveRedraw){ state.liveRedraw = true; try{ render(); } finally { state.liveRedraw = false; } }
+  }catch(e){}
 }
 // 2.4.8e: surface wind at the event hour (mph from the forecast, shown in the chosen unit); gusts only when they add 5 mph or more.
 function windAtEvent(hourly, eventIso){
@@ -2385,8 +2475,8 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
   const dirTxt = "toward where the sun will " + (mode === "evening" ? "set" : "rise");
   const satB = satHtml(sat, fcHigh, dirTxt);
   const note = sat
-    ? `<div class="rc-note">Airports can't see high cloud, which is where most of the color comes from. The satellite can, but it only shows the sky as of its last scan, and NOAA still calls it beta. This card is a cross-check; for now it doesn't change the score.</div>`
-    : `<div class="rc-note">Airports can't see high cloud, so this checks for blockers, not color. This card is a cross-check; for now it doesn't change the score.</div>`;
+    ? `<div class="rc-note">Airports can't see high cloud, which is where most of the color comes from. The satellite can, but it only shows the sky as of its last scan, and NOAA still calls it beta. The score above moves toward what the satellite and airports report, more and more as the time gets closer.</div>`
+    : `<div class="rc-note">Airports can't see high cloud, so this checks for blockers, not color. The score above moves toward what they report as the time gets closer.</div>`;
   const head = `<div class="rc-head"><span>Reality check</span><span>${evWhen}</span></div>`;
   const satSum = sat ? ` · High cloud ${sat.high}%` : "";
   const openAttr = (state.fold && state.fold.rc === false) ? "" : " open";
@@ -2493,7 +2583,7 @@ function rcSlot(eventIso, mode, az, fc, where, fcHigh, quiet){
   const minsLeft = (placeLocalToMs(eventIso, state.tz) - Date.now()) / 60000;
   if(!(minsLeft > -PEAK_OFFSET_MIN && minsLeft <= 180)){ el.innerHTML = '<div class="rc-hint">Reality check appears within 3 hours of sunrise or sunset, comparing airport and satellite reports to the forecast.</div>'; return; }
   const loc = state.loc, key = [loc.lat.toFixed(2), loc.lon.toFixed(2), eventIso].join("|");
-  const draw = (rc, sat) => { if(!el.isConnected) return; el.innerHTML = rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh); const d = el.querySelector("details.rc-card"); if(d) d.addEventListener("toggle", () => { state.fold = state.fold || {}; state.fold.rc = d.open; }); };
+  const draw = (rc, sat) => { if(!el.isConnected) return; el.innerHTML = rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh); const d = el.querySelector("details.rc-card"); if(d) d.addEventListener("toggle", () => { state.fold = state.fold || {}; state.fold.rc = d.open; }); liveSync(); };
   if(state.rc && state.rc.key === key && Date.now() - state.rc.at < 600000) { draw(state.rc.list, state.rc.sat); return; }
   // Hold the card's space while the reports load, so the cards below don't jump when it appears
   if(!(quiet && el.querySelector("details.rc-card:not(.rc-skel)"))) el.innerHTML = rcSkelHtml(mode, minsLeft, where);
@@ -2530,9 +2620,10 @@ function renderToday(app, tabsHtml){
   const sunrise = daily.sunrise[activeDay];
   const sunset = daily.sunset[activeDay];
   const eventIso = mode === "evening" ? sunset : sunrise;
-  const s = scoreWindow(hourly, eventIso, mode, sampleAt(state.sample[mode], eventIso));
+  const s = scoreWindow(hourly, eventIso, mode, sampleAt(state.sample[mode], eventIso), liveObsFor(eventIso, mode));
   if(!s){ app.innerHTML = tabsHtml + '<div class="err">Could not compute a forecast for this day.</div>'; return; }
-
+  state.shownScore = s.score;
+  const sF = s.fc ? Object.assign({}, s, s.fc) : s;   // forecast-only numbers, for the Sky breakdown and the Reality check comparison
   const gradient = swatchGradient(s, mode);
 
   const { start: blueStart, end: blueEnd } = blueHourBounds(sunrise, sunset, mode, loc.lat, loc.lon);
@@ -2600,8 +2691,10 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
         <div class="score-num">${s.score}</div>
         <div class="score-label">${label(s.score)} ${mode === "evening" ? "sunset" : "sunrise"}</div>
       </div>
+      ${document.querySelector(".test-ver") && s.fc ? `<div class="score-x" title="Test copy only">Forecast only: <b>${s.fc.score}</b> ${label(s.fc.score)} · test only</div>` : ""}
       ${document.querySelector(".test-ver") && s.scoreX != null ? `<div class="score-x" title="Test copy only">Experimental score: <b>${s.scoreX}</b> ${label(s.scoreX)} · test only</div>` : ""}
       ${(() => { const [b1, b2] = splitBlurb(blurb(s, mode)); return `<div class="hero-sub">${b1}${b2 ? ` <span id="blurbRest"${state.blurbMore ? "" : " hidden"}>${b2}</span> <button class="more-link" id="blurbMore">${state.blurbMore ? "Less" : "More"}</button>` : ""}</div>`; })()}
+      ${liveWhy(s)}
       <div class="hero-sub" style="margin-top:8px;">${afterglowTip(eventIso, mode, s.score, s)}</div>
       <div class="hero-times">
         ${(twilight && mode !== "evening") ? `<div class="hero-time-item"><div class="k">${twilightLabel}</div><div class="v">${fmt(twilight)}</div></div>` : ""}
@@ -2624,12 +2717,12 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
   <div id="rcSlot"></div>`;
 
   let skyInner = `<div class="grid">
-    ${s.beam != null ? statCard("Toward the sun", Math.max(s.beamLow, s.beamMid), "%",
+    ${sF.beam != null ? statCard("Toward the sun", Math.max(sF.beamLow, sF.beamMid), "%",
         `Low/mid cloud ${fmtDist(SUN_PATH_SAMPLE_KM)} ${compassDir(azimuth)}, where the light comes from`,
-        var2color(Math.max(s.beamLow, s.beamMid), 100, 45, true)) : ``}
-    ${statCard("High cloud", s.high, "%", "Catches color. 30–60% is ideal", var2color(s.high, 45, 60))}
-    ${statCard("Low cloud", s.low, "%", "Blocks the horizon when high", var2color(s.low, 100, 40, true))}
-    ${statCard("Mid cloud", s.mid, "%", "Thin mid cloud catches color; a heavy deck blocks", var2color(s.mid, 100, 50, true))}
+        var2color(Math.max(sF.beamLow, sF.beamMid), 100, 45, true)) : ``}
+    ${statCard("High cloud", sF.high, "%", "Catches color. 30–60% is ideal", var2color(sF.high, 45, 60))}
+    ${statCard("Low cloud", sF.low, "%", "Blocks the horizon when high", var2color(sF.low, 100, 40, true))}
+    ${statCard("Mid cloud", sF.mid, "%", "Thin mid cloud catches color; a heavy deck blocks", var2color(sF.mid, 100, 50, true))}
     ${s.hazeFromVis
       ? (s.vis < 1609 ? `<div class="card"><div class="label">Visibility</div><div class="value">${agUnits() === "km" ? "Under 1.6 km" : "Under 1 mi"} <small>Fog or very low visibility. Under ~${agUnits() === "km" ? "15 km" : "9 mi"} starts flattening color</small></div><div class="bar"><i style="width:${Math.max(2, Math.min(100, (s.vis / 15000) * 100))}%; background:${var2color(Math.min(100, (s.vis / 15000) * 100), 100, 70)}"></i></div></div>` : statCard("Visibility", Math.round(s.vis / (agUnits() === "km" ? 1000 : 1609)), agUnits() === "km" ? " km" : " mi", "Direct haze reading — under ~" + (agUnits() === "km" ? "15 km" : "9 mi") + " starts flattening color", var2color(Math.min(100, (s.vis / 15000) * 100), 100, 70)))
       : statCard("Humidity", s.hum, "%", "Fallback haze proxy — visibility unavailable", var2color(s.hum, 100, 80, true))}
@@ -2637,7 +2730,7 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
 
   skyInner += `<div class="why">These are forecast numbers. The Reality check above compares them with airport reports and the satellite.<br><br><b>How this is scored</b> — Afterglow weighs high-altitude cloud cover (the layer that catches direct light and turns pink/orange), low and mid cloud (which physically block the view of the horizon or the light source), and humidity (haze mutes saturation even on an otherwise clear evening). The score is for the glow around sunrise or sunset, not the exact moment: it reads the forecast about ${PEAK_OFFSET_MIN} minutes after sunset (or before sunrise), when high cloud usually lights up. It's a heuristic, not a guarantee — always worth a look outside 20 minutes before showtime.</div>`;
   const skyExtra = (s.hazeFromVis ? ` · <span class="nw">Vis ${fmtVis(s.vis)}</span>` : "") + (s.precip >= 20 ? ` · <span class="nw">Rain ${Math.round(s.precip)}%</span>` : "");
-  html += uiFold("sky", `Sky breakdown (forecast) <span class="sub"><span class="nw">High ${Math.round(s.high)}%</span> · <span class="nw">Mid ${Math.round(s.mid)}%</span> · <span class="nw">Low ${Math.round(s.low)}%</span>${skyExtra}</span>`, skyInner);
+  html += uiFold("sky", `Sky breakdown (forecast) <span class="sub"><span class="nw">High ${Math.round(sF.high)}%</span> · <span class="nw">Mid ${Math.round(sF.mid)}%</span> · <span class="nw">Low ${Math.round(sF.low)}%</span>${skyExtra}</span>`, skyInner);
 
   const moon = computeMoonInfoPlace(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, sunrise, sunset);
   const timelapse = scanTimelapseWindow(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, hourly, frameR, sunrise, sunset);
@@ -2650,7 +2743,7 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
   html += checklistBtnHtml(state.loc, "todayChk");
   app.innerHTML = html;
   // Airport sensors only see cloud below 12,000 ft, so they are compared with the forecast's LOW cloud only (mid cloud is mostly above what they can see).
-  rcSlot(eventIso, mode, azimuth, { low: s.low, mid: s.mid, bLow: s.beam != null ? s.beamLow : null, bMid: s.beam != null ? s.beamMid : null }, s.beam != null ? "toward the sun" : "at your spot", s.high);
+  rcSlot(eventIso, mode, azimuth, { low: sF.low, mid: sF.mid, bLow: sF.beam != null ? sF.beamLow : null, bMid: sF.beam != null ? sF.beamMid : null }, sF.beam != null ? "toward the sun" : "at your spot", sF.high);
 
   document.querySelectorAll(".toggle-btn").forEach(b => b.addEventListener("click", () => {
     state.mode = b.dataset.mode; render();
