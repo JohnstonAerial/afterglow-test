@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.8c -->
+<!-- Afterglow v2.4.8d -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.8c</div>
+    <div class="test-ver">🧪 TEST · v2.4.8d</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -1621,16 +1621,21 @@ function scoreEvent(hourly, idx, beam){
    The color often peaks just after the sun is down (evening) or in the
    short stretch before it comes up (morning), so the sun-event time alone
    can send people home too early. Shown for Fair and better. */
-function afterglowTip(eventIso, mode, score){
+// 2.4.8d: on a clear sky, say what the score tops out at and what would lift it.
+function tipClear(sky){
+  if(!sky || !(sky.high < 12 && sky.mid < 20 && sky.low < 20)) return "";
+  return ` Clear skies top out around Fair. Thin high cloud (30–60%) drifting in could lift this to Good, so check again closer to the time.`;
+}
+function afterglowTip(eventIso, mode, score, sky){
   // 2.4.5h: say plainly that the score is for the glow AROUND the event (read PEAK_OFFSET_MIN minutes after sunset / before sunrise), not the instant of sunset or sunrise.
   const t = new Date(eventIso).getTime();
   const min = 60000;
   if(mode === "evening"){
     const at = fmt(new Date(t + PEAK_OFFSET_MIN*min));
-    return `Scored for the glow around ${at}, about ${PEAK_OFFSET_MIN} minutes after sunset.` + (score >= 26 ? ` Stay for it: the color often peaks 15–20 minutes after sunset.` : "");
+    return `Scored for the glow around ${at}, about ${PEAK_OFFSET_MIN} minutes after sunset.` + (score >= 26 ? ` Stay for it.` : "") + tipClear(sky);
   }
   const at = fmt(new Date(t - PEAK_OFFSET_MIN*min));
-  return `Scored for the glow around ${at}, about ${PEAK_OFFSET_MIN} minutes before sunrise.` + (score >= 26 ? ` Arrive early: the color often peaks 15–20 minutes before sunrise.` : "");
+  return `Scored for the glow around ${at}, about ${PEAK_OFFSET_MIN} minutes before sunrise.` + (score >= 26 ? ` Arrive early.` : "") + tipClear(sky);
 }
 
 function label(score){
@@ -1659,7 +1664,7 @@ function blurb(s, mode){
     } else if(s.hum != null && s.hum < 40){
       air = " The air is dry, which can make for a deep blue hour.";
     }
-    return `Essentially clear: high cloud ${pct(s.high)}, mid ${pct(s.mid)}, low ${pct(s.low)}, so there's very little up there for the light to catch. Expect a clean gradient near the horizon rather than real color.${air} Thin high cloud drifting in would add color, so check again closer to the time.`;
+    return `Essentially clear: high cloud ${pct(s.high)}, mid ${pct(s.mid)}, low ${pct(s.low)}, so there's very little up there for the light to catch. Expect a clean gradient near the horizon rather than real color.${air}`;
   }
   if(s.low > 65) return `Low cloud is thick enough to block the ${horizon} horizon, so even if there's color higher up, the light that makes it may not reach you.`;
   if(s.high < 20 && s.midCanvas < 15) return `Not much high cloud to work with — the color that does show will be confined close to the horizon.`;
@@ -2568,6 +2573,8 @@ function renderToday(app, tabsHtml){
   html += `<div class="upd-row"><span id="updTime">${state.updatedAt ? "Updated " + new Date(state.updatedAt).toLocaleTimeString([], { hour:"numeric", minute:"2-digit" }) : ""}</span><button class="upd-btn" id="updBtn" aria-label="Refresh the forecast">↻ Refresh</button></div>`;
   html += tzNoteHtml();
 
+  const bestLight = s.score >= 26 ? (() => { const e = new Date(eventIso).getTime(), m = 60000; return mode === "evening" ? fmt(new Date(e + 15*m)) + "–" + fmt(new Date(e + 20*m)) : fmt(new Date(e - 20*m)) + "–" + fmt(new Date(e - 15*m)); })() : "";
+const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best light</div><div class="v">${bestLight}</div></div>` : "";
   html += `<div class="hero">
     <div class="hero-swatch" style="background:${gradient}"></div>
     <div class="hero-content">
@@ -2579,10 +2586,12 @@ function renderToday(app, tabsHtml){
       </div>
       ${document.querySelector(".test-ver") && s.scoreX != null ? `<div class="score-x" title="Test copy only">Experimental score: <b>${s.scoreX}</b> ${label(s.scoreX)} · test only</div>` : ""}
       ${(() => { const [b1, b2] = splitBlurb(blurb(s, mode)); return `<div class="hero-sub">${b1}${b2 ? ` <span id="blurbRest"${state.blurbMore ? "" : " hidden"}>${b2}</span> <button class="more-link" id="blurbMore">${state.blurbMore ? "Less" : "More"}</button>` : ""}</div>`; })()}
-      <div class="hero-sub" style="margin-top:8px;">${afterglowTip(eventIso, mode, s.score)}</div>
+      <div class="hero-sub" style="margin-top:8px;">${afterglowTip(eventIso, mode, s.score, s)}</div>
       <div class="hero-times">
         ${(twilight && mode !== "evening") ? `<div class="hero-time-item"><div class="k">${twilightLabel}</div><div class="v">${fmt(twilight)}</div></div>` : ""}
+        ${mode === "evening" ? "" : bestItem}
         <div class="hero-time-item"><div class="k">${mode === "evening" ? "Sunset" : "Sunrise"}</div><div class="v">${fmtTime(eventIso)}</div></div>
+        ${mode === "evening" ? bestItem : ""}
         ${(twilight && mode === "evening") ? `<div class="hero-time-item"><div class="k">${twilightLabel}</div><div class="v">${fmt(twilight)}</div></div>` : ""}
         <div class="hero-time-item"><div class="k">Direction</div><div class="v">${azimuthLabel}</div></div>
         <div class="hero-time-item"><div class="k">Golden hour</div><div class="v">${fmt(goldenStart)}–${fmt(goldenEnd)}</div></div>
