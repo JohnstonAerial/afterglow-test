@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.8j -->
+<!-- Afterglow v2.4.8k -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.8j</div>
+    <div class="test-ver">🧪 TEST · v2.4.8k</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2231,9 +2231,8 @@ function timelapseTip(run, windAvailable){
   if(!windAvailable || !winds.length) return `Try 3–5 s between frames to start.`;
   const w = winds.reduce((a, b) => a + b, 0) / winds.length;
   const iv = Math.max(1, Math.min(8, Math.round(50 / Math.max(w, 5))));
-  const sec = Math.round(3600 / iv / 24);   // video made by one hour of shooting at 24 fps
-  const clip = sec >= 90 ? `${Math.round(sec / 6) / 10} min` : `${sec} s`;
-  return `Try ${iv} s between frames (about ${Math.round(w)} mph aloft). Every hour you shoot makes about ${clip} of video at 24 fps.`;
+  const fmt = s => s >= 90 ? `${Math.round(s / 6) / 10} min` : `${Math.round(s)} s`;   // video made by one hour of shooting
+  return `Try ${iv} s between frames (about ${Math.round(w)} mph aloft). Every hour you shoot makes about ${fmt(3600 / iv / 24)} of video at 24 fps, or ${fmt(3600 / iv / 60)} at 60 fps.`;
 }
 
 function timelapseSection(title, r, windAvailable, emptyMsg){
