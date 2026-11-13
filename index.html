@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.8h -->
+<!-- Afterglow v2.4.8i -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.8h</div>
+    <div class="test-ver">🧪 TEST · v2.4.8i</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2226,14 +2226,14 @@ function scanTimelapseWindow(dayStart, lat, lon, hourly, toReal, sunriseIso, sun
 
 // A rough starting interval from the wind aloft: faster cloud wants shorter gaps between frames. Heuristic, not a rule.
 function timelapseTip(run, windAvailable){
-  const pts = run.points, hours = Math.max(1, pts.length - 1);   // the window runs from the first hourly point to the last, so 12:00 and 1:00 PM is 1 hour of shooting
+  const pts = run.points;
   const winds = pts.map(p => p.wind).filter(w => w != null);
   if(!windAvailable || !winds.length) return `Try 3–5 s between frames to start.`;
   const w = winds.reduce((a, b) => a + b, 0) / winds.length;
   const iv = Math.max(1, Math.min(8, Math.round(50 / Math.max(w, 5))));
-  const sec = Math.round(hours * 3600 / iv / 24);
+  const sec = Math.round(3600 / iv / 24);   // video made by one hour of shooting at 24 fps
   const clip = sec >= 90 ? `${Math.round(sec / 6) / 10} min` : `${sec} s`;
-  return `Try ${iv} s between frames (about ${Math.round(w)} mph aloft). ${hours} h of shooting makes about a ${clip} clip at 24 fps.`;
+  return `Try ${iv} s between frames (about ${Math.round(w)} mph aloft). Every hour you shoot makes about ${clip} of video at 24 fps.`;
 }
 
 function timelapseSection(title, r, windAvailable, emptyMsg){
@@ -2263,7 +2263,7 @@ function timelapseCardHTML(result){
       const win = r => (r && r.bestRun && r.bestRun.avg >= 45) ? fmt(r.bestRun.points[0].time) + "|" + fmt(r.bestRun.points[r.bestRun.points.length - 1].time) : null;
       const same = win(result.sun) && win(result.sun) === win(result.moon);
       return same
-        ? timelapseSection("Moving cloud (Sun and Moon both up)", result.sun, result.windAvailable, "")
+        ? timelapseSection("Sun and Moon both up", result.sun, result.windAvailable, "")
         : timelapseSection("Daytime clouds", result.sun, result.windAvailable, "No daylight forecast hours.") + timelapseSection("Cloud crossing the Moon", result.moon, result.windAvailable, "The Moon isn't up during forecast hours today.");
     })()}
     <div class="outlook-note" style="margin-top:12px;">${result.windAvailable
