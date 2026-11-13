@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.8g -->
+<!-- Afterglow v2.4.8h -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.8g</div>
+    <div class="test-ver">🧪 TEST · v2.4.8h</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2226,7 +2226,7 @@ function scanTimelapseWindow(dayStart, lat, lon, hourly, toReal, sunriseIso, sun
 
 // A rough starting interval from the wind aloft: faster cloud wants shorter gaps between frames. Heuristic, not a rule.
 function timelapseTip(run, windAvailable){
-  const pts = run.points, hours = pts.length;
+  const pts = run.points, hours = Math.max(1, pts.length - 1);   // the window runs from the first hourly point to the last, so 12:00 and 1:00 PM is 1 hour of shooting
   const winds = pts.map(p => p.wind).filter(w => w != null);
   if(!windAvailable || !winds.length) return `Try 3–5 s between frames to start.`;
   const w = winds.reduce((a, b) => a + b, 0) / winds.length;
