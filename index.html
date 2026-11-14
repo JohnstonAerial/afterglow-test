@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.8p -->
+<!-- Afterglow v2.4.8q -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.8p</div>
+    <div class="test-ver">🧪 TEST · v2.4.8q</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -1622,8 +1622,10 @@ function scoreEvent(hourly, idx, beam){
    short stretch before it comes up (morning), so the sun-event time alone
    can send people home too early. Shown for Fair and better. */
 // 2.4.8d: on a clear sky, say what the score tops out at and what would lift it.
-function tipClear(sky){
+// 2.4.8q: only say "tops out around Fair" when the score really is Fair or lower; at Good or better, say what could lift it further.
+function tipClear(sky, score){
   if(!sky || !(sky.high < 12 && sky.mid < 20 && sky.low < 20)) return "";
+  if(score >= 44) return ` The sky is clear, so the score rests on the glow low on the horizon. Thin high cloud (30–60%) drifting in could lift it higher, so check again closer to the time.`;
   return ` Clear skies top out around Fair. Thin high cloud (30–60%) drifting in could lift this to Good, so check again closer to the time.`;
 }
 function afterglowTip(eventIso, mode, score, sky){
@@ -1632,10 +1634,10 @@ function afterglowTip(eventIso, mode, score, sky){
   const min = 60000;
   if(mode === "evening"){
     const at = fmt(new Date(t + PEAK_OFFSET_MIN*min));
-    return `Scored for the glow around ${at}, about ${PEAK_OFFSET_MIN} minutes after sunset.` + (score >= 26 ? ` Stay for it.` : "") + tipClear(sky);
+    return `Scored for the glow around ${at}, about ${PEAK_OFFSET_MIN} minutes after sunset.` + (score >= 26 ? ` Stay for it.` : "") + tipClear(sky, score);
   }
   const at = fmt(new Date(t - PEAK_OFFSET_MIN*min));
-  return `Scored for the glow around ${at}, about ${PEAK_OFFSET_MIN} minutes before sunrise.` + (score >= 26 ? ` Arrive early.` : "") + tipClear(sky);
+  return `Scored for the glow around ${at}, about ${PEAK_OFFSET_MIN} minutes before sunrise.` + (score >= 26 ? ` Arrive early.` : "") + tipClear(sky, score);
 }
 
 function label(score){
