@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.8v -->
+<!-- Afterglow v2.4.8w -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -218,6 +218,7 @@
   .rc-sat-row{ display:grid; grid-template-columns:repeat(6,1fr); gap:4px; text-align:center; font:12px ui-monospace,Menlo,monospace; color: var(--sand); }
   .rc-sat-row span{ background: var(--card); border:1px solid var(--line); border-radius:8px; padding:4px 0; }
   .rc-sat-row small{ display:block; color: var(--slate); font-size:10.5px; }
+  .rc-sat-key{ font-size:12px; color: var(--slate); margin:6px 0 4px; }
   .rc-note{ margin-top:8px; font-size:12px; line-height:1.4; color: var(--slate); }
   details.rc-card > summary{ list-style:none; cursor:pointer; position:relative; padding-right:26px; }
   details.rc-card > summary::-webkit-details-marker{ display:none; }
@@ -602,7 +603,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.8v</div>
+    <div class="test-ver">🧪 TEST · v2.4.8w</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2555,10 +2556,11 @@ async function satLoad(loc, az){
 function satHtml(sat, fcHigh, dirTxt){
   if(!sat) return "";
   const word = sat.high < 10 ? "little or none" : sat.high < 30 ? "a little" : sat.high < 60 ? "some" : sat.high < 85 ? "a lot" : "a thick layer";
-  const cells = sat.pts.map(p => `<span><small>${agUnits() === "km" ? p.km + " km" : Math.round(p.km / 1.609344 / 5) * 5 + " mi"}</small><b>${p.high}%</b></span>`).join("");
+  const cells = sat.pts.map(p => `<span><small>${agUnits() === "km" ? p.km + " km" : Math.round(p.km / 1.609344 / 5) * 5 + " mi"}</small><b>${p.high}%</b><small>L/M ${p.lowmid}%</small></span>`).join("");
   const fcTxt = fcHigh != null ? ` Forecast high cloud: ${fcHigh}%.` : "";
   return `<div class="rc-sat"><div class="rc-sat-head"><span>Satellite · ${fmt(frameN(sat.scan))}</span></div>`
     + `<div class="rc-text">High cloud ${dirTxt}, as of this scan: ${word} (${sat.maxHigh > sat.high ? `${sat.high}% average, up to ${sat.maxHigh}%` : `${sat.high}%`}). Low and mid cloud: ${sat.lowmid}%.${fcTxt}</div>`
+    + `<div class="rc-sat-key">High cloud by distance toward the sun (large). L/M is low and mid cloud there (small).</div>`
     + `<div class="rc-sat-row">${cells}</div></div>`;
 }
 function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
