@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.8w -->
+<!-- Afterglow v2.4.8x -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -603,7 +603,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.8w</div>
+    <div class="test-ver">🧪 TEST · v2.4.8x</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2556,7 +2556,7 @@ async function satLoad(loc, az){
 function satHtml(sat, fcHigh, dirTxt){
   if(!sat) return "";
   const word = sat.high < 10 ? "little or none" : sat.high < 30 ? "a little" : sat.high < 60 ? "some" : sat.high < 85 ? "a lot" : "a thick layer";
-  const cells = sat.pts.map(p => `<span><small>${agUnits() === "km" ? p.km + " km" : Math.round(p.km / 1.609344 / 5) * 5 + " mi"}</small><b>${p.high}%</b><small>L/M ${p.lowmid}%</small></span>`).join("");
+  const cells = sat.pts.map(p => `<span><small>${agUnits() === "km" ? p.km + " km" : Math.round(p.km / 1.609344 / 5) * 5 + " mi"}</small><b>${p.high}%</b><small>L/M ${p.lowmid}</small></span>`).join("");
   const fcTxt = fcHigh != null ? ` Forecast high cloud: ${fcHigh}%.` : "";
   return `<div class="rc-sat"><div class="rc-sat-head"><span>Satellite · ${fmt(frameN(sat.scan))}</span></div>`
     + `<div class="rc-text">High cloud ${dirTxt}, as of this scan: ${word} (${sat.maxHigh > sat.high ? `${sat.high}% average, up to ${sat.maxHigh}%` : `${sat.high}%`}). Low and mid cloud: ${sat.lowmid}%.${fcTxt}</div>`
