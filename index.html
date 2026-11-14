@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.8r -->
+<!-- Afterglow v2.4.8s -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.8r</div>
+    <div class="test-ver">🧪 TEST · v2.4.8s</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -1634,10 +1634,10 @@ function afterglowTip(eventIso, mode, score, sky){
   const min = 60000;
   if(mode === "evening"){
     const at = fmt(new Date(t + PEAK_OFFSET_MIN*min));
-    return `Scored for the glow around ${at}, about ${PEAK_OFFSET_MIN} minutes after sunset.` + (score >= 26 ? ` Stay for it.` : "") + tipClear(sky, score);
+    return `Scored for the glow around ${at}, about ${PEAK_OFFSET_MIN} minutes after sunset.` + (score >= 26 ? ` Stay for the glow.` : "") + tipClear(sky, score);
   }
   const at = fmt(new Date(t - PEAK_OFFSET_MIN*min));
-  return `Scored for the glow around ${at}, about ${PEAK_OFFSET_MIN} minutes before sunrise.` + (score >= 26 ? ` Arrive early.` : "") + tipClear(sky, score);
+  return `Scored for the glow around ${at}, about ${PEAK_OFFSET_MIN} minutes before sunrise.` + (score >= 26 ? ` Get there early.` : "") + tipClear(sky, score);
 }
 
 function label(score){
@@ -1666,7 +1666,7 @@ function blurb(s, mode){
     } else if(s.hum != null && s.hum < 40){
       air = " The air is dry, which can make for a deep blue hour.";
     }
-    return `Essentially clear: high cloud ${pct(s.high)}, mid ${pct(s.mid)}, low ${pct(s.low)}, so there's very little up there for the light to catch. Expect a clean gradient near the horizon rather than real color.${air}`;
+    return `Essentially clear: high cloud ${pct(s.high)}, mid ${pct(s.mid)}, low ${pct(s.low)}, so there's very little up there for the light to catch. ${s.score >= 44 ? "Expect a clean glow low on the horizon rather than a cloud show." : "Expect a clean gradient near the horizon rather than real color."}${air}`;
   }
   if(s.low > 65) return `Low cloud is thick enough to block the ${horizon} horizon, so even if there's color higher up, the light that makes it may not reach you.`;
   if(s.high < 20 && s.midCanvas < 15) return `Not much high cloud to work with — the color that does show will be confined close to the horizon.`;
@@ -1676,8 +1676,8 @@ function blurb(s, mode){
   // conditions above have already been ruled out.
   if(s.score >= 85) return `High cloud sitting right in the sweet spot to catch color, with a clear line to the ${horizon} horizon. Worth being in position early.`;
   if(s.score >= 70) return `Solid setup for ${time} color — enough high cloud to light up, without much in the way lower down.`;
-  if(s.score >= 44) return `Workable but not a sure thing. Cloud cover is a bit heavier than ideal, so color may be short-lived.`;
-  if(s.score >= 26) return `Cloud is stacked in a way that'll more likely mute the color than light it up. Not a night to drive far for.`;
+  if(s.score >= 44) return `Workable but not a sure thing. The color may be short-lived.`;
+  if(s.score >= 26) return `Cloud is stacked in a way that'll more likely mute the color than light it up. Not worth a long drive.`;
   return `Conditions aren't lining up for much of a show — either too little cloud to scatter light off, or too much of it in the way.`;
 }
 
