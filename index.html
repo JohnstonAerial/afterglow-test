@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.8x -->
+<!-- Afterglow v2.4.8y -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -603,7 +603,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.8x</div>
+    <div class="test-ver">🧪 TEST · v2.4.8y</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2620,8 +2620,11 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
       if(hi.pct - lo.pct >= 50) phr = `a mix, from ${lo.pct === 0 ? "clear" : (RC_WORDS[lo.code] || "cloud")} to ${RC_WORDS[hi.code] || "cloud"}, with ${phr} in the middle`;
     }
     const fcTxt = "forecast low cloud " + Math.round(fLow) + "%" + (agg >= 25 && fMid != null ? ", mid " + Math.round(fMid) + "%" : "");
-    const more = agg >= 60 && agg - Math.max(fLow, fMid || 0) >= 35, less = fLow >= 60 && fLow - agg >= 35;
-    return { bad: more || less, dir: more ? "more" : less ? "less" : null, phr, fcTxt };
+    // 2.4.8y: tightened. Scattered cloud (about 44%) or more against a forecast 30+ points lower now counts as "more cloud" (it was 60% and 35 points).
+    // Under 60% it is a mild case (amber); 60%+ with a 35-point gap stays the strong case (red).
+    const gapMore = agg - Math.max(fLow, fMid || 0);
+    const more = agg >= 40 && gapMore >= 30, strong = agg >= 60 && gapMore >= 35, less = fLow >= 60 && fLow - agg >= 35;
+    return { bad: more || less, dir: more ? "more" : less ? "less" : null, strong, phr, fcTxt };
   };
   const near = judge(rc.cmpNear || (beamSpot ? null : rc.map(r => r.sky)), F.low, F.mid);
   const far = beamSpot ? judge(rc.cmp || rc.map(r => r.sky), F.bLow, F.bMid) : null;
@@ -2637,7 +2640,7 @@ function rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh){
     // a forecast HEAVIER than the reports means the score may be low (amber).
     const nb = near && near.bad, fb = far && far.bad, dirs = [nb ? near.dir : null, fb ? far.dir : null].filter(Boolean);
     const w = (nb && fb) || !beamSpot ? "" : nb ? " near you" : " toward the sun";
-    cls = dirs.indexOf("more") >= 0 ? "rc-bad" : "rc-warn";
+    cls = ((nb && near.strong) || (fb && far.strong)) ? "rc-bad" : "rc-warn";
     hl = dirs.length === 2 && dirs[0] !== dirs[1] ? "Disagrees with the forecast"
        : dirs[0] === "more" ? "Airports show more cloud than the forecast" + w : "Forecast is heavier than the airport reports" + w;
   }
