@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.8y -->
+<!-- Afterglow v2.4.8z -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -603,7 +603,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.8y</div>
+    <div class="test-ver">🧪 TEST · v2.4.8z</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -1804,6 +1804,20 @@ function liveBlendLayers(h2, beam, obs){
   if(beam && typeof beam.low === "number" && typeof beam.mid === "number" && obs.blm != null){ const r = shift(beam.low, beam.mid, obs.blm); b3 = Object.assign({}, beam, { low: r[0], mid: r[1] }); }
   return { h3, b3 };
 }
+// 2.4.8y (test only): the same forecast-only score, but with the second model's (ECMWF) low, mid and high cloud swapped in.
+// Visibility, humidity, rain chance and the toward-the-sun cloud still come from the main model, so this isolates the cloud layers.
+function ecmwfScore(hourly, second, evtIso, mode, beam){
+  try{
+    if(!second || !hourly || !hourly.time) return null;
+    const pick = (key, arr) => hourly.time.map((t, i) => { const j = second.idx[t]; const v = j != null ? second[key][j] : null; return v != null && isFinite(v) ? v : (arr ? arr[i] : null); });
+    const h2 = Object.assign({}, hourly, {
+      cloud_cover_low: pick("low", hourly.cloud_cover_low),
+      cloud_cover_mid: pick("mid", hourly.cloud_cover_mid),
+      cloud_cover_high: pick("high", hourly.cloud_cover_high)
+    });
+    return scoreWindowBase(h2, evtIso, mode, beam);
+  }catch(e){ return null; }
+}
 function scoreWindow(hourly, evtIso, mode, beam, obs){
   const base = scoreWindowBase(hourly, evtIso, mode, beam, null);
   if(!base || !obs || !(obs.w > 0)) return base;
@@ -2792,6 +2806,7 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
         <div class="score-label">${label(s.score)} ${mode === "evening" ? "sunset" : "sunrise"}</div>
       </div>
       ${document.querySelector(".test-ver") && s.fc ? `<div class="score-x" title="Test copy only">Forecast only: <b>${s.fc.score}</b> ${label(s.fc.score)} · test only</div>` : ""}
+      ${(() => { if(!document.querySelector(".test-ver")) return ""; const e = ecmwfScore(hourly, state.second, eventIso, mode, sampleAt(state.sample[mode], eventIso)); if(!e) return ""; const mn = s.fc ? s.fc.score : s.score; return `<div class="score-x" title="Test copy only">Same forecast on ECMWF: <b>${e.score}</b> ${label(e.score)} · main model ${mn} · test only</div>`; })()}
       ${document.querySelector(".test-ver") && s.scoreX != null ? `<div class="score-x" title="Test copy only">Experimental score: <b>${s.scoreX}</b> ${label(s.scoreX)} · test only</div>` : ""}
       ${(() => { const [b1, b2] = splitBlurb(blurb(s, mode)); return `<div class="hero-sub">${b1}${b2 ? ` <span id="blurbRest"${state.blurbMore ? "" : " hidden"}>${b2}</span> <button class="more-link" id="blurbMore">${state.blurbMore ? "Less" : "More"}</button>` : ""}</div>`; })()}
       ${liveWhy(s)}
