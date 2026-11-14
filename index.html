@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.8u -->
+<!-- Afterglow v2.4.8v -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -386,6 +386,15 @@
   .card .value{ font-size: 17px; font-weight: 600; }
   .card .value small{ font-size:12px; font-weight:400; color: var(--slate); }
   .bar{ height: 5px; border-radius: 4px; background: rgba(245,230,211,0.1); margin-top: 8px; overflow:hidden; }
+  .hstrip{ margin:0 0 14px; }
+  .hstrip .hs-title{ font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--slate); margin-bottom:6px; }
+  .hstrip table{ width:100%; border-collapse:collapse; font-size:14px; }
+  .hstrip th, .hstrip td{ text-align:center; padding:5px 2px; font-weight:400; }
+  .hstrip th{ font-size:12px; color:var(--slate); }
+  .hstrip td.hs-l{ text-align:left; color:var(--slate); font-size:12px; padding-left:0; }
+  .hstrip .hs-now{ background: rgba(242,184,75,0.14); }
+  .hstrip td small, .hstrip th small{ font-size:10.5px; opacity:.75; }
+  .hstrip .hs-note{ font-size:12px; color:var(--slate); margin-top:4px; }
   .bar{ position:relative; }
   .bar i{ display:block; height:100%; border-radius:4px; }
   .bar .ideal{ position:absolute; top:0; bottom:0; text-decoration:none; border-radius:2px; box-shadow: inset 0 0 0 1px rgba(245,230,211,0.5); pointer-events:none; }
@@ -593,7 +602,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.8u</div>
+    <div class="test-ver">🧪 TEST · v2.4.8v</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -988,6 +997,7 @@ let state = {
   loc: null,
   daily: null,
   hourly: null,
+  second: null, // 2.4.8v test: second-model cloud layers
   activeDay: 0,
   mode: "morning", // or "evening"
   view: "today", // or "outlook" / "plan" — which top-level screen is showing
@@ -1204,10 +1214,32 @@ async function fetchWind(loc){
   }
 }
 
+// 2.4.8v (test): a second, independent forecast model for the three cloud layers, to see where the two disagree.
+// Never throws; null if it stalled, failed or came back unusable. The page works the same without it.
+async function fetchSecond(loc){
+  const params = new URLSearchParams({
+    latitude: loc.lat, longitude: loc.lon,
+    hourly: "cloud_cover_low,cloud_cover_mid,cloud_cover_high",
+    models: "ecmwf_ifs025",
+    timezone: "auto",
+    forecast_days: 11
+  });
+  try{
+    const res = await fetchWithTimeout(`https://api.open-meteo.com/v1/forecast?${params}`, WIND_TIMEOUT_MS);
+    if(!res.ok) return null;
+    const data = await res.json();
+    const h = data && data.hourly;
+    if(!h || !Array.isArray(h.time) || !Array.isArray(h.cloud_cover_high) || !Array.isArray(h.cloud_cover_mid) || !Array.isArray(h.cloud_cover_low)) return null;
+    const idx = {}; h.time.forEach((t, i) => { idx[t] = i; });
+    return { time: h.time, idx, low: h.cloud_cover_low, mid: h.cloud_cover_mid, high: h.cloud_cover_high, model: "ECMWF" };
+  }catch(e){ return null; }
+}
+
 async function fetchForecast(loc){
   // Fire both together so the wind request costs wall-clock time only when it's
   // slower than core, and never more than WIND_TIMEOUT_MS.
-  const [data, wind] = await Promise.all([fetchCore(loc), fetchWind(loc)]);
+  const [data, wind, second] = await Promise.all([fetchCore(loc), fetchWind(loc), fetchSecond(loc)]);
+  data.second = second;
   if(wind && data.hourly && wind.length === data.hourly.time.length){
     data.hourly.wind_speed_700hPa = wind;
   }
@@ -1708,6 +1740,42 @@ function fmtTime(iso){
 }
 function addMinutes(iso, mins){
   return new Date(new Date(iso).getTime() + mins*60000);
+}
+// 2.4.8v (test): compare the main forecast with a second model at the scored time, and lay out the hours around it.
+function secondAtTarget(second, evtIso, mode){
+  if(!second) return null;
+  const target = new Date(evtIso).getTime() + (mode === "evening" ? 1 : -1) * PEAK_OFFSET_MIN * 60000;
+  const t = second.time;
+  for(let i = 0; i < t.length - 1; i++){
+    const a = new Date(t[i]).getTime(), b = new Date(t[i+1]).getTime();
+    if(a <= target && target <= b){
+      const f = b > a ? (target - a) / (b - a) : 0;
+      const mix = arr => { const x = arr[i], y = arr[i+1]; if(x == null || y == null) return null; return x + (y - x) * f; };
+      const r = { low: mix(second.low), mid: mix(second.mid), high: mix(second.high) };
+      return (r.low == null || r.mid == null || r.high == null) ? null : r;
+    }
+  }
+  return null;
+}
+function modelDisagreement(sF, second, evtIso, mode){
+  const o = secondAtTarget(second, evtIso, mode); if(!o || !sF) return null;
+  const rows = [["high", "high cloud"], ["mid", "mid cloud"], ["low", "low cloud"]].map(([k, name]) => ({ k, name, a: sF[k], b: o[k], d: Math.abs(sF[k] - o[k]) }));
+  const worst = rows.slice().sort((x, y) => y.d - x.d)[0];
+  return { rows, worst, other: o, disagree: worst.d >= 30 };
+}
+function hourStripHTML(hourly, second, evtIso, mode){
+  try{
+    const t = hourly.time, target = new Date(evtIso).getTime() + (mode === "evening" ? 1 : -1) * PEAK_OFFSET_MIN * 60000;
+    let i0 = 0, bd = Infinity; t.forEach((x, i) => { const d = Math.abs(new Date(x).getTime() - target); if(d < bd){ bd = d; i0 = i; } });
+    const idxs = []; for(let i = i0 - 2; i <= i0 + 2; i++){ if(i >= 0 && i < t.length) idxs.push(i); }
+    const val = (arr, i) => (arr && arr[i] != null) ? Math.round(arr[i]) : "–";
+    const sv = (k, i) => { if(!second) return ""; const j = second.idx[t[i]]; return (j != null && second[k][j] != null) ? ` <small>(${Math.round(second[k][j])})</small>` : ""; };
+    const head = idxs.map(i => `<th class="${i === i0 ? "hs-now" : ""}">${new Date(t[i]).toLocaleTimeString([], { hour: "numeric" })}${i === i0 ? "<br><small>scored</small>" : ""}</th>`).join("");
+    const row = (label, key, k) => `<tr><td class="hs-l">${label}</td>${idxs.map(i => `<td class="${i === i0 ? "hs-now" : ""}">${val(hourly[key], i)}${sv(k, i)}</td>`).join("")}</tr>`;
+    return `<div class="hstrip"><div class="hs-title">Cloud by the hour around the scored time</div>
+      <table><tr><th></th>${head}</tr>${row("High", "cloud_cover_high", "high")}${row("Mid", "cloud_cover_mid", "mid")}${row("Low", "cloud_cover_low", "low")}</table>
+      <div class="hs-note">Percent of sky covered.${second ? ` The figure in brackets is a second forecast model (${second.model}).` : " A second forecast model is unavailable right now."}</div></div>`;
+  }catch(e){ return ""; }
 }
 function fmt(d){
   const dt = (d instanceof Date) ? d : new Date(d);
@@ -2723,6 +2791,7 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
       ${(() => { const [b1, b2] = splitBlurb(blurb(s, mode)); return `<div class="hero-sub">${b1}${b2 ? ` <span id="blurbRest"${state.blurbMore ? "" : " hidden"}>${b2}</span> <button class="more-link" id="blurbMore">${state.blurbMore ? "Less" : "More"}</button>` : ""}</div>`; })()}
       ${liveWhy(s)}
       <div class="hero-sub" style="margin-top:8px;">${afterglowTip(eventIso, mode, s.score, s)}</div>
+      ${(() => { if(!document.querySelector(".test-ver")) return ""; const d = modelDisagreement(sF, state.second, eventIso, mode); if(!d || !d.disagree) return ""; return `<div class="hero-sub" style="margin-top:8px;"><b>The forecast models disagree.</b> On ${d.worst.name}, this forecast says ${Math.round(d.worst.a)}% and a second model (${state.second.model}) says ${Math.round(d.worst.b)}%. Treat the score as less certain, and check again closer to the time.</div>`; })()}
       <div class="hero-times">
         ${(twilight && mode !== "evening") ? `<div class="hero-time-item"><div class="k">${twilightLabel}</div><div class="v">${fmt(twilight)}</div></div>` : ""}
         ${mode === "evening" ? "" : bestItem}
@@ -2743,7 +2812,7 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
   </div>
   <div id="rcSlot"></div>`;
 
-  let skyInner = `<div class="grid">
+  let skyInner = (document.querySelector(".test-ver") ? hourStripHTML(hourly, state.second, eventIso, mode) : "") + `<div class="grid">
     ${sF.beam != null ? statCard("Toward the sun", Math.max(sF.beamLow, sF.beamMid), "%",
         `Low/mid cloud ${fmtDist(SUN_PATH_SAMPLE_KM)} ${compassDir(azimuth)}, where the light comes from`,
         var2color(Math.max(sF.beamLow, sF.beamMid), 100, 45, true),
@@ -4341,6 +4410,7 @@ async function boot(loc, keep){
     );
     state.daily = data.daily;
     state.hourly = data.hourly;
+    state.second = data.second || null;
     state.tz = data.timezone || null;
     // Sun-path samples need the sunrise/sunset instants to compute an azimuth,
     // so they go out after core. Both are optional — a failure just falls back
