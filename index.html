@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.8t -->
+<!-- Afterglow v2.4.8u -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -386,7 +386,9 @@
   .card .value{ font-size: 17px; font-weight: 600; }
   .card .value small{ font-size:12px; font-weight:400; color: var(--slate); }
   .bar{ height: 5px; border-radius: 4px; background: rgba(245,230,211,0.1); margin-top: 8px; overflow:hidden; }
+  .bar{ position:relative; }
   .bar i{ display:block; height:100%; border-radius:4px; }
+  .bar .ideal{ position:absolute; top:0; bottom:0; text-decoration:none; border-radius:2px; box-shadow: inset 0 0 0 1px rgba(245,230,211,0.5); pointer-events:none; }
 
   .why{ font-size: 13px; line-height: 1.6; color: var(--slate); border-top: 1px solid var(--line); padding-top: 16px; margin-top: 22px; }
   .why b{ color: var(--sand); }
@@ -591,7 +593,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.8t</div>
+    <div class="test-ver">🧪 TEST · v2.4.8u</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2744,16 +2746,17 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
   let skyInner = `<div class="grid">
     ${sF.beam != null ? statCard("Toward the sun", Math.max(sF.beamLow, sF.beamMid), "%",
         `Low/mid cloud ${fmtDist(SUN_PATH_SAMPLE_KM)} ${compassDir(azimuth)}, where the light comes from`,
-        var2color(Math.max(sF.beamLow, sF.beamMid), 100, 45, true)) : ``}
-    ${statCard("High cloud", sF.high, "%", "Catches color. 30–60% is ideal", var2color(sF.high, 45, 60))}
-    ${statCard("Low cloud", sF.low, "%", "Blocks the horizon when high", var2color(sF.low, 100, 40, true))}
-    ${statCard("Mid cloud", sF.mid, "%", "Thin mid cloud catches color; a heavy deck blocks", var2color(sF.mid, 100, 50, true))}
+        var2color(Math.max(sF.beamLow, sF.beamMid), 100, 45, true),
+        { word: stateWord(Math.max(sF.beamLow, sF.beamMid), 10, 45, ["Nothing in the way", "Some cloud in the way", "Light likely blocked"]) }) : ``}
+    ${statCard("High cloud", sF.high, "%", "Catches color. 30–60% is ideal (outlined on the bar)", var2color(sF.high, 45, 60), { ideal: [30, 60] })}
+    ${statCard("Low cloud", sF.low, "%", "Blocks the horizon when high", var2color(sF.low, 100, 40, true), { word: stateWord(sF.low, 20, 50, ["Clear", "Some", "Heavy"]) })}
+    ${statCard("Mid cloud", sF.mid, "%", "Thin mid cloud catches color; a heavy deck blocks", var2color(sF.mid, 100, 50, true), { word: stateWord(sF.mid, 20, 60, ["Clear", "Some", "Heavy"]) })}
     ${s.hazeFromVis
-      ? (s.vis < 1609 ? `<div class="card"><div class="label">Visibility</div><div class="value">${agUnits() === "km" ? "Under 1.6 km" : "Under 1 mi"} <small>Fog or very low visibility. Under ~${agUnits() === "km" ? "15 km" : "9 mi"} starts flattening color</small></div><div class="bar"><i style="width:${Math.max(2, Math.min(100, (s.vis / 15000) * 100))}%; background:${var2color(Math.min(100, (s.vis / 15000) * 100), 100, 70)}"></i></div></div>` : statCard("Visibility", Math.round(s.vis / (agUnits() === "km" ? 1000 : 1609)), agUnits() === "km" ? " km" : " mi", "Direct haze reading — under ~" + (agUnits() === "km" ? "15 km" : "9 mi") + " starts flattening color", var2color(Math.min(100, (s.vis / 15000) * 100), 100, 70)))
+      ? (s.vis < 1609 ? `<div class="card"><div class="label">Visibility</div><div class="value">${agUnits() === "km" ? "Under 1.6 km" : "Under 1 mi"} <small>Fog or very low visibility. Under about ${agUnits() === "km" ? "15 km" : "9 mi"} starts to flatten color</small></div><div class="bar"><i style="width:${Math.max(2, visBarPct(s.vis))}%; background:${visBarColor(s.vis)}"></i></div></div>` : statCard("Visibility", Math.round(s.vis / (agUnits() === "km" ? 1000 : 1609)), agUnits() === "km" ? " km" : " mi", "Measured visibility. Under about " + (agUnits() === "km" ? "15 km" : "9 mi") + " starts to flatten color", visBarColor(s.vis), { fill: visBarPct(s.vis) }))
       : statCard("Humidity", s.hum, "%", "Fallback haze proxy — visibility unavailable", var2color(s.hum, 100, 80, true))}
   </div>`;
 
-  skyInner += `<div class="why">These are forecast numbers. The Reality check above compares them with airport reports and the satellite.<br><br><b>How this is scored</b> — Afterglow weighs high-altitude cloud cover (the layer that catches direct light and turns pink/orange), low and mid cloud (which physically block the view of the horizon or the light source), and humidity (haze mutes saturation even on an otherwise clear evening). The score is for the glow around sunrise or sunset, not the exact moment: it reads the forecast about ${PEAK_OFFSET_MIN} minutes after sunset (or before sunrise), when high cloud usually lights up. It's a heuristic, not a guarantee — always worth a look outside 20 minutes before showtime.</div>`;
+  skyInner += `<div class="why">These are forecast numbers. The Reality check above compares them with airport reports and the satellite.<br><br><b>How this is scored</b> — Afterglow weighs high-altitude cloud cover (the layer that catches direct light and turns pink/orange), low and mid cloud (which physically block the view of the horizon or the light source), and visibility, or humidity when visibility isn't available (haze mutes saturation even on an otherwise clear evening). The score is for the glow around sunrise or sunset, not the exact moment: it reads the forecast about ${PEAK_OFFSET_MIN} minutes after sunset (or before sunrise), when high cloud usually lights up. It's a rule of thumb, not a guarantee, so it's always worth a look outside about 20 minutes before ${mode === "evening" ? "sunset" : "sunrise"}.</div>`;
   const skyExtra = (s.hazeFromVis ? ` · <span class="nw">Vis ${fmtVis(s.vis)}</span>` : "") + (s.precip >= 20 ? ` · <span class="nw">Rain ${Math.round(s.precip)}%</span>` : "");
   html += uiFold("sky", `Sky breakdown (forecast) <span class="sub"><span class="nw">High ${Math.round(sF.high)}%</span> · <span class="nw">Mid ${Math.round(sF.mid)}%</span> · <span class="nw">Low ${Math.round(sF.low)}%</span>${skyExtra}</span>`, skyInner);
 
@@ -4190,13 +4193,23 @@ function var2color(val, ref, sweetOrMax, inverse){
   return "#565d78";
 }
 
-function statCard(labelText, val, unit, note, color){
+// 2.4.8u: opts.fill sets the bar length (0-100) when the number is not a percent (visibility in miles);
+// opts.word is a plain-word state shown before the note; opts.ideal = [lo, hi] outlines the ideal range on the bar.
+function statCard(labelText, val, unit, note, color, opts){
+  const o = opts || {};
+  const fill = o.fill != null ? o.fill : val;
+  const ideal = o.ideal ? `<s class="ideal" style="left:${o.ideal[0]}%; width:${o.ideal[1] - o.ideal[0]}%"></s>` : "";
+  const word = o.word ? `<b>${o.word}.</b> ` : "";
   return `<div class="card">
     <div class="label">${labelText}</div>
-    <div class="value">${Math.round(val)}${unit} <small>${note}</small></div>
-    <div class="bar"><i style="width:${Math.min(100,val)}%; background:${color}"></i></div>
+    <div class="value">${Math.round(val)}${unit} <small>${word}${note}</small></div>
+    <div class="bar"><i style="width:${Math.max(0, Math.min(100, fill))}%; background:${color}"></i>${ideal}</div>
   </div>`;
 }
+// 2.4.8u: visibility bar fills from 0 up to 15 km (9 mi), where haze stops flattening color, and goes gold once it is full.
+function visBarPct(vis){ return Math.max(0, Math.min(100, (vis / 15000) * 100)); }
+function visBarColor(vis){ const p = visBarPct(vis); return p >= 100 ? "#F2B84B" : p >= 50 ? "#E8517A" : "#565d78"; }
+function stateWord(val, lo, hi, words){ return val < lo ? words[0] : val < hi ? words[1] : words[2]; }
 
 /* ---------- Retry ----------
    Every transient failure mode we've actually seen from Open-Meteo — 5xx, a
