@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.8o -->
+<!-- Afterglow v2.4.8p -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,7 +591,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.8o</div>
+    <div class="test-ver">🧪 TEST · v2.4.8p</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2221,7 +2221,7 @@ function scanTimelapseWindow(dayStart, lat, lon, hourly, toReal, sunriseIso, sun
   const moonWin = findMoonUpWindow(real(dayStart), lat, lon);
   const sunWin = (sunriseIso && sunsetIso) ? { start: real(new Date(sunriseIso)), end: real(new Date(sunsetIso)) } : null;
   const sun = scanTimelapseOne(sunWin, hourly, real), moon = scanTimelapseOne(moonWin, hourly, real);
-  return { sun, moon, windAvailable: Array.isArray(hourly.wind_speed_700hPa) };
+  return { sun, moon, toReal: real, windAvailable: Array.isArray(hourly.wind_speed_700hPa) };
 }
 
 // A rough starting interval from the wind aloft: faster cloud wants shorter gaps between frames. Heuristic, not a rule.
@@ -2234,6 +2234,28 @@ function timelapseTip(run, windAvailable){
   // Three bands, not one exact number: how far the cloud travels across your frame depends on your lens and framing too.
   const band = w < 15 ? ["light", "5 to 10 s"] : w <= 30 ? ["moderate", "2 to 5 s"] : ["fast", "1 to 2 s"];
   return `Cloud speed is ${band[0]} (about ${Math.round(w)} mph aloft): try ${band[1]} between frames.` + tail;
+}
+
+// 2.4.8p: live check on the timelapse window. Within 3 hours of sunrise or sunset the Reality check has satellite and airport reports;
+// compare them with the forecast cloud for the daytime hours coming up (the next 3 hours), and say if the window looks cloudier or clearer than forecast.
+// It only adds a note: the window times themselves still come from the forecast.
+function timelapseLiveCheck(result, eventIso, mode){
+  try{
+    const sun = result && result.sun; if(!sun || !sun.points || !sun.points.length) return null;
+    const o = liveObsFor(eventIso, mode); if(!o) return null;
+    const h = o.high, lm = o.lm;
+    if(h == null && lm == null) return null;
+    const obs = Math.round(100 * (1 - (1 - (h == null ? 0 : h) / 100) * (1 - (lm == null ? 0 : lm) / 100)));
+    const now = Date.now();
+    const pts = sun.points.filter(p => { const t = (result.toReal ? result.toReal(p.time) : p.time).getTime(); return t >= now - 3600000 && t <= now + 3 * 3600000; });
+    if(!pts.length) return null;
+    const fc = Math.round(pts.reduce((a, p) => a + p.cloud, 0) / pts.length);
+    const diff = obs - fc;
+    const part = (h != null && lm != null) ? "satellite and airport reports" : (lm != null ? "airport reports" : "the satellite");
+    if(Math.abs(diff) < 15) return `Live check: ${part} show about ${obs}% cloud, close to the forecast ${fc}% for the next few hours, so this window still holds.`;
+    if(diff > 0) return `Live check: ${part} show about ${obs}% cloud against a forecast ${fc}% for the next few hours. It is cloudier than forecast, so expect less gap in the cloud than this window suggests.`;
+    return `Live check: ${part} show about ${obs}% cloud against a forecast ${fc}% for the next few hours. It is clearer than forecast, so there may be less cloud to move than this window suggests.`;
+  }catch(e){ return null; }
 }
 
 function timelapseSection(title, r, windAvailable, emptyMsg){
@@ -2266,6 +2288,7 @@ function timelapseCardHTML(result){
         ? timelapseSection("Sun and Moon both up", result.sun, result.windAvailable, "")
         : timelapseSection("Daytime clouds", result.sun, result.windAvailable, "No daylight forecast hours.") + timelapseSection("Cloud crossing the Moon", result.moon, result.windAvailable, "The Moon isn't up during forecast hours today.");
     })()}
+    ${result.liveMsg ? `<div class="outlook-note" style="margin-top:12px;"><b>Live check:</b>${result.liveMsg.slice(11)}</div>` : ""}
     <div class="outlook-note" style="margin-top:12px;">${result.windAvailable
       ? `Total cloud cover plus wind speed aloft, a rough proxy for cloud motion, not a guarantee. Heuristic, not calibrated against real footage yet.`
       : `Wind aloft unavailable right now, so this is scored on cloud cover alone. It can't say how fast that cloud will actually move. Rougher than usual.`}</div>
@@ -2734,6 +2757,7 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
 
   const moon = computeMoonInfoPlace(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, sunrise, sunset);
   const timelapse = scanTimelapseWindow(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, hourly, frameR, sunrise, sunset);
+  timelapse.liveMsg = timelapseLiveCheck(timelapse, eventIso, mode);
   let tlSum = "";
   { const pick = [timelapse.sun, timelapse.moon].filter(r => r && r.bestRun && r.bestRun.avg >= 45).sort((a, b) => b.bestRun.avg - a.bestRun.avg)[0];
     if(pick){ const bp = pick.bestRun.points; tlSum = ` · <span class="nw">Timelapse ${timelapseLabel(Math.round(pick.bestRun.avg))}, ${bp.length === 1 ? "~" : ""}${fmt(bp[0].time)}</span>`; }
