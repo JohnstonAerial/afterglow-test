@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.9a -->
+<!-- Afterglow v2.4.9b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -603,7 +603,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.9a</div>
+    <div class="test-ver">🧪 TEST · v2.4.9b</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2275,18 +2275,22 @@ function timelapseLabel(score){
 }
 
 // 2.4.8b: the scan now covers two windows, the hours the Sun is up (daytime clouds) and the hours the Moon is up (cloud crossing the Moon), and counts low cloud too (total cover), so a solid low deck no longer reads as "clear".
-function scanTimelapseOne(win, hourly, real){
+function scanTimelapseOne(win, hourly, real, fromMs){
   if(!win) return null;
+  // 2.4.9b: on today, hours already gone by are left out, so the best window is one you can still shoot. fromMs is 'now' (null for other days).
+  const trimmed = fromMs != null && win.start.getTime() < fromMs;
+  const over = fromMs != null && win.end.getTime() <= fromMs;
   const points = [];
   hourly.time.forEach((t, i) => {
     const ti = real(new Date(t)).getTime();
     if(ti < win.start.getTime() || ti > win.end.getTime()) return;
+    if(fromMs != null && ti <= fromMs - 3600000) return;
     const lo = hourly.cloud_cover_low ? (hourly.cloud_cover_low[i] ?? 0) : 0, mi = hourly.cloud_cover_mid[i] ?? 0, hi = hourly.cloud_cover_high[i] ?? 0;
     const cloud = hourly.cloud_cover && hourly.cloud_cover[i] != null ? hourly.cloud_cover[i] : 100 * (1 - (1 - lo / 100) * (1 - mi / 100) * (1 - hi / 100));
     const wind = Array.isArray(hourly.wind_speed_700hPa) ? (hourly.wind_speed_700hPa[i] ?? null) : null;
     points.push({ time: new Date(t), score: timelapseHourScore(cloud, wind), cloud, wind });
   });
-  if(points.length === 0) return { win, points, bestRun: null, avgCloud: null };
+  if(points.length === 0) return { win, points, bestRun: null, avgCloud: null, over: over || trimmed, trimmed };
   // Longest/strongest contiguous run of "workable or better" hours.
   const THRESH = 45;
   let bestRun = null, curRun = [];
@@ -2299,7 +2303,7 @@ function scanTimelapseOne(win, hourly, real){
   points.forEach(p => { if(p.score >= THRESH) curRun.push(p); else closeRun(); });
   closeRun();
   const avgCloud = points.reduce((s, c) => s + c.cloud, 0) / points.length;
-  return { win, points, bestRun, avgCloud };
+  return { win, points, bestRun, avgCloud, trimmed };
 }
 
 function scanTimelapseWindow(dayStart, lat, lon, hourly, toReal, sunriseIso, sunsetIso){
@@ -2307,7 +2311,8 @@ function scanTimelapseWindow(dayStart, lat, lon, hourly, toReal, sunriseIso, sun
   const real = toReal || (x => x);
   const moonWin = findMoonUpWindow(real(dayStart), lat, lon);
   const sunWin = (sunriseIso && sunsetIso) ? { start: real(new Date(sunriseIso)), end: real(new Date(sunsetIso)) } : null;
-  const sun = scanTimelapseOne(sunWin, hourly, real), moon = scanTimelapseOne(moonWin, hourly, real);
+  const t0 = real(dayStart).getTime(), nowMs = Date.now(), fromMs = (nowMs >= t0 && nowMs < t0 + 24 * 3600000) ? nowMs : null;
+  const sun = scanTimelapseOne(sunWin, hourly, real, fromMs), moon = scanTimelapseOne(moonWin, hourly, real, fromMs);
   return { sun, moon, toReal: real, windAvailable: Array.isArray(hourly.wind_speed_700hPa) };
 }
 
@@ -2346,7 +2351,7 @@ function timelapseLiveCheck(result, eventIso, mode){
 }
 
 function timelapseSection(title, r, windAvailable, emptyMsg){
-  if(!r || !r.points || r.points.length === 0) return `<div style="margin-top:12px;"><div class="label">${title}</div><div class="value" style="font-size:14px;font-weight:400;color:var(--slate)">${emptyMsg}</div></div>`;
+  if(!r || !r.points || r.points.length === 0) return `<div style="margin-top:12px;"><div class="label">${title}</div><div class="value" style="font-size:14px;font-weight:400;color:var(--slate)">${r && r.over ? "That window has passed for today." : emptyMsg}</div></div>`;
   if(r.bestRun && r.bestRun.avg >= 45){
     const pts = r.bestRun.points, start = pts[0].time, end = pts[pts.length - 1].time;
     return `<div style="margin-top:12px;"><div class="label">${title}</div>
@@ -2354,16 +2359,18 @@ function timelapseSection(title, r, windAvailable, emptyMsg){
       <div style="font-family:'IBM Plex Mono', monospace; font-size:15px; margin-top:4px;">${pts.length === 1 || fmt(start) === fmt(end) ? "around " + fmt(start) : fmt(start) + "–" + fmt(end)}</div>
       <div class="outlook-note" style="margin-top:6px;">${timelapseTip(r.bestRun, windAvailable)}</div></div>`;
   }
-  const msg = r.avgCloud >= 75 ? "Mostly solid cloud the whole time, so there's little to see moving." : r.avgCloud <= 15 ? "Mostly clear the whole time, so there's not much drift to catch." : "Cloud is patchy or too slow to make a good timelapse.";
+  const rest = r.trimmed ? "the rest of the time" : "the whole time";
+  const msg = r.avgCloud >= 75 ? `Mostly solid cloud ${rest}, so there's little to see moving.` : r.avgCloud <= 15 ? `Mostly clear ${rest}, so there's not much drift to catch.` : (r.trimmed ? "Cloud for the rest of the window is patchy or too slow to make a good timelapse." : "Cloud is patchy or too slow to make a good timelapse.");
   return `<div style="margin-top:12px;"><div class="label">${title}</div><div class="value" style="font-size:14px;font-weight:400;color:var(--slate);">${msg}</div></div>`;
 }
 
 function timelapseCardHTML(result){
   const noData = !result || ((!result.sun || !result.sun.points.length) && (!result.moon || !result.moon.points.length));
+  const allOver = noData && result && ((result.sun && result.sun.over) || (result.moon && result.moon.over));
   if(noData){
     return `<div class="card" style="grid-column: 1 / -1;">
       <div class="label">Timelapse conditions</div>
-      <div class="value" style="font-size:14px;font-weight:400;color:var(--slate)">No forecast hours to score for this day.</div>
+      <div class="value" style="font-size:14px;font-weight:400;color:var(--slate)">${allOver ? "Both windows have passed for today." : "No forecast hours to score for this day."}</div>
     </div>`;
   }
   return `<div class="card" style="grid-column: 1 / -1;">
