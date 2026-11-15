@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.9c -->
+<!-- Afterglow v2.4.9d -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -603,7 +603,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.9c</div>
+    <div class="test-ver">🧪 TEST · v2.4.9d</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2381,8 +2381,10 @@ function timelapseCardHTML(result){
       <div class="value" style="font-size:14px;font-weight:400;color:var(--slate)">${allOver ? "Both windows have passed for today." : "No forecast hours to score for this day."}</div>
     </div>`;
   }
+  // 2.4.9d: with no good window there is no moving cloud to talk about, so drop the tag and the rule-of-thumb note.
+  const hasWin = [result.sun, result.moon].some(r => r && r.bestRun && r.bestRun.avg >= 45);
   return `<div class="card" style="grid-column: 1 / -1;">
-    <div class="label">Timelapse conditions <small style="text-transform:none;">— moving cloud</small></div>
+    <div class="label">Timelapse conditions${hasWin ? ' <small style="text-transform:none;">— moving cloud</small>' : ""}</div>
     ${(() => {
       const win = r => (r && r.bestRun && r.bestRun.avg >= 45) ? fmt(r.bestRun.points[0].time) + "|" + fmt(r.bestRun.points[r.bestRun.points.length - 1].time) : null;
       const same = win(result.sun) && win(result.sun) === win(result.moon);
@@ -2393,9 +2395,9 @@ function timelapseCardHTML(result){
         : timelapseSection("Daytime clouds", result.sun, result.windAvailable, "No daylight forecast hours.") + timelapseSection("Cloud crossing the Moon", result.moon, result.windAvailable, "The Moon isn't up during forecast hours today.");
     })()}
     ${result.liveMsg ? `<div class="outlook-note" style="margin-top:12px;"><b>Live check:</b>${result.liveMsg.slice(11)}</div>` : ""}
-    <div class="outlook-note" style="margin-top:12px;">${result.windAvailable
+    ${hasWin ? `<div class="outlook-note" style="margin-top:12px;">${result.windAvailable
       ? `Based on total cloud cover and wind speed high up, a rough guide to how much the clouds will move, not a guarantee. This is a rule of thumb. We haven't checked it against real timelapses yet.`
-      : `Wind aloft unavailable right now, so this is scored on cloud cover alone. It can't say how fast that cloud will actually move. Rougher than usual.`}</div>
+      : `Wind aloft unavailable right now, so this is scored on cloud cover alone. It can't say how fast that cloud will actually move. Rougher than usual.`}</div>` : ""}
   </div>`;
 }
 
