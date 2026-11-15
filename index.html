@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.9b -->
+<!-- Afterglow v2.4.9c -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -603,7 +603,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.9b</div>
+    <div class="test-ver">🧪 TEST · v2.4.9c</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2350,6 +2350,15 @@ function timelapseLiveCheck(result, eventIso, mode){
   }catch(e){ return null; }
 }
 
+// 2.4.9c: what a section says when it has hours but no good window: "solid", "clear" or "patchy". Used to show one line when both sections agree.
+function timelapseNoWindowKind(r){
+  if(!r || !r.points || !r.points.length || (r.bestRun && r.bestRun.avg >= 45)) return null;
+  return r.avgCloud >= 75 ? "solid" : r.avgCloud <= 15 ? "clear" : "patchy";
+}
+function timelapseNoWindowMsg(kind, trimmed){
+  const rest = trimmed ? "the rest of the time" : "the whole time";
+  return kind === "solid" ? `Mostly solid cloud ${rest}, so there's little to see moving.` : kind === "clear" ? `Mostly clear ${rest}, so there's not much drift to catch.` : (trimmed ? "Cloud for the rest of the window is patchy or too slow to make a good timelapse." : "Cloud is patchy or too slow to make a good timelapse.");
+}
 function timelapseSection(title, r, windAvailable, emptyMsg){
   if(!r || !r.points || r.points.length === 0) return `<div style="margin-top:12px;"><div class="label">${title}</div><div class="value" style="font-size:14px;font-weight:400;color:var(--slate)">${r && r.over ? "That window has passed for today." : emptyMsg}</div></div>`;
   if(r.bestRun && r.bestRun.avg >= 45){
@@ -2359,8 +2368,7 @@ function timelapseSection(title, r, windAvailable, emptyMsg){
       <div style="font-family:'IBM Plex Mono', monospace; font-size:15px; margin-top:4px;">${pts.length === 1 || fmt(start) === fmt(end) ? "around " + fmt(start) : fmt(start) + "–" + fmt(end)}</div>
       <div class="outlook-note" style="margin-top:6px;">${timelapseTip(r.bestRun, windAvailable)}</div></div>`;
   }
-  const rest = r.trimmed ? "the rest of the time" : "the whole time";
-  const msg = r.avgCloud >= 75 ? `Mostly solid cloud ${rest}, so there's little to see moving.` : r.avgCloud <= 15 ? `Mostly clear ${rest}, so there's not much drift to catch.` : (r.trimmed ? "Cloud for the rest of the window is patchy or too slow to make a good timelapse." : "Cloud is patchy or too slow to make a good timelapse.");
+  const msg = timelapseNoWindowMsg(timelapseNoWindowKind(r), r.trimmed);
   return `<div style="margin-top:12px;"><div class="label">${title}</div><div class="value" style="font-size:14px;font-weight:400;color:var(--slate);">${msg}</div></div>`;
 }
 
@@ -2378,6 +2386,8 @@ function timelapseCardHTML(result){
     ${(() => {
       const win = r => (r && r.bestRun && r.bestRun.avg >= 45) ? fmt(r.bestRun.points[0].time) + "|" + fmt(r.bestRun.points[r.bestRun.points.length - 1].time) : null;
       const same = win(result.sun) && win(result.sun) === win(result.moon);
+      const ks = timelapseNoWindowKind(result.sun), km = timelapseNoWindowKind(result.moon);
+      if(ks && ks === km) return `<div style="margin-top:12px;"><div class="label">Daytime clouds and the Moon</div><div class="value" style="font-size:14px;font-weight:400;color:var(--slate);">${timelapseNoWindowMsg(ks, (result.sun && result.sun.trimmed) || (result.moon && result.moon.trimmed))}</div></div>`;
       return same
         ? timelapseSection("Sun and Moon both up", result.sun, result.windAvailable, "")
         : timelapseSection("Daytime clouds", result.sun, result.windAvailable, "No daylight forecast hours.") + timelapseSection("Cloud crossing the Moon", result.moon, result.windAvailable, "The Moon isn't up during forecast hours today.");
