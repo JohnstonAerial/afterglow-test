@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.9f -->
+<!-- Afterglow v2.4.9g -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -603,7 +603,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.9f</div>
+    <div class="test-ver">🧪 TEST · v2.4.9g</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -1669,7 +1669,7 @@ function afterglowTip(eventIso, mode, score, sky){
   const min = 60000;
   if(mode === "evening"){
     const at = fmt(new Date(t + PEAK_OFFSET_MIN*min));
-    return `Scored for the glow around ${at}, about ${PEAK_OFFSET_MIN} minutes after sunset.` + (score >= 26 ? ` Stay for the glow.` : "") + tipClear(sky, score);
+    return `Scored for the glow around ${at}, about ${PEAK_OFFSET_MIN} minutes after sunset.` + tipClear(sky, score);
   }
   const at = fmt(new Date(t - PEAK_OFFSET_MIN*min));
   return `Scored for the glow around ${at}, about ${PEAK_OFFSET_MIN} minutes before sunrise.` + (score >= 26 ? ` Get there early.` : "") + tipClear(sky, score);
