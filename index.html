@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.8z -->
+<!-- Afterglow v2.4.9a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -603,7 +603,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.8z</div>
+    <div class="test-ver">🧪 TEST · v2.4.9a</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2806,7 +2806,7 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
         <div class="score-label">${label(s.score)} ${mode === "evening" ? "sunset" : "sunrise"}</div>
       </div>
       ${document.querySelector(".test-ver") && s.fc ? `<div class="score-x" title="Test copy only">Forecast only: <b>${s.fc.score}</b> ${label(s.fc.score)} · test only</div>` : ""}
-      ${(() => { if(!document.querySelector(".test-ver")) return ""; const e = ecmwfScore(hourly, state.second, eventIso, mode, sampleAt(state.sample[mode], eventIso)); if(!e) return ""; const mn = s.fc ? s.fc.score : s.score; return `<div class="score-x" title="Test copy only">Same forecast on ECMWF: <b>${e.score}</b> ${label(e.score)} · main model ${mn} · test only</div>`; })()}
+      ${(() => { if(!document.querySelector(".test-ver")) return ""; const e = ecmwfScore(hourly, state.second, eventIso, mode, sampleAt(state.sample[mode], eventIso)); if(!e) return ""; return `<div class="score-x" title="Test copy only">Same forecast on ECMWF: <b>${e.score}</b> ${label(e.score)} · test only</div>`; })()}
       ${document.querySelector(".test-ver") && s.scoreX != null ? `<div class="score-x" title="Test copy only">Experimental score: <b>${s.scoreX}</b> ${label(s.scoreX)} · test only</div>` : ""}
       ${(() => { const [b1, b2] = splitBlurb(blurb(s, mode)); return `<div class="hero-sub">${b1}${b2 ? ` <span id="blurbRest"${state.blurbMore ? "" : " hidden"}>${b2}</span> <button class="more-link" id="blurbMore">${state.blurbMore ? "Less" : "More"}</button>` : ""}</div>`; })()}
       ${liveWhy(s)}
