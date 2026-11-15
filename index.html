@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.9d -->
+<!-- Afterglow v2.4.9e -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -603,7 +603,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.9d</div>
+    <div class="test-ver">🧪 TEST · v2.4.9e</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2196,7 +2196,28 @@ function computeMoonInfoPlace(dayStart, lat, lon, sunriseIso, sunsetIso){
   const next = new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate() + 1);
   const m = computeMoonInfo(frameR(dayStart), lat, lon, frameR(new Date(sunriseIso)).toISOString(), frameR(new Date(sunsetIso)).toISOString(), frameR(next));
   m.moonrise = frameN(m.moonrise); m.moonset = frameN(m.moonset);
+  // 2.4.9e: where the Moon is right now (today only): direction and height, plus its height at sunset when that differs.
+  try{
+    const t0 = frameR(dayStart).getTime(), nowMs = Date.now();
+    if(nowMs >= t0 && nowMs < t0 + 24 * 3600000){
+      const p = moonHorizontal(new Date(nowMs), lat, lon);
+      m.nowPos = { alt: p.alt, az: p.az, up: p.alt > MOON_UP_ALT, at: frameN(new Date(nowMs)) };
+      const ssMs = frameR(new Date(sunsetIso)).getTime();
+      if(m.nowPos.up && ssMs > nowMs + 15 * 60000){
+        const q = moonHorizontal(new Date(ssMs), lat, lon);
+        if(q.alt > 0 && Math.abs(q.alt - p.alt) >= 5) m.sunsetPos = { alt: q.alt, az: q.az, at: new Date(sunsetIso) };
+      }
+    }
+  }catch(e){}
   return m;
+}
+// How high, in words a person can use outside: a fist held out at arm's length is about 10 degrees.
+function fistsText(alt){
+  if(alt < 3) return "right on the horizon";
+  const f = Math.round(alt / 5) / 2;
+  if(f < 0.75) return "about half a fist above the horizon";
+  const w = Math.floor(f) + (f % 1 ? "½" : "");
+  return `about ${w} ${f === 1 ? "fist" : "fists"} above the horizon`;
 }
 function moonCardHTML(m){
   const riseStr = m.moonrise ? `${fmt(m.moonrise)} <small>${compassDir(m.moonriseAz)}</small>` : `<small>Doesn't rise today</small>`;
@@ -2213,6 +2234,14 @@ function moonCardHTML(m){
       <div><div class="label">Moonrise</div><div class="value">${riseStr}</div></div>
       <div><div class="label">Moonset</div><div class="value">${setStr}</div></div>
     </div>
+    ${m.nowPos ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);">
+      <div class="label">Right now · ${fmt(m.nowPos.at)}</div>
+      ${m.nowPos.up
+        ? `<div class="value">${compassDir(m.nowPos.az)}, ${Math.round(m.nowPos.alt)}° up <small>· ${fistsText(m.nowPos.alt)}</small></div>
+           ${m.sunsetPos ? `<div class="outlook-note" style="margin-top:6px;">At sunset (${fmt(m.sunsetPos.at)}): ${compassDir(m.sunsetPos.az)}, ${Math.round(m.sunsetPos.alt)}° up.</div>` : ""}
+           <div class="outlook-note" style="margin-top:6px;">A fist held at arm's length is about 10°. Start at the horizon in that direction and count fists up.</div>`
+        : `<div class="value">Below the horizon${(m.moonrise && m.moonrise > m.nowPos.at) ? ` <small>· rises ${fmt(m.moonrise)} in the ${compassDir(m.moonriseAz)}</small>` : ""}</div>`}
+    </div>` : ""}
     ${alignNote ? `<div class="outlook-note" style="margin-top:10px;">${alignNote}</div>` : ""}
     <div class="outlook-note" style="margin-top:${alignNote ? 6 : 10}px;">Rise/set times are calculated, not observed — usually within a few minutes, but can be off by up to ~30-45 min when the Moon crosses the horizon at a shallow angle.</div>
   </div>`;
