@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.9k -->
+<!-- Afterglow v2.4.9l -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -606,7 +606,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.9k</div>
+    <div class="test-ver">🧪 TEST · v2.4.9l</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -1240,14 +1240,13 @@ async function fetchSecond(loc){
 }
 
 async function fetchForecast(loc){
-  // Fire both together so the wind request costs wall-clock time only when it's
-  // slower than core, and never more than WIND_TIMEOUT_MS.
-  const [data, wind, second] = await Promise.all([fetchCore(loc), fetchWind(loc), fetchSecond(loc)]);
-  data.second = second;
-  if(wind && data.hourly && wind.length === data.hourly.time.length){
-    data.hourly.wind_speed_700hPa = wind;
-  }
-  data.windAvailable = !!data.hourly.wind_speed_700hPa;
+  // 2.4.9l: only the main forecast holds up the first screen. Wind aloft (timelapse tip and timelapse score only) and the
+  // second model (test-only lines) start at the same moment but finish in the background; boot() merges them and redraws.
+  // Cloudflare Web Analytics showed first-time visitors waiting about 5 s for content, most of it render delay.
+  const windP = fetchWind(loc), secondP = fetchSecond(loc);   // both resolve to null on any failure, never reject
+  const data = await fetchCore(loc);
+  data.windPromise = windP; data.secondPromise = secondP;
+  data.windAvailable = false;
   return data;
 }
 
@@ -2912,6 +2911,7 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
       const k = ks.length && ks.every(x => x === ks[0]) ? ks[0] : null;
       const why = k === "clear" ? "clear sky, nothing to move" : k === "solid" ? "solid cloud, nothing to move" : k === "patchy" ? "patchy cloud, little movement" : "no good window";
       tlSum = ` · <span class="nw">Timelapse: ${why}</span>`; } }
+  if(state.windPending) tlSum = ` · <span class="nw">Timelapse: checking wind…</span>`;
   html += uiFold("moon", `${moon.emoji} Moon &amp; timelapse${activeDay === 0 ? "" : " · " + parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' })} <span class="sub">${moon.phaseName} · <span class="nw">${moon.illumPct}% lit</span>${tlSum}</span>`, `<div class="grid">${moonCardHTML(moon)}${timelapseCardHTML(timelapse)}</div>`);
 
   html += checklistBtnHtml(state.loc, "todayChk");
@@ -4486,7 +4486,8 @@ async function boot(loc, keep){
     );
     state.daily = data.daily;
     state.hourly = data.hourly;
-    state.second = data.second || null;
+    state.second = null;
+    state.windPending = true;   // 2.4.9l: the timelapse line says "checking wind…" until the wind data is merged below
     state.tz = data.timezone || null;
     // Sun-path samples need the sunrise/sunset instants to compute an azimuth,
     // so they go out after core. Both are optional — a failure just falls back
@@ -4498,6 +4499,16 @@ async function boot(loc, keep){
     state.updatedAt = Date.now();
     cacheForecast(loc, data, state.sample);
     render();
+    // Merge wind aloft and the second model when they arrive, then redraw once (only if this is still the forecast on screen).
+    Promise.all([data.windPromise, data.secondPromise]).then(([wind, second]) => {
+      if(state.hourly !== data.hourly) return;
+      if(wind && data.hourly.time && wind.length === data.hourly.time.length) data.hourly.wind_speed_700hPa = wind;
+      data.windAvailable = !!data.hourly.wind_speed_700hPa;
+      data.second = second || null; state.second = data.second;
+      state.windPending = false;
+      cacheForecast(loc, data, state.sample);
+      render();
+    });
   }catch(e){
     const info = describeError(e);
 
@@ -4513,6 +4524,7 @@ async function boot(loc, keep){
       state.activeDay = keepDay ? Math.min(keepDay.day, cached.daily.time.length - 1) : initial.activeDay;
       state.mode = keepDay ? keepDay.mode : initial.mode;
       state.updatedAt = cached.savedAt;
+      state.windPending = false;
       state.stale = { savedAt: cached.savedAt, reason: info.headline };
       render();
       return;
