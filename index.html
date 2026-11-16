@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.9l -->
+<!-- Afterglow v2.4.9m -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -24,7 +24,6 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://api.open-meteo.com" crossorigin>
-<link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <meta name="theme-color" content="#1B1F3B">
 <script>
 // Theme (2.1.0): Auto follows the device, or the saved choice (Light / Dark). Runs early so the page never flashes the wrong colors.
@@ -597,16 +596,14 @@
   html[data-theme="light"] .cup path:nth-child(3){ fill: #b0703c; }
   html[data-theme="light"] .cup path:nth-child(4){ stroke: #566079; }
 </style>
-<!-- Leaflet: free, keyless map tiles for the Map tab's sun-direction view.
-     Loaded synchronously so `L` is guaranteed defined before renderPlan() runs. -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<!-- Leaflet (free, keyless map tiles for the Plan tab's sun-direction view) is no longer loaded here: since 2.4.9m loadLeaflet() fetches it
+     the first time the Plan tab needs it, so it no longer holds up the forecast on first visit. -->
 </head>
 <body>
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.9l</div>
+    <div class="test-ver">🧪 TEST · v2.4.9m</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -3052,6 +3049,18 @@ function touchMapMode(map, el){
   }, { passive: true });
 }
 
+// 2.4.9m: Leaflet loads on demand (and a few seconds after the first screen, so the Plan tab is usually ready). Resolves once both files are in.
+let leafletPromise = null;
+function loadLeaflet(){
+  if(typeof L !== "undefined") return Promise.resolve();
+  if(leafletPromise) return leafletPromise;
+  const base = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/";
+  const css = new Promise((res, rej) => { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = base + "leaflet.min.css"; l.onload = () => res(); l.onerror = () => rej(new Error("leaflet css")); document.head.appendChild(l); });
+  const js = new Promise((res, rej) => { const sc = document.createElement("script"); sc.src = base + "leaflet.min.js"; sc.onload = () => res(); sc.onerror = () => rej(new Error("leaflet js")); document.head.appendChild(sc); });
+  leafletPromise = Promise.all([css, js]).then(() => {}, (e) => { leafletPromise = null; throw e; });
+  return leafletPromise;
+}
+
 function destroySunMap(){
   document.documentElement.classList.remove("map-full");
   if(sunMapInstance){ sunMapInstance.remove(); sunMapInstance = null; }
@@ -4064,7 +4073,7 @@ function renderPlan(app, tabsHtml){
   const mapEl = $("sunMap");
   document.documentElement.classList.toggle("map-full", !!p.full);
   const { lat, lon } = p.loc;
-  if(mapEl && typeof L !== "undefined"){
+  function buildSunMap(){
     try{
       sunMapInstance = L.map(mapEl, { attributionControl: true }).setView(p.view ? [p.view.lat, p.view.lng] : [lat, lon], p.view ? p.view.z : 13);
       touchMapMode(sunMapInstance, mapEl);
@@ -4114,8 +4123,18 @@ function renderPlan(app, tabsHtml){
       sunMapInstance = null;
       mapEl.innerHTML = '<div class="loading" style="padding-top:40%;">Map couldn\'t load — the sky view below still works.</div>';
     }
-  } else if(mapEl){
-    mapEl.innerHTML = '<div class="loading" style="padding-top:40%;">Map tiles unavailable — the sky view below still works.</div>';
+  }
+  if(mapEl){
+    if(typeof L !== "undefined") buildSunMap();
+    else{
+      mapEl.innerHTML = '<div class="loading" style="padding-top:40%;">Loading map…</div>';
+      loadLeaflet().then(() => {
+        if($("sunMap") !== mapEl || !mapEl.isConnected) return;   // the page was redrawn or left meanwhile; the new draw starts its own map
+        mapEl.innerHTML = "";
+        buildSunMap();
+        applyTime(p.min, false);   // put the live Sun and Moon lines where the time slider says
+      }).catch(() => { if($("sunMap") === mapEl) mapEl.innerHTML = '<div class="loading" style="padding-top:40%;">Map tiles unavailable — the sky view below still works.</div>'; });
+    }
   }
   function applyTime(min, touched){
     if(touched) p.minSet = true;
@@ -4499,6 +4518,7 @@ async function boot(loc, keep){
     state.updatedAt = Date.now();
     cacheForecast(loc, data, state.sample);
     render();
+    setTimeout(() => { loadLeaflet().catch(() => {}); }, 4000);   // 2.4.9m: fetch the map library once the first screen is up, so Plan opens ready
     // Merge wind aloft and the second model when they arrive, then redraw once (only if this is still the forecast on screen).
     Promise.all([data.windPromise, data.secondPromise]).then(([wind, second]) => {
       if(state.hourly !== data.hourly) return;
