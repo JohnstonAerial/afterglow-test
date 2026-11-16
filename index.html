@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.9h -->
+<!-- Afterglow v2.4.9i -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -603,7 +603,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.9h</div>
+    <div class="test-ver">🧪 TEST · v2.4.9i</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
@@ -2221,7 +2221,7 @@ function fistsText(alt){
 }
 function moonCardHTML(m){
   const riseStr = m.moonrise ? `${fmt(m.moonrise)} <small>${compassDir(m.moonriseAz)}</small>` : `<small>Doesn't rise today</small>`;
-  const setStr  = m.moonset  ? `${fmt(m.moonset)} <small>${compassDir(m.moonsetAz)}${m.moonsetNextDay ? ' · tomorrow' : ''}</small>`   : `<small>Doesn't set today</small>`;
+  const setStr  = m.moonset  ? `${fmt(m.moonset)} <small>${compassDir(m.moonsetAz)}${m.moonsetNextDay ? ' · ' + m.moonset.toLocaleDateString([], { weekday:'short' }) : ''}</small>`   : `<small>Doesn't set today</small>`;
   const alignNote = m.alignment
     ? (m.alignment.type === "moonrise-sunset"
         ? `Moonrise lands within ${m.alignment.minutes} min of sunset — good odds of a big, warm Moon low over the horizon.`
@@ -4039,7 +4039,7 @@ function renderPlan(app, tabsHtml){
     <div class="card"><div class="label">Golden hour PM</div><div class="value" style="font-size:15px;">${ge}</div></div>
   </div>`;
   const mRise = moon.moonrise ? `${fmtZ(moon.moonrise, tz)} <small>${Math.round(moon.moonriseAz)}° ${compassDir(moon.moonriseAz)}</small>` : `<small>Doesn't rise today</small>`;
-  const mSet = moon.moonset ? `${fmtZ(moon.moonset, tz)} <small>${Math.round(moon.moonsetAz)}° ${compassDir(moon.moonsetAz)}${moon.moonsetNextDay ? " · next day" : ""}</small>` : `<small>Doesn't set today</small>`;
+  const mSet = moon.moonset ? `${fmtZ(moon.moonset, tz)} <small>${Math.round(moon.moonsetAz)}° ${compassDir(moon.moonsetAz)}${moon.moonsetNextDay ? " · " + moon.moonset.toLocaleDateString([], planZoneOk(tz) ? { weekday:"short", timeZone: tz } : { weekday:"short" }) : ""}</small>` : `<small>Doesn't set today</small>`;
   html += `<div class="card" style="margin-bottom:12px;">
     <div class="label">${moon.emoji} ${moon.phaseName} · ${moon.illumPct}% lit</div>
     <div class="plan-grid" style="margin:10px 0 0;"><div><div class="label">Moonrise</div><div class="value">${mRise}</div></div><div><div class="label">Moonset</div><div class="value">${mSet}</div></div></div>
