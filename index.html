@@ -1,4 +1,4 @@
-<!-- Afterglow v2.4.9j -->
+<!-- Afterglow v2.4.9k -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,6 +23,8 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2218%22 fill=%22%231B1F3B%22/><defs><clipPath id=%22c%22><rect x=%220%22 y=%220%22 width=%22100%22 height=%2268%22/></clipPath></defs><circle cx=%2250%22 cy=%2280%22 r=%2228%22 fill=%22%23F2B84B%22 clip-path=%22url(%23c)%22/><circle cx=%2230%22 cy=%2230%22 r=%2213%22 fill=%22%23F5E6D3%22/><circle cx=%2236%22 cy=%2226%22 r=%2213%22 fill=%22%231B1F3B%22/><circle cx=%2218%22 cy=%2218%22 r=%2213%22 fill=%22%23FF6B35%22/><text x=%2218%22 y=%2223%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%231B1F3B%22 font-family=%22Arial%22 font-weight=%22bold%22>!</text></svg>">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://api.open-meteo.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <meta name="theme-color" content="#1B1F3B">
 <script>
 // Theme (2.1.0): Auto follows the device, or the saved choice (Light / Dark). Runs early so the page never flashes the wrong colors.
@@ -451,6 +453,7 @@
     background: rgba(0,0,0,0.2); color: var(--sand); font-size: 14px; margin-bottom: 10px;
   }
   .modal-results{ max-height: 220px; overflow-y: auto; }
+  #locResults{ min-height: 220px; }   /* 2.4.9k: keep the search box the same height while results load, so the popup does not jump (layout shift 0.32 seen in Cloudflare analytics) */
   .modal-result{ padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; }
   .modal-result:hover{ background: rgba(245,230,211,0.08); }
   .modal-actions{ display:flex; justify-content: space-between; margin-top: 10px; }
@@ -603,7 +606,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.4.9j</div>
+    <div class="test-ver">🧪 TEST · v2.4.9k</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Plan your shoot around the sky</span></div>
     <div class="header-actions">
