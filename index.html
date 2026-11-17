@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.1b -->
+<!-- Afterglow v2.5.1c -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -603,7 +603,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.1b</div>
+    <div class="test-ver">🧪 TEST · v2.5.1c</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -4511,13 +4511,22 @@ async function boot(loc, keep){
     // Sun-path samples need the sunrise/sunset instants to compute an azimuth,
     // so they go out after core. Both are optional — a failure just falls back
     // to the blind ceiling rather than costing us the forecast.
-    state.sample = await fetchSunPathSamples(loc, data.daily);
+    // 2.5.1c: draw the first screen without waiting for the sun-path samples (two more Open-Meteo calls);
+    // they are merged below and the page is redrawn once if they brought a reading.
+    state.sample = { morning: null, evening: null };
     const initial = pickInitialView(data.daily, loc.lat, loc.lon, data.timezone);
     state.activeDay = keepDay ? Math.min(keepDay.day, data.daily.time.length - 1) : initial.activeDay;
     state.mode = keepDay ? keepDay.mode : initial.mode;
     state.updatedAt = Date.now();
     cacheForecast(loc, data, state.sample);
     render();
+    fetchSunPathSamples(loc, data.daily).then(sample => {
+      if(state.hourly !== data.hourly) return;   // a newer forecast is on screen
+      if(!sample || (!sample.morning && !sample.evening)) return;   // nothing new to show
+      state.sample = sample;
+      cacheForecast(loc, data, state.sample);
+      render();
+    });
     setTimeout(() => { loadLeaflet().catch(() => {}); }, 4000);   // 2.4.9m: fetch the map library once the first screen is up, so Plan opens ready
     // Merge wind aloft and the second model when they arrive, then redraw once (only if this is still the forecast on screen).
     Promise.all([data.windPromise, data.secondPromise]).then(([wind, second]) => {
