@@ -455,7 +455,7 @@ function scoreEvent(hourly, idx, beam){
   // exceptional air (well past the existing haze-clear threshold) qualifies.
   const VIS_EXCEPTIONAL_M = 35000; // meaningfully past the existing 15km "clear" threshold
   const VIS_PRISTINE_M    = 55000; // full credit ceiling — near the top of what this region sees
-  const DRY_AIR_CREDIT     = 0.25;
+  const DRY_AIR_CREDIT     = 0.17; // 2.5.1d (test): was 0.25; Jim rated clear sunsets 45 on 9 and 18 Nov against app 54 and 56
   if (vis != null && vis > VIS_EXCEPTIONAL_M) {
     const clamp01_local = (v) => Math.max(0, Math.min(1, v));
     canvas = Math.min(1, canvas + DRY_AIR_CREDIT * clamp01_local((vis - VIS_EXCEPTIONAL_M) / (VIS_PRISTINE_M - VIS_EXCEPTIONAL_M)));
