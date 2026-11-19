@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.1f -->
+<!-- Afterglow v2.5.1g -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -603,7 +603,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.1f</div>
+    <div class="test-ver">🧪 TEST · v2.5.1g</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2313,22 +2313,24 @@ function timelapseLabel(score){
 }
 
 // 2.4.8b: the scan now covers two windows, the hours the Sun is up (daytime clouds) and the hours the Moon is up (cloud crossing the Moon), and counts low cloud too (total cover), so a solid low deck no longer reads as "clear".
-function scanTimelapseOne(win, hourly, real, fromMs){
+function scanTimelapseOne(win, hourly, real, fromMs, keep){
   if(!win) return null;
   // 2.4.9b: on today, hours already gone by are left out, so the best window is one you can still shoot. fromMs is 'now' (null for other days).
   const trimmed = fromMs != null && win.start.getTime() < fromMs;
   const over = fromMs != null && win.end.getTime() <= fromMs;
-  const points = [];
+  const points = []; let lit = 0;
   hourly.time.forEach((t, i) => {
     const ti = real(new Date(t)).getTime();
     if(ti < win.start.getTime() || ti > win.end.getTime()) return;
     if(fromMs != null && ti <= fromMs - 3600000) return;
+    // 2.5.1g: keep (optional) drops hours that do not suit the shot; the Moon scan keeps only hours after dark.
+    if(keep && !keep(ti)){ lit++; return; }
     const lo = hourly.cloud_cover_low ? (hourly.cloud_cover_low[i] ?? 0) : 0, mi = hourly.cloud_cover_mid[i] ?? 0, hi = hourly.cloud_cover_high[i] ?? 0;
     const cloud = hourly.cloud_cover && hourly.cloud_cover[i] != null ? hourly.cloud_cover[i] : 100 * (1 - (1 - lo / 100) * (1 - mi / 100) * (1 - hi / 100));
     const wind = Array.isArray(hourly.wind_speed_700hPa) ? (hourly.wind_speed_700hPa[i] ?? null) : null;
     points.push({ time: new Date(t), score: timelapseHourScore(cloud, wind), cloud, wind });
   });
-  if(points.length === 0) return { win, points, bestRun: null, avgCloud: null, over: over || trimmed, trimmed };
+  if(points.length === 0) return { win, points, bestRun: null, avgCloud: null, over: over || trimmed, trimmed, daylightOnly: lit > 0 };
   // Longest/strongest contiguous run of "workable or better" hours.
   const THRESH = 45;
   let bestRun = null, curRun = [];
@@ -2350,7 +2352,7 @@ function scanTimelapseWindow(dayStart, lat, lon, hourly, toReal, sunriseIso, sun
   const moonWin = findMoonUpWindow(real(dayStart), lat, lon);
   const sunWin = (sunriseIso && sunsetIso) ? { start: real(new Date(sunriseIso)), end: real(new Date(sunsetIso)) } : null;
   const t0 = real(dayStart).getTime(), nowMs = Date.now(), fromMs = (nowMs >= t0 && nowMs < t0 + 24 * 3600000) ? nowMs : null;
-  const sun = scanTimelapseOne(sunWin, hourly, real, fromMs), moon = scanTimelapseOne(moonWin, hourly, real, fromMs);
+  const sun = scanTimelapseOne(sunWin, hourly, real, fromMs), moon = scanTimelapseOne(moonWin, hourly, real, fromMs, ms => solarHorizontal(new Date(ms), lat, lon).alt < -6);
   return { sun, moon, toReal: real, windAvailable: Array.isArray(hourly.wind_speed_700hPa) };
 }
 
@@ -2398,7 +2400,7 @@ function timelapseNoWindowMsg(kind, trimmed){
   return kind === "solid" ? `Mostly solid cloud ${rest}, so there's little to see moving.` : kind === "clear" ? `Mostly clear ${rest}, so there's not much drift to catch.` : (trimmed ? "Cloud for the rest of the window is patchy or too slow to make a good timelapse." : "Cloud is patchy or too slow to make a good timelapse.");
 }
 function timelapseSection(title, r, windAvailable, emptyMsg){
-  if(!r || !r.points || r.points.length === 0) return `<div style="margin-top:12px;"><div class="label">${title}</div><div class="value" style="font-size:14px;font-weight:400;color:var(--slate)">${r && r.over ? "That window has passed for today." : emptyMsg}</div></div>`;
+  if(!r || !r.points || r.points.length === 0) return `<div style="margin-top:12px;"><div class="label">${title}</div><div class="value" style="font-size:14px;font-weight:400;color:var(--slate)">${r && r.daylightOnly ? "The Moon is up only in daylight today, so it will not stand out against the sky." : r && r.over ? "That window has passed for today." : emptyMsg}</div></div>`;
   if(r.bestRun && r.bestRun.avg >= 45){
     const pts = r.bestRun.points, start = pts[0].time, end = pts[pts.length - 1].time;
     return `<div style="margin-top:12px;"><div class="label">${title}</div>
@@ -2430,7 +2432,7 @@ function timelapseCardHTML(result){
       if(ks && ks === km) return `<div style="margin-top:12px;"><div class="label">Daytime clouds and the Moon</div><div class="value" style="font-size:14px;font-weight:400;color:var(--slate);">${timelapseNoWindowMsg(ks, (result.sun && result.sun.trimmed) || (result.moon && result.moon.trimmed))}</div></div>`;
       return same
         ? timelapseSection("Sun and Moon both up", result.sun, result.windAvailable, "")
-        : timelapseSection("Daytime clouds", result.sun, result.windAvailable, "No daylight forecast hours.") + timelapseSection("Cloud crossing the Moon" + (result.moon && result.moon.win ? ` <small style="text-transform:none;">· Moon up ${fmt(frameN(result.moon.win.start))} to ${fmt(frameN(result.moon.win.end))}</small>` : ""), result.moon, result.windAvailable, "The Moon isn't up during forecast hours today.");
+        : timelapseSection("Daytime clouds", result.sun, result.windAvailable, "No daylight forecast hours.") + timelapseSection("Cloud crossing the Moon, after dark" + (result.moon && result.moon.win ? ` <small style="text-transform:none;">· Moon up ${fmt(frameN(result.moon.win.start))} to ${fmt(frameN(result.moon.win.end))}</small>` : ""), result.moon, result.windAvailable, "The Moon isn't up during forecast hours today.");
     })()}
     ${result.liveMsg ? `<div class="outlook-note" style="margin-top:12px;"><b>Live check:</b>${result.liveMsg.slice(11)}</div>` : ""}
     ${hasWin ? `<div class="outlook-note" style="margin-top:12px;">${result.windAvailable
