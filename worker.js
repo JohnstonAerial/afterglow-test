@@ -483,9 +483,18 @@ function scoreEvent(hourly, idx, beam){
   const beamF = hasBeam ? beamFactor(beam.low, beam.mid) : 1;
   const ceiling = hasBeam ? MEASURED_CEILING : HORIZON_UNKNOWN_CEILING;
 
-  const score = Math.round(Math.max(2, Math.min(98, 100 * canvas * clarity * beamF * ceiling)));
+  let score = Math.round(Math.max(2, Math.min(98, 100 * canvas * clarity * beamF * ceiling)));
 
-  return { score, low, mid, high, midCanvas, hum, precip, vis, hazeFactor, hazeFromVis: vis != null,
+  // 2.5.1e (test): deck floor. A thick low deck forecast near or toward the sun, with little mid or high cloud overhead and
+  // clear enough air, is often a lit slit at the horizon (16-18 Nov: about 17 such rows, camera Fair or Good, app Flat; only
+  // 1-2 correct Flats met the same test). Floor the score at Fair. Rain and fog (visibility 10 mi or less) and thick mid or
+  // high cloud are left alone. Nothing here lifts a row above 32.
+  const DECK_LOW_MIN = 60, DECK_OVERHEAD_MAX = 20, DECK_VIS_MIN_M = 16093, DECK_FLOOR = 32;
+  const deckFloor = vis != null && vis > DECK_VIS_MIN_M && mid <= DECK_OVERHEAD_MAX && high <= DECK_OVERHEAD_MAX
+    && (low >= DECK_LOW_MIN || (hasBeam && beam.low >= DECK_LOW_MIN)) && score < DECK_FLOOR;
+  if(deckFloor) score = DECK_FLOOR;
+
+  return { score, deckFloor, low, mid, high, midCanvas, hum, precip, vis, hazeFactor, hazeFromVis: vis != null,
            murk: murkFactor < 1, canvas, clarity,
            beam: hasBeam ? beamF : null, beamLow: hasBeam ? beam.low : null, beamMid: hasBeam ? beam.mid : null };
 }
