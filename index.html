@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.1h -->
+<!-- Afterglow v2.5.1i -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -603,7 +603,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.1h</div>
+    <div class="test-ver">🧪 TEST · v2.5.1i</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -1808,9 +1808,21 @@ function liveBlendLayers(h2, beam, obs){
   };
   const h3 = {}; Object.keys(h2).forEach(k => { h3[k] = Array.isArray(h2[k]) ? h2[k].slice() : h2[k]; });
   if(obs.high != null) h3.cloud_cover_high[0] = Math.max(0, Math.min(100, lerp(hi[0], obs.high)));
-  if(obs.lm != null){ const r = shift(a[0], m[0], obs.lm); h3.cloud_cover_low[0] = r[0]; h3.cloud_cover_mid[0] = r[1]; }
+  // 2.5.1i: airports see only below about 12,000 ft, so their sky moves LOW cloud only; the satellite (when it can see under the high layer) moves low and mid together.
+  const split = ("satLm" in obs);
+  if(split){
+    if(obs.satLm != null){ const r = shift(a[0], m[0], obs.satLm); h3.cloud_cover_low[0] = r[0]; h3.cloud_cover_mid[0] = r[1]; }
+    if(obs.apt != null) h3.cloud_cover_low[0] = lerp(h3.cloud_cover_low[0], obs.apt);
+  } else if(obs.lm != null){ const r = shift(a[0], m[0], obs.lm); h3.cloud_cover_low[0] = r[0]; h3.cloud_cover_mid[0] = r[1]; }
   let b3 = beam;
-  if(beam && typeof beam.low === "number" && typeof beam.mid === "number" && obs.blm != null){ const r = shift(beam.low, beam.mid, obs.blm); b3 = Object.assign({}, beam, { low: r[0], mid: r[1] }); }
+  if(beam && typeof beam.low === "number" && typeof beam.mid === "number"){
+    if(split){
+      let lo = beam.low, mi = beam.mid;
+      if(obs.satBlm != null){ const r = shift(lo, mi, obs.satBlm); lo = r[0]; mi = r[1]; }
+      if(obs.aptB != null) lo = lerp(lo, obs.aptB);
+      if(obs.satBlm != null || obs.aptB != null) b3 = Object.assign({}, beam, { low: lo, mid: mi });
+    } else if(obs.blm != null){ const r = shift(beam.low, beam.mid, obs.blm); b3 = Object.assign({}, beam, { low: r[0], mid: r[1] }); }
+  }
   return { h3, b3 };
 }
 // 2.4.8y (test only): the same forecast-only score, but with the second model's (ECMWF) low, mid and high cloud swapped in.
@@ -1889,6 +1901,7 @@ function liveObsFor(eventIso, mode){
       high: sat ? sat.high : null,
       lm: avg([satAt(0), nearSky]),
       blm: avg([satAt(SUN_PATH_SAMPLE_KM), farSky]),
+      satLm: satAt(0), apt: nearSky, satBlm: satAt(SUN_PATH_SAMPLE_KM), aptB: farSky,
       src: { sat: !!sat, apt: !!(list && list.length) }
     };
     if(o.high == null && o.lm == null && o.blm == null) return null;
