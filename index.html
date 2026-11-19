@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.1g -->
+<!-- Afterglow v2.5.1h -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -603,7 +603,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.1g</div>
+    <div class="test-ver">🧪 TEST · v2.5.1h</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2601,6 +2601,7 @@ async function rcLoad(loc, eventIso, az, beam){
 // TODO before public: point this at the public repo's sat-data branch.
 const AG_SAT_URL = "https://raw.githubusercontent.com/JohnstonAerial/afterglow-test/sat-data/latest.json";
 const SAT_KM = [0, 40, 80, 120, 160, 240];
+const SAT_HIDE_HIGH = 90;
 async function satLoad(loc, az){
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 9000);
   let j;
@@ -2620,19 +2621,23 @@ async function satLoad(loc, az){
     if(i < 0 || i >= g.nlat || k < 0 || k >= g.nlon) return;
     const c = i * g.nlon + k, v = { low: L.low[c], mid: L.mid[c], high: L.high[c], top: L.top[c] };
     if(v.low === 255 || v.mid === 255 || v.high === 255 || v.top === 255) return;
-    pts.push({ km, lowmid: Math.max(v.low, v.mid), high: Math.max(v.high, v.top) });
+    // 2.5.1h: under a solid high layer (90% or more) the satellite cannot see what is below and the product reports low and mid cloud as covered
+    // (19 Nov: 100% low/mid while the airports reported clear). Treat it as unknown (null) there so it neither shows nor pulls the live score.
+    const hi = Math.max(v.high, v.top), lmRaw = Math.max(v.low, v.mid);
+    pts.push({ km, lowmid: hi >= SAT_HIDE_HIGH ? null : lmRaw, lowmidRaw: lmRaw, high: hi });
   });
   if(pts.length < 3) return null;                        // outside the satellite's area
   const avg = f => Math.round(pts.reduce((a, p) => a + p[f], 0) / pts.length);
-  return { scan, pts, high: avg("high"), lowmid: avg("lowmid"), maxHigh: Math.max(...pts.map(p => p.high)) };
+  const lmv = pts.filter(p => p.lowmid != null);
+  return { scan, pts, high: avg("high"), lowmid: lmv.length ? Math.round(lmv.reduce((a, p) => a + p.lowmid, 0) / lmv.length) : null, maxHigh: Math.max(...pts.map(p => p.high)) };
 }
 function satHtml(sat, fcHigh, dirTxt){
   if(!sat) return "";
   const word = sat.high < 10 ? "little or none" : sat.high < 30 ? "a little" : sat.high < 60 ? "some" : sat.high < 85 ? "a lot" : "a thick layer";
-  const cells = sat.pts.map(p => `<span><small>${agUnits() === "km" ? p.km + " km" : Math.round(p.km / 1.609344 / 5) * 5 + " mi"}</small><b>${p.high}%</b><small>L/M ${p.lowmid}</small></span>`).join("");
+  const cells = sat.pts.map(p => `<span><small>${agUnits() === "km" ? p.km + " km" : Math.round(p.km / 1.609344 / 5) * 5 + " mi"}</small><b>${p.high}%</b><small>L/M ${p.lowmid == null ? "hidden" : p.lowmid}</small></span>`).join("");
   const fcTxt = fcHigh != null ? ` Forecast high cloud: ${fcHigh}%.` : "";
   return `<div class="rc-sat"><div class="rc-sat-head"><span>Satellite · ${fmt(frameN(sat.scan))}</span></div>`
-    + `<div class="rc-text">High cloud ${dirTxt}, as of this scan: ${word} (${sat.maxHigh > sat.high ? `${sat.high}% average, up to ${sat.maxHigh}%` : `${sat.high}%`}). Low and mid cloud: ${sat.lowmid}%.${fcTxt}</div>`
+    + `<div class="rc-text">High cloud ${dirTxt}, as of this scan: ${word} (${sat.maxHigh > sat.high ? `${sat.high}% average, up to ${sat.maxHigh}%` : `${sat.high}%`}). ${sat.lowmid == null ? "The satellite can't see low and mid cloud under that high layer, so it isn't used." : "Low and mid cloud: " + sat.lowmid + "%."}${fcTxt}</div>`
     + `<div class="rc-sat-key">High cloud by distance toward the sun (large). L/M is low and mid cloud there (small).</div>`
     + `<div class="rc-sat-row">${cells}</div></div>`;
 }
