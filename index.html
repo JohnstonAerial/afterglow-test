@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.1e -->
+<!-- Afterglow v2.5.1f -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -603,7 +603,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.1e</div>
+    <div class="test-ver">🧪 TEST · v2.5.1f</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2430,7 +2430,7 @@ function timelapseCardHTML(result){
       if(ks && ks === km) return `<div style="margin-top:12px;"><div class="label">Daytime clouds and the Moon</div><div class="value" style="font-size:14px;font-weight:400;color:var(--slate);">${timelapseNoWindowMsg(ks, (result.sun && result.sun.trimmed) || (result.moon && result.moon.trimmed))}</div></div>`;
       return same
         ? timelapseSection("Sun and Moon both up", result.sun, result.windAvailable, "")
-        : timelapseSection("Daytime clouds", result.sun, result.windAvailable, "No daylight forecast hours.") + timelapseSection("Cloud crossing the Moon", result.moon, result.windAvailable, "The Moon isn't up during forecast hours today.");
+        : timelapseSection("Daytime clouds", result.sun, result.windAvailable, "No daylight forecast hours.") + timelapseSection("Cloud crossing the Moon" + (result.moon && result.moon.win ? ` <small style="text-transform:none;">· Moon up ${fmt(frameN(result.moon.win.start))} to ${fmt(frameN(result.moon.win.end))}</small>` : ""), result.moon, result.windAvailable, "The Moon isn't up during forecast hours today.");
     })()}
     ${result.liveMsg ? `<div class="outlook-note" style="margin-top:12px;"><b>Live check:</b>${result.liveMsg.slice(11)}</div>` : ""}
     ${hasWin ? `<div class="outlook-note" style="margin-top:12px;">${result.windAvailable
@@ -2911,7 +2911,7 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
   timelapse.liveMsg = timelapseLiveCheck(timelapse, eventIso, mode);
   let tlSum = "";
   { const pick = [timelapse.sun, timelapse.moon].filter(r => r && r.bestRun && r.bestRun.avg >= 45).sort((a, b) => b.bestRun.avg - a.bestRun.avg)[0];
-    if(pick){ const bp = pick.bestRun.points; tlSum = ` · <span class="nw">Timelapse ${timelapseLabel(Math.round(pick.bestRun.avg))}, ${bp.length === 1 ? "~" : ""}${fmt(bp[0].time)}</span>`; }
+    if(pick){ const bp = pick.bestRun.points; tlSum = ` · <span class="nw">${pick === timelapse.moon ? "Moon cloud" : "Cloud timelapse"} ${timelapseLabel(Math.round(pick.bestRun.avg))}, ${bp.length === 1 ? "~" : ""}${fmt(bp[0].time)}</span>`; }
     else if((timelapse.sun && timelapse.sun.points.length) || (timelapse.moon && timelapse.moon.points.length)){
       // 2.4.9f: say why there is no window ("clear sky", "solid cloud", "patchy cloud"), or just "no good window" when daytime and Moon differ.
       const ks = [timelapseNoWindowKind(timelapse.sun), timelapseNoWindowKind(timelapse.moon)].filter(Boolean);
