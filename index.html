@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.1i -->
+<!-- Afterglow v2.5.1j -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -603,7 +603,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.1i</div>
+    <div class="test-ver">🧪 TEST · v2.5.1j</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2772,7 +2772,7 @@ function rcSlot(eventIso, mode, az, fc, where, fcHigh, quiet){
   if(!el) return;
   state.rcArgs = [eventIso, mode, az, fc, where, fcHigh];
   const minsLeft = (placeLocalToMs(eventIso, state.tz) - Date.now()) / 60000;
-  if(!(minsLeft > -PEAK_OFFSET_MIN && minsLeft <= 180)){ el.innerHTML = '<div class="rc-hint">Reality check appears within 3 hours of sunrise or sunset, comparing airport and satellite reports to the forecast.</div>'; return; }
+  if(!(minsLeft > -PEAK_OFFSET_MIN && minsLeft <= 180)){ el.innerHTML = '<div class="rc-hint">Reality check appears within 3 hours of sunrise or sunset. It compares airport and satellite reports with the forecast, and as the time gets closer it blends them into the score.</div>'; return; }
   const loc = state.loc, key = [loc.lat.toFixed(2), loc.lon.toFixed(2), eventIso].join("|");
   const draw = (rc, sat) => { if(!el.isConnected) return; el.innerHTML = rcCardHtml(rc, mode, minsLeft, fc, where, sat, fcHigh); const d = el.querySelector("details.rc-card"); if(d) d.addEventListener("toggle", () => { state.fold = state.fold || {}; state.fold.rc = d.open; }); liveSync(); };
   if(state.rc && state.rc.key === key && Date.now() - state.rc.at < 600000) { draw(state.rc.list, state.rc.sat); return; }
