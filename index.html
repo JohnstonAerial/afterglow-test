@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.1t -->
+<!-- Afterglow v2.5.1u -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -606,16 +606,13 @@
   .tl-live{ margin-top:14px; padding:10px 12px; border-left:3px solid var(--gold); background:rgba(242,184,75,.07); border-radius:0 8px 8px 0; font-size:14px; line-height:1.45; color:var(--slate); }
   .tl-foot{ font-size:11.5px; color:var(--slate-dim); margin-top:14px; }
   .sky-verdict{ font-size:16px; font-weight:600; line-height:1.35; margin:2px 0 4px; }
-  .sky-meters{ margin-top:4px; }
-  .mt-row{ margin-top:12px; }
-  .mt-top{ display:flex; justify-content:space-between; gap:10px; font-size:13.5px; }
-  .mt-k{ color:var(--sand); } .mt-raw{ color:var(--slate); text-align:right; }
-  .mt-bar{ position:relative; height:24px; border-radius:8px; background:rgba(245,230,211,0.09); margin-top:4px; overflow:hidden; }
-  .mt-bar i{ position:absolute; left:0; top:0; bottom:0; border-radius:8px; }
-  .mt-bar b{ position:absolute; left:10px; top:0; line-height:24px; font-size:12.5px; font-weight:700; white-space:nowrap; }
-  i.mt-g{ background:#F2B84B; } i.mt-p{ background:#E8517A; } i.mt-x{ background:#565d78; }
-  b.mt-g, b.mt-p{ color:#14172c; } b.mt-x{ color:#f5e6d3; }
-  html[data-theme="light"] .mt-bar{ background:rgba(30,35,70,0.10); }
+    .sky-pic{ display:block; width:100%; height:auto; border-radius:12px; margin-top:8px; }
+  .sky-rows{ margin-top:10px; }
+  .sk-row{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-size:13.5px; padding:6px 0; border-top:1px solid var(--line); }
+  .sk-k{ color:var(--sand); flex:0 0 auto; }
+  .sk-v{ text-align:right; }
+  .sk-raw{ color:var(--slate); }
+  b.sk-g{ color:var(--gold); } b.sk-p{ color:var(--rose); } b.sk-x{ color:var(--slate); }
 </style>
 <!-- Leaflet (free, keyless map tiles for the Plan tab's sun-direction view) is no longer loaded here: since 2.4.9m loadLeaflet() fetches it
      the first time the Plan tab needs it, so it no longer holds up the forecast on first visit. -->
@@ -624,7 +621,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.1t</div>
+    <div class="test-ver">🧪 TEST · v2.5.1u</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2955,7 +2952,9 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
   // 2.5.1t: Sky breakdown as "how much is this helping the color" bars, with a one-line verdict on top.
   const skySummary = skyMeters(sF, s);
   let skyInner = (document.querySelector(".test-ver") ? hourStripHTML(hourly, state.second, eventIso, mode) : "") + `<div class="sky-verdict">${skySummary.verdict}</div>
-    <div class="sky-meters">${skySummary.rows.map(r => meterRow(r)).join("")}</div>`;
+    ${skyPictureSVG(sF, sF.high, sF.mid, sF.low)}
+    <div class="sky-rows">${skySummary.rows.map(skyRowText).join("")}</div>
+    <div class="outlook-note" style="margin-top:8px;">A sketch of how much cloud the forecast puts at each height. Not a photo of the sky.</div>`;
 
   skyInner += `<div class="why">These are forecast numbers. The Reality check above compares them with airport reports and the satellite.<br><br><b>How this is scored</b> — Afterglow weighs high-altitude cloud cover (the layer that catches direct light and turns pink/orange), low and mid cloud (which physically block the view of the horizon or the light source), and visibility, or humidity when visibility isn't available (haze mutes saturation even on an otherwise clear evening). The score is for the glow around sunrise or sunset, not the exact moment: it reads the forecast about ${PEAK_OFFSET_MIN} minutes after sunset (or before sunrise), when high cloud usually lights up. It's a rule of thumb, not a guarantee, so it's always worth a look outside about 20 minutes before ${mode === "evening" ? "sunset" : "sunrise"}.</div>`;
   const skyExtra = (s.hazeFromVis ? ` · <span class="nw">Vis ${fmtVis(s.vis)}</span>` : "") + (s.precip >= 20 ? ` · <span class="nw">Rain ${Math.round(s.precip)}%</span>` : "");
@@ -4424,9 +4423,43 @@ function var2color(val, ref, sweetOrMax, inverse){
 
 // 2.5.1t: Sky breakdown meters. Every bar answers "how much is this helping the color?": full gold = helping, pink = so-so, gray = hurting.
 // tone: g gold, p pink, x gray. fill is 0-100 length, word sits inside the bar, raw is the forecast number.
-function meterRow(r){
-  const fill = Math.max(30, Math.min(100, r.fill));
-  return `<div class="mt-row"><div class="mt-top"><span class="mt-k">${r.label}</span><span class="mt-raw">${r.raw}</span></div><div class="mt-bar"><i class="mt-${r.tone}" style="width:${fill}%"></i><b class="mt-${r.tone}">${r.word}</b></div></div>`;
+// 2.5.1u: the Sky breakdown as a picture: looking toward the sun, each cloud layer at its real height, filled by its forecast percent.
+// Gold/pink cloud = catching color, gray = flat or blocking. Clouds are drawn from a fixed seed so the picture does not change between redraws.
+function skyPictureSVG(sF, high, mid, low){
+  const W = 350, H = 190, HZ = 150;
+  let seed = 7;
+  const rnd = () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const u = (a, b) => a + (b - a) * rnd();
+  const puffs = (p, y0, y1, rx, ry, fill, op, N) => {
+    const n = Math.round(p / 100 * N); let out = "";
+    for(let i = 0; i < n; i++){
+      const x = p < 100 ? (i + 0.5) / N * W + u(-14, 14) : (i + 0.5) / n * W, y = u(y0, y1);
+      for(let k = 0; k < 3; k++) out += `<ellipse cx="${(x + u(-rx * .5, rx * .5)).toFixed(0)}" cy="${(y + u(-ry * .4, ry * .4)).toFixed(0)}" rx="${(rx * u(.7, 1.1)).toFixed(0)}" ry="${(ry * u(.7, 1.1)).toFixed(0)}" fill="${fill}" opacity="${op}"/>`;
+    }
+    return out;
+  };
+  let hFill = null, hOp = .95;
+  if(high > 0){ if(high >= 25 && high <= 65) hFill = "url(#skpLit)"; else if(high > 65) hFill = "#5d6486"; else { hFill = "url(#skpLit)"; hOp = .8; } }
+  const sx = Math.round(W * .62);
+  let g = `<svg class="sky-pic" viewBox="0 0 ${W} ${H}" role="img" aria-label="Sketch of the forecast clouds toward the sun: high ${Math.round(high)} percent, mid ${Math.round(mid)} percent, low ${Math.round(low)} percent">
+<defs>
+<linearGradient id="skpSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#15183a"/><stop offset=".55" stop-color="#3a2f55"/><stop offset=".85" stop-color="#8a4b5a"/><stop offset="1" stop-color="#d9823f"/></linearGradient>
+<radialGradient id="skpSun" cx=".62" cy="1" r=".6"><stop offset="0" stop-color="#ffd27a" stop-opacity=".95"/><stop offset=".35" stop-color="#ff8a4a" stop-opacity=".55"/><stop offset="1" stop-color="#ff6b35" stop-opacity="0"/></radialGradient>
+<linearGradient id="skpLit" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#d9708a"/><stop offset=".6" stop-color="#ff9a5c"/><stop offset="1" stop-color="#ffd27a"/></linearGradient>
+<filter id="skpBlur"><feGaussianBlur stdDeviation="3.2"/></filter>
+</defs>
+<rect width="${W}" height="${H}" fill="url(#skpSky)"/><rect width="${W}" height="${HZ}" fill="url(#skpSun)"/><circle cx="${sx}" cy="${HZ - 4}" r="9" fill="#fff0c0"/>
+<g filter="url(#skpBlur)">`;
+  if(hFill) g += puffs(high, 14, 52, 46, 9, hFill, hOp, 9);
+  if(mid > 0) g += puffs(mid, 60, 92, 34, 12, "#6b5a7e", .9, 8);
+  g += `</g><g filter="url(#skpBlur)">`;
+  if(low > 0) g += puffs(low, HZ - 34, HZ - 6, 38, 16, "#2a2540", .95, 9);
+  g += `</g><path d="M0 ${HZ} Q60 ${HZ - 6} 120 ${HZ - 2} T250 ${HZ - 3} T${W} ${HZ - 1} V${H} H0Z" fill="#0d0f20"/>`;
+  [[33, "HIGH"], [76, "MID"], [HZ - 20, "LOW"]].forEach(([y, t]) => { g += `<text x="6" y="${y + 3}" font-family="'IBM Plex Mono', monospace" font-size="8.5" fill="#f5e6d3" opacity=".55">${t}</text>`; });
+  return g + `</svg>`;
+}
+function skyRowText(r){
+  return `<div class="sk-row"><span class="sk-k">${r.label}</span><span class="sk-v"><b class="sk-${r.tone}">${r.word}</b> <span class="sk-raw">${r.raw}</span></span></div>`;
 }
 function skyMeters(sF, s){
   const tone = (v, lo, hi) => v < lo ? "g" : v < hi ? "p" : "x";
