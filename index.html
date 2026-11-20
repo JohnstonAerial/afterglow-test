@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.1s -->
+<!-- Afterglow v2.5.1t -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -605,6 +605,17 @@
   .tl-note{ font-size:14px; line-height:1.5; color:var(--slate); margin-top:14px; }
   .tl-live{ margin-top:14px; padding:10px 12px; border-left:3px solid var(--gold); background:rgba(242,184,75,.07); border-radius:0 8px 8px 0; font-size:14px; line-height:1.45; color:var(--slate); }
   .tl-foot{ font-size:11.5px; color:var(--slate-dim); margin-top:14px; }
+  .sky-verdict{ font-size:16px; font-weight:600; line-height:1.35; margin:2px 0 4px; }
+  .sky-meters{ margin-top:4px; }
+  .mt-row{ margin-top:12px; }
+  .mt-top{ display:flex; justify-content:space-between; gap:10px; font-size:13.5px; }
+  .mt-k{ color:var(--sand); } .mt-raw{ color:var(--slate); text-align:right; }
+  .mt-bar{ position:relative; height:24px; border-radius:8px; background:rgba(245,230,211,0.09); margin-top:4px; overflow:hidden; }
+  .mt-bar i{ position:absolute; left:0; top:0; bottom:0; border-radius:8px; }
+  .mt-bar b{ position:absolute; left:10px; top:0; line-height:24px; font-size:12.5px; font-weight:700; white-space:nowrap; }
+  i.mt-g{ background:#F2B84B; } i.mt-p{ background:#E8517A; } i.mt-x{ background:#565d78; }
+  b.mt-g, b.mt-p{ color:#14172c; } b.mt-x{ color:#f5e6d3; }
+  html[data-theme="light"] .mt-bar{ background:rgba(30,35,70,0.10); }
 </style>
 <!-- Leaflet (free, keyless map tiles for the Plan tab's sun-direction view) is no longer loaded here: since 2.4.9m loadLeaflet() fetches it
      the first time the Plan tab needs it, so it no longer holds up the forecast on first visit. -->
@@ -613,7 +624,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.1s</div>
+    <div class="test-ver">🧪 TEST · v2.5.1t</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2941,18 +2952,10 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
   </div>
   <div id="rcSlot"></div>`;
 
-  let skyInner = (document.querySelector(".test-ver") ? hourStripHTML(hourly, state.second, eventIso, mode) : "") + `<div class="grid">
-    ${sF.beam != null ? statCard("Toward the sun", Math.max(sF.beamLow, sF.beamMid), "%",
-        `Low/mid cloud ${fmtDist(SUN_PATH_SAMPLE_KM)} ${compassDir(azimuth)}, where the light comes from`,
-        var2color(Math.max(sF.beamLow, sF.beamMid), 100, 45, true),
-        { word: stateWord(Math.max(sF.beamLow, sF.beamMid), 10, 45, ["Nothing in the way", "Some cloud in the way", "Light likely blocked"]) }) : ``}
-    ${statCard("High cloud", sF.high, "%", "Catches color. 30–60% is ideal (outlined on the bar)", var2color(sF.high, 45, 60), { ideal: [30, 60] })}
-    ${statCard("Low cloud", sF.low, "%", "Blocks the horizon when high", var2color(sF.low, 100, 40, true), { word: stateWord(sF.low, 20, 50, ["Clear", "Some", "Heavy"]) })}
-    ${statCard("Mid cloud", sF.mid, "%", "Thin mid cloud catches color; a heavy deck blocks", var2color(sF.mid, 100, 50, true), { word: stateWord(sF.mid, 20, 60, ["Clear", "Some", "Heavy"]) })}
-    ${s.hazeFromVis
-      ? (s.vis < 1609 ? `<div class="card"><div class="label">Visibility</div><div class="value">${agUnits() === "km" ? "Under 1.6 km" : "Under 1 mi"} <small>Fog or very low visibility. Under about ${agUnits() === "km" ? "15 km" : "9 mi"} starts to flatten color</small></div><div class="bar"><i style="width:${Math.max(2, visBarPct(s.vis))}%; background:${visBarColor(s.vis)}"></i></div></div>` : statCard("Visibility", Math.round(s.vis / (agUnits() === "km" ? 1000 : 1609)), agUnits() === "km" ? " km" : " mi", "Measured visibility. Under about " + (agUnits() === "km" ? "15 km" : "9 mi") + " starts to flatten color", visBarColor(s.vis), { fill: visBarPct(s.vis) }))
-      : statCard("Humidity", s.hum, "%", "Fallback haze proxy — visibility unavailable", var2color(s.hum, 100, 80, true))}
-  </div>`;
+  // 2.5.1t: Sky breakdown as "how much is this helping the color" bars, with a one-line verdict on top.
+  const skySummary = skyMeters(sF, s);
+  let skyInner = (document.querySelector(".test-ver") ? hourStripHTML(hourly, state.second, eventIso, mode) : "") + `<div class="sky-verdict">${skySummary.verdict}</div>
+    <div class="sky-meters">${skySummary.rows.map(r => meterRow(r)).join("")}</div>`;
 
   skyInner += `<div class="why">These are forecast numbers. The Reality check above compares them with airport reports and the satellite.<br><br><b>How this is scored</b> — Afterglow weighs high-altitude cloud cover (the layer that catches direct light and turns pink/orange), low and mid cloud (which physically block the view of the horizon or the light source), and visibility, or humidity when visibility isn't available (haze mutes saturation even on an otherwise clear evening). The score is for the glow around sunrise or sunset, not the exact moment: it reads the forecast about ${PEAK_OFFSET_MIN} minutes after sunset (or before sunrise), when high cloud usually lights up. It's a rule of thumb, not a guarantee, so it's always worth a look outside about 20 minutes before ${mode === "evening" ? "sunset" : "sunrise"}.</div>`;
   const skyExtra = (s.hazeFromVis ? ` · <span class="nw">Vis ${fmtVis(s.vis)}</span>` : "") + (s.precip >= 20 ? ` · <span class="nw">Rain ${Math.round(s.precip)}%</span>` : "");
@@ -4417,6 +4420,54 @@ function var2color(val, ref, sweetOrMax, inverse){
   if(pct > 66) return "#F2B84B";
   if(pct > 33) return "#E8517A";
   return "#565d78";
+}
+
+// 2.5.1t: Sky breakdown meters. Every bar answers "how much is this helping the color?": full gold = helping, pink = so-so, gray = hurting.
+// tone: g gold, p pink, x gray. fill is 0-100 length, word sits inside the bar, raw is the forecast number.
+function meterRow(r){
+  const fill = Math.max(30, Math.min(100, r.fill));
+  return `<div class="mt-row"><div class="mt-top"><span class="mt-k">${r.label}</span><span class="mt-raw">${r.raw}</span></div><div class="mt-bar"><i class="mt-${r.tone}" style="width:${fill}%"></i><b class="mt-${r.tone}">${r.word}</b></div></div>`;
+}
+function skyMeters(sF, s){
+  const tone = (v, lo, hi) => v < lo ? "g" : v < hi ? "p" : "x";
+  const rows = [];
+  // Light path to the sun (beam cloud) when we have it, otherwise low cloud stands in as the blocker.
+  let path = null;
+  if(sF.beam != null){
+    const v = Math.max(sF.beamLow, sF.beamMid), t = tone(v, 10, 45);
+    path = { t, word: t === "g" ? "Open" : t === "p" ? "Some in the way" : "Blocked" };
+    rows.push({ label: "Light path to the sun", raw: `${Math.round(v)}% in the way`, fill: 100 - v, tone: t, word: path.word });
+  }
+  const lowT = tone(sF.low, 20, 50), midT = tone(sF.mid, 20, 60);
+  rows.push({ label: "Low cloud", raw: `${Math.round(sF.low)}%`, fill: 100 - sF.low, tone: lowT, word: lowT === "g" ? "Clear" : lowT === "p" ? "Some" : "Heavy" });
+  rows.push({ label: "Mid cloud", raw: `${Math.round(sF.mid)}%`, fill: 100 - sF.mid, tone: midT, word: midT === "g" ? "Clear" : midT === "p" ? "Some" : "Heavy" });
+  // High cloud: the sweet spot is 30-60%. Too little has nothing to light up, too much is a flat sheet.
+  const hv = sF.high;
+  let hT, hWord, hFill;
+  if(hv >= 30 && hv <= 60){ hT = "g"; hWord = "Catching color"; hFill = 100; }
+  else if(hv < 30){ hFill = (hv / 30) * 100; if(hv < 10){ hT = "x"; hWord = "Little to catch color"; } else { hT = "p"; hWord = "Thin"; } }
+  else { hFill = 100 - ((hv - 60) / 40) * 100; if(hv > 80){ hT = "x"; hWord = "Too thick"; } else { hT = "p"; hWord = "Heavy"; } }
+  rows.splice(sF.beam != null ? 1 : 0, 0, { label: "High cloud", raw: `${Math.round(hv)}% · ideal is 30–60%`, fill: hFill, tone: hT, word: hWord });
+  // Visibility (or humidity when visibility is missing).
+  let visBad = false;
+  if(s.hazeFromVis){
+    const km = agUnits() === "km", p = visBarPct(s.vis), vt = p >= 100 ? "g" : p >= 50 ? "p" : "x";
+    visBad = vt === "x";
+    const raw = s.vis < 1609 ? (km ? "Under 1.6 km" : "Under 1 mi") : Math.round(s.vis / (km ? 1000 : 1609)) + (km ? " km" : " mi");
+    rows.push({ label: "Visibility", raw, fill: Math.max(p, 4), tone: vt, word: vt === "g" ? "Crisp" : vt === "p" ? "Fair" : (s.vis < 1609 ? "Fog" : "Hazy") });
+  } else {
+    const ht = tone(s.hum, 70, 90);
+    rows.push({ label: "Humidity", raw: `${Math.round(s.hum)}%`, fill: 100 - s.hum, tone: ht, word: ht === "g" ? "Dry" : ht === "p" ? "Humid" : "Very humid" });
+  }
+  // One-line verdict: the light path (or low cloud), then the high cloud, then haze.
+  const pathT = path ? path.t : lowT;
+  const pathWords = { g: path ? "Open light path" : "Clear horizon", p: path ? "Some cloud in the light path" : "Some low cloud on the horizon", x: path ? "Cloud in the light path blocks the sun" : "Low cloud on the horizon blocks the light" };
+  const highWords = hT === "g" ? "high cloud in the sweet spot" : hv > 80 ? "the high cloud is one solid sheet" : hv > 60 ? "the high cloud is heavy" : hv < 10 ? "there is little high cloud to catch color" : "the high cloud is thin";
+  let verdict;
+  if(pathT === "x") verdict = pathWords.x + (hT === "g" ? ", though the high cloud is in the sweet spot" : "");
+  else verdict = pathWords[pathT] + (hT === "g" ? ", and " : ", but ") + highWords;
+  if(visBad) verdict += ". Haze is flattening the color";
+  return { verdict, rows };
 }
 
 // 2.4.8u: opts.fill sets the bar length (0-100) when the number is not a percent (visibility in miles);
