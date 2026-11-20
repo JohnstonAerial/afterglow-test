@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.1q -->
+<!-- Afterglow v2.5.1r -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -613,7 +613,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.1q</div>
+    <div class="test-ver">🧪 TEST · v2.5.1r</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2472,7 +2472,7 @@ function timelapseCardHTML(result){
     const ks = timelapseNoWindowKind(result.sun), km = timelapseNoWindowKind(result.moon);
     if(ks && ks === km) return `<div class="tl-tiles" style="grid-template-columns:1fr;"><div class="tl-tile"><div class="tl-lab">Daytime clouds and the Moon</div><div class="tl-msg">${timelapseNoWindowMsg(ks, (result.sun && result.sun.trimmed) || (result.moon && result.moon.trimmed))}</div></div></div>`;
     if(same) return `<div class="tl-tiles" style="grid-template-columns:1fr;">${timelapseTile("Sun and Moon both up", result.sun, "", "best window", true)}</div>`;
-    const moonSub = result.moon && result.moon.win ? `Moon up<br><span style="white-space:nowrap;">${fmt(frameN(result.moon.win.start))} – ${fmt(frameN(result.moon.win.end))}</span>` : "";
+    const moonSub = result.moon && result.moon.win ? `Moon up<br><span style="white-space:nowrap;">${fmt(frameN(result.moon.win.start))}</span> <span style="white-space:nowrap;">– ${fmt(frameN(result.moon.win.end))}</span>` : "";
     return `<div class="tl-tiles">${timelapseTile("Daytime clouds", result.sun, "No daylight forecast hours.")}${timelapseTile("Cloud over the Moon", result.moon, "The Moon isn't up during forecast hours today.", moonSub)}</div>`;
   })();
   return `<div class="card" style="grid-column: 1 / -1;">
