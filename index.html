@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.1m -->
+<!-- Afterglow v2.5.1n -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -603,7 +603,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.1m</div>
+    <div class="test-ver">🧪 TEST · v2.5.1n</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2432,12 +2432,12 @@ function timelapseNoWindowMsg(kind, trimmed){
   const rest = trimmed ? "the rest of the time" : "the whole time";
   return kind === "solid" ? `Mostly solid cloud ${rest}, so there's little to see moving.` : kind === "clear" ? `Mostly clear ${rest}, so there's not much drift to catch.` : (trimmed ? "Cloud for the rest of the window is patchy or too slow to make a good timelapse." : "Cloud is patchy or too slow to make a good timelapse.");
 }
-function timelapseSection(title, r, windAvailable, emptyMsg){
+function timelapseSection(title, r, windAvailable, emptyMsg, note){
   if(!r || !r.points || r.points.length === 0) return `<div style="margin-top:12px;"><div class="label">${title}</div><div class="value" style="font-size:14px;font-weight:400;color:var(--slate)">${r && r.daylightOnly ? "The Moon is up only in daylight today, so it will not stand out against the sky." : r && r.over ? "That window has passed for today." : emptyMsg}</div></div>`;
   if(r.bestRun && r.bestRun.avg >= 45){
     const pts = r.bestRun.points, start = pts[0].time, end = pts[pts.length - 1].time;
     return `<div style="margin-top:12px;"><div class="label">${title}</div>
-      <div class="value">${timelapseLabel(Math.round(r.bestRun.avg))} <small>best window</small> <span style="font-family:'IBM Plex Mono', monospace; font-size:15px; font-weight:400; white-space:nowrap;">${pts.length === 1 || fmt(start) === fmt(end) ? "around " + fmt(start) : fmt(start) + "–" + fmt(end)}</span></div></div>`;
+      <div class="value">${timelapseLabel(Math.round(r.bestRun.avg))} <small style="white-space:nowrap;">· best ${pts.length === 1 || fmt(start) === fmt(end) ? "around " + fmt(start) : fmt(start) + "–" + fmt(end)}</small></div>${note ? `<div class="outlook-note" style="margin-top:2px;">${note}</div>` : ""}</div>`;
   }
   const msg = timelapseNoWindowMsg(timelapseNoWindowKind(r), r.trimmed);
   return `<div style="margin-top:12px;"><div class="label">${title}</div><div class="value" style="font-size:14px;font-weight:400;color:var(--slate);">${msg}</div></div>`;
@@ -2463,7 +2463,7 @@ function timelapseCardHTML(result){
       if(ks && ks === km) return `<div style="margin-top:12px;"><div class="label">Daytime clouds and the Moon</div><div class="value" style="font-size:14px;font-weight:400;color:var(--slate);">${timelapseNoWindowMsg(ks, (result.sun && result.sun.trimmed) || (result.moon && result.moon.trimmed))}</div></div>`;
       return same
         ? timelapseSection("Sun and Moon both up", result.sun, result.windAvailable, "")
-        : timelapseSection("Daytime clouds", result.sun, result.windAvailable, "No daylight forecast hours.") + timelapseSection("Cloud crossing the Moon, after dark" + (result.moon && result.moon.win ? ` <small style="text-transform:none;">· Moon up ${fmt(frameN(result.moon.win.start))} to ${fmt(frameN(result.moon.win.end))}</small>` : ""), result.moon, result.windAvailable, "The Moon isn't up during forecast hours today.");
+        : timelapseSection("Daytime clouds", result.sun, result.windAvailable, "No daylight forecast hours.") + timelapseSection("Cloud over the Moon", result.moon, result.windAvailable, "The Moon isn't up during forecast hours today.", result.moon && result.moon.win ? `Moon up ${fmt(frameN(result.moon.win.start))} to ${fmt(frameN(result.moon.win.end))}, after dark` : "");
     })()}
     ${hasWin ? `<div class="outlook-note" style="margin-top:12px;">${timelapseSharedTip([["Daytime clouds", result.sun], ["Moon", result.moon]].filter(x => x[1] && x[1].bestRun && x[1].bestRun.avg >= 45).map(x => ({ label: x[0], run: x[1].bestRun })), result.windAvailable)}</div>` : ""}
     ${result.liveMsg ? `<div class="outlook-note" style="margin-top:12px;"><b>Live check:</b>${result.liveMsg.slice(11)}</div>` : ""}
