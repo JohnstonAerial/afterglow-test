@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.1j -->
+<!-- Afterglow v2.5.1k -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -603,7 +603,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.1j</div>
+    <div class="test-ver">🧪 TEST · v2.5.1k</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2242,8 +2242,8 @@ function fistsText(alt){
   return `about ${w} ${f === 1 ? "fist" : "fists"} above the horizon`;
 }
 function moonCardHTML(m){
-  const riseStr = m.moonrise ? `${fmt(m.moonrise)} <small>${compassDir(m.moonriseAz)}</small>` : `<small>Doesn't rise today</small>`;
-  const setStr  = m.moonset  ? `${fmt(m.moonset)} <small>${compassDir(m.moonsetAz)}${m.moonsetNextDay ? ' · ' + m.moonset.toLocaleDateString([], { weekday:'short' }) : ''}</small>`   : `<small>Doesn't set today</small>`;
+  const riseStr = m.moonrise ? `${fmt(m.moonrise)} <small><span style="white-space:nowrap;">${compassDir(m.moonriseAz)}</span></small>` : `<small>Doesn't rise today</small>`;
+  const setStr  = m.moonset  ? `${fmt(m.moonset)} <small><span style="white-space:nowrap;">${compassDir(m.moonsetAz)}${m.moonsetNextDay ? ' · ' + m.moonset.toLocaleDateString([], { weekday:'short' }) : ''}</span></small>`   : `<small>Doesn't set today</small>`;
   const alignNote = m.alignment
     ? (m.alignment.type === "moonrise-sunset"
         ? `Moonrise lands within ${m.alignment.minutes} min of sunset — good odds of a big, warm Moon low over the horizon.`
@@ -2259,10 +2259,10 @@ function moonCardHTML(m){
     ${m.nowPos ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);">
       <div class="label">Right now · ${fmt(m.nowPos.at)}</div>
       ${m.nowPos.up
-        ? `<div class="value">${compassDir(m.nowPos.az)}, ${Math.round(m.nowPos.alt)}° up <small>· ${fistsText(m.nowPos.alt)}</small></div>
-           ${m.sunsetPos ? `<div class="outlook-note" style="margin-top:6px;">At sunset (${fmt(m.sunsetPos.at)}): ${compassDir(m.sunsetPos.az)}, ${Math.round(m.sunsetPos.alt)}° up.</div>` : ""}
+        ? `<div class="value"><span style="white-space:nowrap;">${compassDir(m.nowPos.az)}, ${Math.round(m.nowPos.alt)}° up</span> <small>· ${fistsText(m.nowPos.alt)}</small></div>
+           ${m.sunsetPos ? `<div class="outlook-note" style="margin-top:6px;">At sunset (${fmt(m.sunsetPos.at)}): <span style="white-space:nowrap;">${compassDir(m.sunsetPos.az)}, ${Math.round(m.sunsetPos.alt)}° up.</span></div>` : ""}
            <div class="outlook-note" style="margin-top:6px;">A fist held at arm's length is about 10°. Start at the horizon in that direction and count fists up.</div>`
-        : `<div class="value">Below the horizon${(m.moonrise && m.moonrise > m.nowPos.at) ? ` <small>· rises ${fmt(m.moonrise)} in the ${compassDir(m.moonriseAz)}</small>` : ""}</div>`}
+        : `<div class="value">Below the horizon${(m.moonrise && m.moonrise > m.nowPos.at) ? ` <small>· rises ${fmt(m.moonrise)} <span style="white-space:nowrap;">in the ${compassDir(m.moonriseAz)}</span></small>` : ""}</div>`}
     </div>` : ""}
     ${alignNote ? `<div class="outlook-note" style="margin-top:10px;">${alignNote}</div>` : ""}
     <div class="outlook-note" style="margin-top:${alignNote ? 6 : 10}px;">Rise/set times are calculated, not observed — usually within a few minutes, but can be off by up to ~30-45 min when the Moon crosses the horizon at a shallow angle.</div>
