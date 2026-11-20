@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.1n -->
+<!-- Afterglow v2.5.1o -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -595,6 +595,16 @@
   html[data-theme="light"] .cup path:nth-child(2){ stroke: #262b45; }
   html[data-theme="light"] .cup path:nth-child(3){ fill: #b0703c; }
   html[data-theme="light"] .cup path:nth-child(4){ stroke: #566079; }
+  .tl-tiles{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+  .tl-tile{ border:1px solid var(--line); border-radius:12px; padding:12px; background:rgba(245,230,211,.04); min-width:0; }
+  .tl-lab{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--slate); }
+  .tl-big{ font-size:24px; font-weight:700; margin-top:6px; line-height:1.1; }
+  .tl-time{ font-family:'IBM Plex Mono', monospace; font-size:15px; margin-top:4px; }
+  .tl-sub{ font-size:12px; color:var(--slate); margin-top:6px; }
+  .tl-msg{ font-size:14px; line-height:1.4; color:var(--slate); margin-top:6px; }
+  .tl-note{ font-size:14px; line-height:1.5; color:var(--slate); margin-top:14px; }
+  .tl-live{ margin-top:14px; padding:10px 12px; border-left:3px solid var(--gold); background:rgba(242,184,75,.07); border-radius:0 8px 8px 0; font-size:14px; line-height:1.45; color:var(--slate); }
+  .tl-foot{ font-size:11.5px; color:var(--slate-dim); margin-top:14px; }
 </style>
 <!-- Leaflet (free, keyless map tiles for the Plan tab's sun-direction view) is no longer loaded here: since 2.4.9m loadLeaflet() fetches it
      the first time the Plan tab needs it, so it no longer holds up the forecast on first visit. -->
@@ -603,7 +613,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.1n</div>
+    <div class="test-ver">🧪 TEST · v2.5.1o</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2396,9 +2406,9 @@ function timelapseSharedTip(items, windAvailable){
   const first = bands[0].b;
   if(bands.every(x => x.b.name === first.name)){
     const ws = bands.map(x => x.b.w), lo = Math.min(...ws), hi = Math.max(...ws);
-    return `Cloud speed is ${first.name} (about ${lo === hi ? lo : lo + " to " + hi} mph aloft): try ${first.iv} between frames.` + tail;
+    return `Clouds are moving at a ${first.name} pace, about ${lo === hi ? lo : lo + " to " + hi} mph aloft. Try ${first.iv} between frames.` + tail;
   }
-  return bands.map(x => `<b>${x.label}:</b> cloud is ${x.b.name} (about ${x.b.w} mph aloft), try ${x.b.iv} between frames.`).join("<br>") + tail;
+  return bands.map(x => `<b>${x.label}:</b> ${x.b.name} pace, about ${x.b.w} mph aloft. Try ${x.b.iv} between frames.`).join("<br>") + tail;
 }
 
 // 2.4.8p: live check on the timelapse window. Within 3 hours of sunrise or sunset the Reality check has satellite and airport reports;
@@ -2432,15 +2442,17 @@ function timelapseNoWindowMsg(kind, trimmed){
   const rest = trimmed ? "the rest of the time" : "the whole time";
   return kind === "solid" ? `Mostly solid cloud ${rest}, so there's little to see moving.` : kind === "clear" ? `Mostly clear ${rest}, so there's not much drift to catch.` : (trimmed ? "Cloud for the rest of the window is patchy or too slow to make a good timelapse." : "Cloud is patchy or too slow to make a good timelapse.");
 }
-function timelapseSection(title, r, windAvailable, emptyMsg, note){
-  if(!r || !r.points || r.points.length === 0) return `<div style="margin-top:12px;"><div class="label">${title}</div><div class="value" style="font-size:14px;font-weight:400;color:var(--slate)">${r && r.daylightOnly ? "The Moon is up only in daylight today, so it will not stand out against the sky." : r && r.over ? "That window has passed for today." : emptyMsg}</div></div>`;
+// 2.5.1o: a tile for one window. Rating word big, time in mono under it, a small line for the Moon's hours or a short message.
+function timelapseTile(title, r, emptyMsg, sub, wide){
+  const box = inner => `<div class="tl-tile" style="${wide ? "grid-column:1 / -1;" : ""}"><div class="tl-lab">${title}</div>${inner}</div>`;
+  const msgBox = txt => box(`<div class="tl-msg">${txt}</div>`);
+  if(!r || !r.points || r.points.length === 0) return msgBox(r && r.daylightOnly ? "The Moon is up only in daylight today, so it will not stand out against the sky." : r && r.over ? "That window has passed for today." : emptyMsg);
   if(r.bestRun && r.bestRun.avg >= 45){
     const pts = r.bestRun.points, start = pts[0].time, end = pts[pts.length - 1].time;
-    return `<div style="margin-top:12px;"><div class="label">${title}</div>
-      <div class="value">${timelapseLabel(Math.round(r.bestRun.avg))} <small style="white-space:nowrap;">· best ${pts.length === 1 || fmt(start) === fmt(end) ? "around " + fmt(start) : fmt(start) + "–" + fmt(end)}</small></div>${note ? `<div class="outlook-note" style="margin-top:2px;">${note}</div>` : ""}</div>`;
+    const when = pts.length === 1 || fmt(start) === fmt(end) ? fmt(start) : fmt(start) + "–" + fmt(end);
+    return box(`<div class="tl-big">${timelapseLabel(Math.round(r.bestRun.avg))}</div><div class="tl-time">${when}</div><div class="tl-sub">${sub || "best window"}</div>`);
   }
-  const msg = timelapseNoWindowMsg(timelapseNoWindowKind(r), r.trimmed);
-  return `<div style="margin-top:12px;"><div class="label">${title}</div><div class="value" style="font-size:14px;font-weight:400;color:var(--slate);">${msg}</div></div>`;
+  return msgBox(timelapseNoWindowMsg(timelapseNoWindowKind(r), r.trimmed));
 }
 
 function timelapseCardHTML(result){
@@ -2452,22 +2464,23 @@ function timelapseCardHTML(result){
       <div class="value" style="font-size:14px;font-weight:400;color:var(--slate)">${allOver ? "Both windows have passed for today." : "No forecast hours to score for this day."}</div>
     </div>`;
   }
-  // 2.4.9d: with no good window there is no moving cloud to talk about, so drop the tag and the rule-of-thumb note.
+  // 2.4.9d: with no good window there is no moving cloud to talk about, so drop the rule-of-thumb note.
   const hasWin = [result.sun, result.moon].some(r => r && r.bestRun && r.bestRun.avg >= 45);
+  const body = (() => {
+    const win = r => (r && r.bestRun && r.bestRun.avg >= 45) ? fmt(r.bestRun.points[0].time) + "|" + fmt(r.bestRun.points[r.bestRun.points.length - 1].time) : null;
+    const same = win(result.sun) && win(result.sun) === win(result.moon);
+    const ks = timelapseNoWindowKind(result.sun), km = timelapseNoWindowKind(result.moon);
+    if(ks && ks === km) return `<div class="tl-tiles" style="grid-template-columns:1fr;"><div class="tl-tile"><div class="tl-lab">Daytime clouds and the Moon</div><div class="tl-msg">${timelapseNoWindowMsg(ks, (result.sun && result.sun.trimmed) || (result.moon && result.moon.trimmed))}</div></div></div>`;
+    if(same) return `<div class="tl-tiles" style="grid-template-columns:1fr;">${timelapseTile("Sun and Moon both up", result.sun, "", "best window", true)}</div>`;
+    const moonSub = result.moon && result.moon.win ? `Moon up ${fmt(frameN(result.moon.win.start))} – ${fmt(frameN(result.moon.win.end))}` : "";
+    return `<div class="tl-tiles">${timelapseTile("Daytime clouds", result.sun, "No daylight forecast hours.")}${timelapseTile("Cloud over the Moon", result.moon, "The Moon isn't up during forecast hours today.", moonSub)}</div>`;
+  })();
   return `<div class="card" style="grid-column: 1 / -1;">
-    <div class="label">Timelapse conditions${hasWin ? ' <small style="text-transform:none;">— moving cloud</small>' : ""}</div>
-    ${(() => {
-      const win = r => (r && r.bestRun && r.bestRun.avg >= 45) ? fmt(r.bestRun.points[0].time) + "|" + fmt(r.bestRun.points[r.bestRun.points.length - 1].time) : null;
-      const same = win(result.sun) && win(result.sun) === win(result.moon);
-      const ks = timelapseNoWindowKind(result.sun), km = timelapseNoWindowKind(result.moon);
-      if(ks && ks === km) return `<div style="margin-top:12px;"><div class="label">Daytime clouds and the Moon</div><div class="value" style="font-size:14px;font-weight:400;color:var(--slate);">${timelapseNoWindowMsg(ks, (result.sun && result.sun.trimmed) || (result.moon && result.moon.trimmed))}</div></div>`;
-      return same
-        ? timelapseSection("Sun and Moon both up", result.sun, result.windAvailable, "")
-        : timelapseSection("Daytime clouds", result.sun, result.windAvailable, "No daylight forecast hours.") + timelapseSection("Cloud over the Moon", result.moon, result.windAvailable, "The Moon isn't up during forecast hours today.", result.moon && result.moon.win ? `Moon up ${fmt(frameN(result.moon.win.start))} to ${fmt(frameN(result.moon.win.end))}, after dark` : "");
-    })()}
-    ${hasWin ? `<div class="outlook-note" style="margin-top:12px;">${timelapseSharedTip([["Daytime clouds", result.sun], ["Moon", result.moon]].filter(x => x[1] && x[1].bestRun && x[1].bestRun.avg >= 45).map(x => ({ label: x[0], run: x[1].bestRun })), result.windAvailable)}</div>` : ""}
-    ${result.liveMsg ? `<div class="outlook-note" style="margin-top:12px;"><b>Live check:</b>${result.liveMsg.slice(11)}</div>` : ""}
-    ${hasWin ? `<div class="outlook-note" style="margin-top:12px;">${result.windAvailable
+    <div class="label">Timelapse conditions</div>
+    ${body}
+    ${hasWin ? `<div class="tl-note">${timelapseSharedTip([["Daytime clouds", result.sun], ["Moon", result.moon]].filter(x => x[1] && x[1].bestRun && x[1].bestRun.avg >= 45).map(x => ({ label: x[0], run: x[1].bestRun })), result.windAvailable)}</div>` : ""}
+    ${result.liveMsg ? `<div class="tl-live"><b>Live check:</b>${result.liveMsg.slice(11)}</div>` : ""}
+    ${hasWin ? `<div class="tl-foot">${result.windAvailable
       ? `A rough guide from cloud cover and high-altitude wind, not a guarantee.`
       : `Wind aloft unavailable right now, so this is scored on cloud cover alone. It can't say how fast that cloud will actually move. Rougher than usual.`}</div>` : ""}
   </div>`;
