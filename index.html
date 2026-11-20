@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.1l -->
+<!-- Afterglow v2.5.1m -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -603,7 +603,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.1l</div>
+    <div class="test-ver">🧪 TEST · v2.5.1m</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2381,6 +2381,26 @@ function timelapseTip(run, windAvailable){
   return `Cloud speed is ${band[0]} (about ${Math.round(w)} mph aloft): try ${band[1]} between frames.` + tail;
 }
 
+// 2.5.1m: one interval tip for the whole card. Same band for both windows (or only one window): say it once. Different bands: one short line each.
+function timelapseBandOf(run, windAvailable){
+  const winds = run.points.map(p => p.wind).filter(w => w != null);
+  if(!windAvailable || !winds.length) return null;
+  const w = winds.reduce((a, b) => a + b, 0) / winds.length;
+  const band = w < 15 ? ["light", "5 to 10 s"] : w <= 30 ? ["moderate", "2 to 5 s"] : ["fast", "1 to 2 s"];
+  return { w: Math.round(w), name: band[0], iv: band[1] };
+}
+function timelapseSharedTip(items, windAvailable){
+  const tail = " Faster cloud, shorter interval.";
+  const bands = items.map(i => ({ label: i.label, b: timelapseBandOf(i.run, windAvailable) }));
+  if(bands.some(x => !x.b)) return `Try 2 to 5 s between frames to start.` + tail;
+  const first = bands[0].b;
+  if(bands.every(x => x.b.name === first.name)){
+    const ws = bands.map(x => x.b.w), lo = Math.min(...ws), hi = Math.max(...ws);
+    return `Cloud speed is ${first.name} (about ${lo === hi ? lo : lo + " to " + hi} mph aloft): try ${first.iv} between frames.` + tail;
+  }
+  return bands.map(x => `<b>${x.label}:</b> cloud is ${x.b.name} (about ${x.b.w} mph aloft), try ${x.b.iv} between frames.`).join("<br>") + tail;
+}
+
 // 2.4.8p: live check on the timelapse window. Within 3 hours of sunrise or sunset the Reality check has satellite and airport reports;
 // compare them with the forecast cloud for the daytime hours coming up (the next 3 hours), and say if the window looks cloudier or clearer than forecast.
 // It only adds a note: the window times themselves still come from the forecast.
@@ -2417,9 +2437,7 @@ function timelapseSection(title, r, windAvailable, emptyMsg){
   if(r.bestRun && r.bestRun.avg >= 45){
     const pts = r.bestRun.points, start = pts[0].time, end = pts[pts.length - 1].time;
     return `<div style="margin-top:12px;"><div class="label">${title}</div>
-      <div class="value">${timelapseLabel(Math.round(r.bestRun.avg))} <small>best window</small></div>
-      <div style="font-family:'IBM Plex Mono', monospace; font-size:15px; margin-top:4px;">${pts.length === 1 || fmt(start) === fmt(end) ? "around " + fmt(start) : fmt(start) + "–" + fmt(end)}</div>
-      <div class="outlook-note" style="margin-top:6px;">${timelapseTip(r.bestRun, windAvailable)}</div></div>`;
+      <div class="value">${timelapseLabel(Math.round(r.bestRun.avg))} <small>best window</small> <span style="font-family:'IBM Plex Mono', monospace; font-size:15px; font-weight:400; white-space:nowrap;">${pts.length === 1 || fmt(start) === fmt(end) ? "around " + fmt(start) : fmt(start) + "–" + fmt(end)}</span></div></div>`;
   }
   const msg = timelapseNoWindowMsg(timelapseNoWindowKind(r), r.trimmed);
   return `<div style="margin-top:12px;"><div class="label">${title}</div><div class="value" style="font-size:14px;font-weight:400;color:var(--slate);">${msg}</div></div>`;
@@ -2447,9 +2465,10 @@ function timelapseCardHTML(result){
         ? timelapseSection("Sun and Moon both up", result.sun, result.windAvailable, "")
         : timelapseSection("Daytime clouds", result.sun, result.windAvailable, "No daylight forecast hours.") + timelapseSection("Cloud crossing the Moon, after dark" + (result.moon && result.moon.win ? ` <small style="text-transform:none;">· Moon up ${fmt(frameN(result.moon.win.start))} to ${fmt(frameN(result.moon.win.end))}</small>` : ""), result.moon, result.windAvailable, "The Moon isn't up during forecast hours today.");
     })()}
+    ${hasWin ? `<div class="outlook-note" style="margin-top:12px;">${timelapseSharedTip([["Daytime clouds", result.sun], ["Moon", result.moon]].filter(x => x[1] && x[1].bestRun && x[1].bestRun.avg >= 45).map(x => ({ label: x[0], run: x[1].bestRun })), result.windAvailable)}</div>` : ""}
     ${result.liveMsg ? `<div class="outlook-note" style="margin-top:12px;"><b>Live check:</b>${result.liveMsg.slice(11)}</div>` : ""}
     ${hasWin ? `<div class="outlook-note" style="margin-top:12px;">${result.windAvailable
-      ? `Based on total cloud cover and wind speed high up, a rough guide to how much the clouds will move, not a guarantee. This is a rule of thumb. We haven't checked it against real timelapses yet.`
+      ? `A rough guide from cloud cover and high-altitude wind, not a guarantee.`
       : `Wind aloft unavailable right now, so this is scored on cloud cover alone. It can't say how fast that cloud will actually move. Rougher than usual.`}</div>` : ""}
   </div>`;
 }
