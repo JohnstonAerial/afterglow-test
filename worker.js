@@ -588,7 +588,7 @@ async function scoreSkyAt(lat, lon, eventDate) {
 
     const s = scoreEvent(hourly, idx, beam);
     if (!s) return null;
-    return { score: s.score, label: label(s.score) };
+    return { score: s.score, label: label(s.score), low: s.low, mid: s.mid, high: s.high, vis: s.vis };
   } catch (err) {
     console.error("Afterglow cron: sky score failed", err);
     return null;
@@ -625,6 +625,99 @@ async function fetchSunTimes(lat, lon) {
   const goldenMorningStart = sunCrossing(sunrise, lat, lon, "dawn", 94) || new Date(sunrise.getTime() - 20 * 60000);
 
   return { sunrise, sunset, goldenEveningStart, goldenMorningStart };
+}
+
+// ---------- Spoken forecast (for Siri Shortcuts) ----------
+// GET /forecast?event=sunset|sunrise&place=Dallas, Texas   (or &lat=..&lon=..)   optional &day=0|1  &format=json
+// Answers in one plain sentence a Shortcut can speak. Forecast only: the live blend (satellite and airports) is not in the Worker.
+// Like the push alerts it reads the nearest forecast hour, here at the glow time (event +17 min sunset, -17 min sunrise).
+const US_STATES = { AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming",DC:"District of Columbia" };
+
+async function geocodePlace(text) {
+  const raw = String(text || "").replace(/\s+/g, " ").trim().slice(0, 80);
+  if (!raw) return null;
+  const tries = [];
+  if (raw.includes(",")) {
+    const i = raw.indexOf(",");
+    tries.push([raw.slice(0, i).trim(), raw.slice(i + 1).trim()]);
+  } else {
+    const w = raw.split(" ");
+    for (let k = 1; k <= 2; k++) if (w.length > k) tries.push([w.slice(0, w.length - k).join(" "), w.slice(w.length - k).join(" ")]);
+    tries.push([raw, ""]);
+  }
+  for (const [name, qualRaw] of tries) {
+    if (!name) continue;
+    let qual = qualRaw.toLowerCase();
+    if (US_STATES[qualRaw.toUpperCase()]) qual = US_STATES[qualRaw.toUpperCase()].toLowerCase();
+    const res = await fetch("https://geocoding-api.open-meteo.com/v1/search?" + new URLSearchParams({ name, count: "10", language: "en", format: "json" }));
+    if (!res.ok) continue;
+    const data = await res.json();
+    const list = (data && data.results) || [];
+    const hit = qual
+      ? list.find(r => [r.admin1, r.country, r.country_code, r.admin2].some(v => v && String(v).toLowerCase() === qual))
+      : list[0];
+    if (hit) {
+      const where = hit.admin1 && hit.country_code === "US" ? `${hit.name}, ${hit.admin1}` : [hit.name, hit.admin1 || hit.country].filter(Boolean).join(", ");
+      return { lat: hit.latitude, lon: hit.longitude, name: where };
+    }
+  }
+  return null;
+}
+
+function spoken(text, status = 200, json = null) {
+  if (json) return new Response(JSON.stringify(json), { status, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } });
+  return new Response(text, { status, headers: { ...CORS_HEADERS, "Content-Type": "text/plain; charset=utf-8" } });
+}
+
+async function handleForecast(url) {
+  const wantJson = url.searchParams.get("format") === "json";
+  const fail = (msg, status) => spoken(msg, status, wantJson ? { ok: false, message: msg } : null);
+  const ev = (url.searchParams.get("event") || "sunset").toLowerCase();
+  if (ev !== "sunset" && ev !== "sunrise") return fail("Ask for sunset or sunrise.", 400);
+
+  let lat = parseFloat(url.searchParams.get("lat")), lon = parseFloat(url.searchParams.get("lon"));
+  let placeName = null;
+  if (!(isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180)) {
+    const place = url.searchParams.get("place");
+    if (!place) return fail("I need a place or a location.", 400);
+    let g = null;
+    try { g = await geocodePlace(place); } catch { g = null; }
+    if (!g) return fail(`I couldn't find ${String(place).slice(0, 60)}. Try the city and the state.`, 404);
+    lat = g.lat; lon = g.lon; placeName = g.name;
+  }
+
+  let data;
+  try {
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&timezone=auto&forecast_days=2`);
+    if (!res.ok) throw new Error("sun times " + res.status);
+    data = await res.json();
+  } catch { return fail("I couldn't reach the forecast just now. Try again in a minute.", 502); }
+  const off = data.utc_offset_seconds || 0, tz = data.timezone || "UTC";
+  const real = str => new Date(new Date(str + "Z").getTime() - off * 1000);
+  const days = (data.daily && data.daily[ev] || []).map(real).filter(d => !isNaN(d));
+  if (!days.length) return fail("I couldn't work out the sun times for that place.", 502);
+
+  const dayParam = url.searchParams.get("day");
+  const now = Date.now();
+  let idx = dayParam === "1" ? 1 : dayParam === "0" ? 0 : days.findIndex(d => d.getTime() + 20 * 60000 > now);
+  if (idx < 0 || idx >= days.length) idx = days.length - 1;
+  const t = days[idx];
+  const peak = new Date(t.getTime() + (ev === "sunset" ? 17 : -17) * 60000);
+
+  const sky = await scoreSkyAt(lat, lon, peak);
+  if (!sky) return fail("I couldn't read the sky forecast just now. Try again in a minute.", 502);
+
+  const dayKey = d => new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d);
+  const sameDay = dayKey(t) === dayKey(new Date(now));
+  const when = sameDay ? (ev === "sunset" ? "tonight" : "today") : (ev === "sunset" ? "tomorrow evening" : "tomorrow morning");
+  const clock = new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" }).format(t);
+  const where = placeName ? ` in ${placeName}` : "";
+  const Name = ev === "sunset" ? "Sunset" : "Sunrise";
+  const text = `${Name}${where} ${when} at ${clock}: ${sky.score}, ${sky.label}. High cloud ${Math.round(sky.high)}%, mid ${Math.round(sky.mid)}%, low ${Math.round(sky.low)}%. Forecast only.`;
+  const out = wantJson ? { ok: true, event: ev, place: placeName, lat, lon, time: t.toISOString(), score: sky.score, label: sky.label, high: sky.high, mid: sky.mid, low: sky.low, text } : null;
+  const r = spoken(text, 200, out);
+  r.headers.set("Cache-Control", "public, max-age=600");
+  return r;
 }
 
 async function runScheduledCheck(env) {
@@ -743,6 +836,9 @@ export default {
     }
     if (url.pathname === "/unsubscribe" && request.method === "POST") {
       return handleUnsubscribe(request, env);
+    }
+    if (url.pathname === "/forecast" && request.method === "GET") {
+      return handleForecast(url);
     }
     if (url.pathname === "/vapid-public-key" && request.method === "GET") {
       return jsonResponse({ publicKey: env.VAPID_PUBLIC_KEY });
