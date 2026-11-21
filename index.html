@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.1v -->
+<!-- Afterglow v2.5.1w -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -190,7 +190,7 @@
   .map-wrap.full .map-pinhint{ top: calc(10px + env(safe-area-inset-top, 0px)); }
   .map-wrap.full .map-fs-panel{ display:block; position:absolute; left:0; right:0; bottom:0; z-index:1002; padding:8px 14px calc(8px + env(safe-area-inset-bottom, 0px)); background:rgba(20,23,44,0.94); border-top:1px solid var(--line); }
   .map-fs-panel .map-fs-tap{ display:flex; align-items:center; gap:6px; margin:0 0 6px; }
-  .map-fs-panel .plan-seg-l{ font-size:12.5px; color:var(--slate); margin-right:2px; }
+  .map-fs-panel .plan-seg-l{ font-size:12px; color:var(--slate); margin-right:2px; }
   .map-fs-panel .plan-range{ margin:2px 0 4px; height:40px; width:100%; }
   .map-fs-jumps{ display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; }
   .map-fs-jumps .plan-seg-b{ flex:0 0 auto; white-space:nowrap; }
@@ -242,7 +242,7 @@
   .plan-fold .card{ border:0; background:transparent; padding:10px 4px; }
   .plan-fold .card + .card{ border-top:1px solid var(--line); border-radius:0; }
   .map-tap{ position:absolute; left:8px; bottom:26px; z-index:1001; display:flex; gap:4px; background:rgba(10,11,22,0.82); border:1px solid var(--line); border-radius:999px; padding:3px; }
-  .map-tap .plan-seg-b{ padding:5px 12px; font-size:12.5px; border-color:transparent; background:transparent; }
+  .map-tap .plan-seg-b{ padding:5px 12px; font-size:12px; border-color:transparent; background:transparent; }
   .map-tap .plan-seg-b.on{ background: var(--card); border-color: var(--gold); }
   .plan-seg-b.jump{ display:flex; flex-direction:column; align-items:center; line-height:1.25; padding:6px 12px; }
   .plan-seg-b.jump small{ font-size:11px; color: var(--slate); font-family:'IBM Plex Mono', monospace; }
@@ -254,13 +254,13 @@
   .fold-close{ display:block; margin:6px auto 10px; background:none; border:0; color: var(--slate); font: inherit; font-size:13px; padding:8px 14px; cursor:pointer; text-decoration:underline; }
   .fold-close:hover{ color: var(--gold); }
   .today-fold > summary .nw{ white-space:nowrap; }
-  .today-fold > summary .sub, .plan-fold > summary .sub{ color: var(--slate); font-size:12.5px; margin-left:auto; margin-right:10px; }
+  .today-fold > summary .sub, .plan-fold > summary .sub{ color: var(--slate); font-size:12px; margin-left:auto; margin-right:10px; }
   /* Today cards: title and arrow stay on the first row; the summary drops to its own line when it does not fit beside the title */
   .today-fold > summary{ position:relative; flex-wrap:wrap; justify-content:space-between; gap:4px 10px; padding-right:42px; white-space:nowrap; }
   .today-fold > summary::after{ position:absolute; right:16px; top:50%; margin-top:-0.6em; line-height:1.2; }
   .today-fold > summary .sub{ margin:0; text-align:left; white-space:normal; }
   .ag-head, .ag-row{ display:grid; grid-template-columns:54px minmax(0,1fr) minmax(0,1fr); gap:8px; align-items:stretch; }
-  .ag-head{ font-size:12px; color: var(--slate); text-transform:uppercase; letter-spacing:.08em; font-family:'IBM Plex Mono', monospace; margin:2px 0 6px; }
+  .ag-head{ font-size:11px; color: var(--slate); text-transform:uppercase; letter-spacing:.08em; font-family:'IBM Plex Mono', monospace; margin:2px 0 6px; }
   .ag-row{ margin-bottom:8px; }
   .ag-day{ font-family: Georgia, serif; font-size:15px; font-weight:600; color: var(--sand); display:flex; align-items:center; }
   .ag-cell{ border:1px solid var(--line); background: var(--card); border-radius:12px; padding:8px 10px; cursor:pointer; position:relative; }
@@ -268,11 +268,11 @@
   .ag-cell .t1{ display:flex; justify-content:space-between; align-items:baseline; gap:6px; }
   .ag-cell .sc{ font-family: Georgia, serif; font-size:20px; font-weight:600; color: var(--sand); }
   .ag-cell .lb{ font-size:13px; color: var(--slate); }
-  .ag-cell .tm{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; color: var(--slate); margin-top:2px; white-space:nowrap; }
-  .ag-cell .ag-why{ font-size:11.5px; color: var(--slate); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ag-cell .tm{ font-family:'IBM Plex Mono', monospace; font-size:12px; color: var(--slate); margin-top:2px; white-space:nowrap; }
+  .ag-cell .ag-why{ font-size:11px; color: var(--slate); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .ag-cell .agenda-bar{ margin:5px 0 0; }
   .ag-cell.far{ border-style:dashed; }
-  .ag-far-note{ font-size:12.5px; color: var(--slate); margin:10px 0 8px; padding-top:10px; border-top:1px dashed var(--line); }
+  .ag-far-note{ font-size:12px; color: var(--slate); margin:10px 0 8px; padding-top:10px; border-top:1px dashed var(--line); }
   .ag-cell .ag-best{ position:absolute; right:10px; top:-9px; background: var(--card); border:1px solid var(--gold); border-radius:8px; padding:0 7px; line-height:16px; }
   .ag-best{ font-size:11px; color: var(--gold); font-family:'IBM Plex Mono', monospace; text-transform:uppercase; letter-spacing:.06em; }
   .plan-sum{ margin-top:2px; }
@@ -295,13 +295,13 @@
   .plan-btn.round{ width:36px; min-width:36px; flex:0 0 36px; height:36px; padding:0; border-radius:50%; font-size:16px; }
   .plan-saved-note{ margin:0 0 8px; font-size:13px; }
   .plan-place{ flex:1; min-width:0; text-align:left; display:flex; flex-direction:column; align-items:flex-start; gap:1px; }
-  .plan-place .pl-from{ font-size:11.5px; color: var(--slate); line-height:1.2; }
+  .plan-place .pl-from{ font-size:12px; color: var(--slate); line-height:1.2; }
   .plan-place .pl-name{ max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .plan-date{ flex:1 1 0; width:0; min-width:0; max-width:100%; -webkit-appearance:none; appearance:none; min-height:40px; text-align:left; background: var(--card); border:1px solid var(--line); color: var(--sand); border-radius:12px; padding:8px 10px; font-size:15px; font-family: inherit; color-scheme: dark; }
   .plan-search{ display:flex; gap:8px; margin-bottom:8px; }
   .plan-search input{ flex:1; min-width:0; background: var(--card); border:1px solid var(--line); color: var(--sand); border-radius:12px; padding:9px 12px; font-size:16px; font-family: inherit; }
   .plan-res{ display:block; width:100%; text-align:left; margin-bottom:6px; }
-  .plan-msg{ font-size:12.5px; color: var(--slate); margin: 0 0 10px; line-height:1.5; }
+  .plan-msg{ font-size:13px; color: var(--slate); margin: 0 0 10px; line-height:1.5; }
   .plan-lbl{ background:none; border:none; }
   .plan-lbl span{ position:absolute; transform: translate(-50%,-50%); white-space:nowrap; font-size:11px; font-weight:600; padding:2px 7px; border-radius:999px; background: rgba(20,23,44,0.88); border:1px solid currentColor; }
   .plan-legend{ display:flex; flex-wrap:wrap; gap:6px 14px; font-size:12px; color: var(--slate); margin: 0 0 14px; }
@@ -330,9 +330,9 @@
   .plan-range::-moz-range-track{ height:8px; border-radius:4px; background: var(--track); }
   .plan-range::-webkit-slider-thumb{ -webkit-appearance:none; width:30px; height:30px; border-radius:50%; background: var(--sand); border:3px solid var(--gold); margin-top:-11px; }
   .plan-range::-moz-range-thumb{ width:24px; height:24px; border-radius:50%; background: var(--sand); border:3px solid var(--gold); }
-  .plan-ticks{ display:flex; justify-content:space-between; font-size:11.5px; color: var(--slate); }
+  .plan-ticks{ display:flex; justify-content:space-between; font-size:12px; color: var(--slate); }
   .plan-seg{ display:flex; align-items:center; gap:6px; margin: 0 0 10px; flex-wrap:wrap; }
-  .plan-seg-l{ font-size:12.5px; color: var(--slate); margin-right:2px; }
+  .plan-seg-l{ font-size:12px; color: var(--slate); margin-right:2px; }
   .plan-seg-b{ background: var(--card); border:1px solid var(--line); color: var(--slate); border-radius:999px; padding:6px 14px; font-size:13px; cursor:pointer; font-family: inherit; }
   .plan-seg-b.on{ color: var(--sand); border-color: var(--gold); }
   .cal-row{ display:flex; gap:6px; align-items:center; margin-bottom:8px; }
@@ -356,7 +356,7 @@
   .plan-row2 b small.by{ display:block; font-weight:400; font-size:12px; color:var(--slate); }
   .hz-face{ font-family: ui-monospace, Menlo, monospace; font-size:11px; letter-spacing:.08em; color:var(--slate); white-space:nowrap; }
   .hz-svg{ display:block; width:100%; max-width:400px; height:auto; border-radius:12px; margin:0 auto 6px; }   /* 2.4.1a/b: on a wide screen (Mac, iPad) the picture stops growing, so its text and tags don't get huge */
-  .plan-row2{ display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-top:1px solid var(--line); font-size:13.5px; line-height:1.4; }
+  .plan-row2{ display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-top:1px solid var(--line); font-size:13px; line-height:1.4; }
   .plan-row2:first-of-type{ border-top:0; }
   .plan-row2 b{ font-weight:600; text-align:right; }
   .plan-good{ color:#7bd88f; } .plan-warn{ color: var(--gold); }
@@ -495,7 +495,7 @@
   .ag-day{ flex-direction:column; align-items:flex-start; justify-content:center; line-height:1.15; }
   .ag-day small{ font-family:'IBM Plex Mono', monospace; font-size:11px; font-weight:400; color: var(--slate); }
   .ag-cell.past{ opacity:0.5; }
-  .ag-hint{ font-size:12.5px; color: var(--slate); margin: -4px 0 10px; }
+  .ag-hint{ font-size:12px; color: var(--slate); margin: -4px 0 10px; }
   #textBtn{ background: transparent; border: 1px solid var(--line); border-radius: 10px; color: var(--sand); font-size: 15px; padding: 6px 10px; cursor: pointer; line-height: 1; font-family: Georgia, serif; font-weight:600; }
   #textBtn[aria-pressed="true"]{ border-color: var(--gold); color: var(--gold); }
   .header-actions{ display:flex; align-items:center; gap: 8px; }
@@ -621,7 +621,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.1v</div>
+    <div class="test-ver">🧪 TEST · v2.5.1w</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
