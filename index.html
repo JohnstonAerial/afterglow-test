@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.1x -->
+<!-- Afterglow v2.5.1y -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -417,7 +417,7 @@
   @keyframes rcPulse{ 0%,100%{ opacity:1 } 50%{ opacity:.45 } }
   @media (prefers-reduced-motion: reduce){ .rc-skel .rc-verdict, .rc-skel .rc-text, .rc-skel .rc-sat-head, .rc-skel .rc-note{ animation:none; } }
   .about-seo{ margin:0 0 14px; font-size:12px; line-height:1.55; }
-  footer{ text-align:center; font-size: 12px; line-height:1.55; color: var(--slate); margin-top: 36px; font-family:'IBM Plex Mono', monospace; }
+  footer{ text-align:center; font-size: 12px; line-height:1.55; color: var(--slate); margin-top: 36px; }
   footer a{ text-decoration: underline; text-decoration-color: var(--slate); }
 
   .loading, .err{ text-align:center; padding: 60px 20px; color: var(--slate); font-size: 14px; }
@@ -622,7 +622,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.1x</div>
+    <div class="test-ver">🧪 TEST · v2.5.1y</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -4070,7 +4070,7 @@ function renderPlan(app, tabsHtml){
     i0 = html.length;
     let fin = "";
     try{ fin = planFinder(p, bd.brg, p.finder); }catch(e){ console.error("Finder failed:", e); fin = '<div class="note">Couldn\'t search the dates.</div>'; }
-    html += `<details class="plan-fold two" data-fold="finder"${p.fold.finder ? " open" : ""}><summary>Find the dates it lines up${p.scan && p.scan.sum ? ` <span class="sub">${esc(p.scan.sum)}</span>` : ""}</summary><div class="fold-body"><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.finder === "sun" ? "on" : ""}" data-finder="sun">Sun</button><button class="plan-seg-b ${p.finder === "moon" ? "on" : ""}" data-finder="moon">Moon</button></div>${fin}<div class="note" style="margin-top:8px">Direction only: it doesn't know how tall the subject is or what stands in between.</div>${FOLD_CLOSE}</div></details>`;
+    html += `<details class="plan-fold two" data-fold="finder"${p.fold.finder ? " open" : ""}><summary>Find the dates it lines up${p.scan && p.scan.sum ? ` <span class="sub">${esc(p.scan.sum)}</span>` : ""}</summary><div class="fold-body"><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.finder === "sun" ? "on" : ""}" data-finder="sun">Sun</button><button class="plan-seg-b ${p.finder === "moon" ? "on" : ""}" data-finder="moon">Moon</button></div>${fin}<div class="note" style="margin-top:8px">Direction only: it doesn't know how tall the subject is or what stands in between.</div></div></details>`;
   }
   cap("find", i0);
   i0 = html.length;
@@ -4097,10 +4097,10 @@ function renderPlan(app, tabsHtml){
       ? `<div class="cal-row"><select class="plan-name cal-sel" id="calOffH" aria-label="Hours">${hrOpts}</select><select class="plan-name cal-sel" id="calOffM" aria-label="Minutes">${mnOpts}</select><select class="plan-name cal-sel" id="calDir" aria-label="Before or after"><option value="before"${cc.dir === "before" ? " selected" : ""}>before</option><option value="after"${cc.dir === "after" ? " selected" : ""}>after</option></select></div><div class="cal-row"><select class="plan-name cal-sel" id="calAnchor" aria-label="Light event">${CAL_ANCHORS.map(selA).join("")}</select></div>`
       : `<input type="time" class="plan-name" id="calClock" value="${esc(cc.clock)}" aria-label="Start time" style="margin-bottom:8px;">`}<div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b" id="calUseBar" data-bar="${barClock}">⏱ Use the time on the bar</button></div><div class="label" style="margin:6px 0;">Length</div><div class="plan-seg" style="margin-bottom:8px;">${lenChip(60)}${lenChip(120)}${lenChip(180)}<button class="plan-seg-b ${cc.lenKind === "sunset" ? "on" : ""}" data-callen="sunset">Until sunset</button></div><div class="cal-row"><span class="cal-t">Or type:</span><input type="number" class="plan-name cal-num" id="calLenH" min="0" max="12" value="${Math.floor(cc.lenMin / 60)}" aria-label="Hours long"><span class="cal-t">hr</span><input type="number" class="plan-name cal-num" id="calLenM" min="0" max="59" value="${cc.lenMin % 60}" aria-label="Minutes long"><span class="cal-t">min</span></div>` : "";
   const calWords = p.calMode === "custom" ? planCustomText(pl, p, tz) : "an hour before golden hour through " + (p.calMode === "morning" ? "the end of golden hour." : "sunset.");
-  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Add to calendar</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.calMode === "evening" ? "on" : ""}" data-cal="evening">Sunset shoot</button><button class="plan-seg-b ${p.calMode === "morning" ? "on" : ""}" data-cal="morning">Sunrise shoot</button><button class="plan-seg-b ${p.calMode === "custom" ? "on" : ""}" data-cal="custom">Custom</button></div><input class="plan-name" id="planCalTitle" value="${esc(p.calTitle || "")}" maxlength="80" placeholder="${esc(planEventTitle({ loc: p.loc, subject: p.subject }))}" aria-label="Event title">${customUi}<textarea class="plan-name" id="planCalNotes" rows="3" maxlength="600" placeholder="Your notes (optional): gear, who is coming, a reminder" aria-label="Your notes" style="resize:vertical;">${esc(p.calNotes || "")}</textarea>${cw && !cw.bad ? `<div class="note" style="margin-bottom:8px">${planDayLabel(p.date)}, ${fmtZ(cw.start, tz)} to ${fmtZ(cw.end, tz)}: ${calWords}</div><div class="plan-seg" style="margin:0;"><button class="plan-seg-b" id="planIcs">📅 Add to calendar</button><button class="plan-seg-b" id="planGcal">Google Calendar</button></div>` : cw && cw.bad ? `<div class="note">That ends before it starts. Try a longer length or an earlier start.</div>` : `<div class="note">${p.calMode === "custom" ? "That light event doesn't happen on this date here (the Moon doesn't always rise or set each day), so there's no window to add." : "The Sun doesn't " + (p.calMode === "morning" ? "rise" : "set") + " on this date here, so there's no window to add."}</div>`}<div class="note" style="margin-top:8px">Light times and a link back to this plan go in the event notes.</div></div>`;
+  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Add to calendar</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.calMode === "evening" ? "on" : ""}" data-cal="evening">Sunset shoot</button><button class="plan-seg-b ${p.calMode === "morning" ? "on" : ""}" data-cal="morning">Sunrise shoot</button><button class="plan-seg-b ${p.calMode === "custom" ? "on" : ""}" data-cal="custom">Custom</button></div><input class="plan-name" id="planCalTitle" value="${esc(p.calTitle || "")}" maxlength="80" placeholder="${esc(planEventTitle({ loc: p.loc, subject: p.subject }))}" aria-label="Event title">${customUi}<textarea class="plan-name" id="planCalNotes" rows="3" maxlength="600" placeholder="Your notes (optional): gear, who is coming, a reminder" aria-label="Your notes" style="resize:vertical;">${esc(p.calNotes || "")}</textarea>${cw && !cw.bad ? `<div class="note" style="margin-bottom:8px">${planDayLabel(p.date)}, ${fmtZ(cw.start, tz)} to ${fmtZ(cw.end, tz)}: ${calWords}</div><div class="plan-seg" style="margin:0;"><button class="plan-seg-b" id="planIcs">📅 Add to calendar</button><button class="plan-seg-b" id="planGcal">Google Calendar</button></div>` : cw && cw.bad ? `<div class="note">That ends before it starts. Try a longer length or an earlier start.</div>` : `<div class="note">${p.calMode === "custom" ? "That light event doesn't happen on this date here (the Moon doesn't always rise or set each day), so there's no window to add." : "The Sun doesn't " + (p.calMode === "morning" ? "rise" : "set") + " on this date here, so there's no window to add."}</div>`}</div>`;
   cap("cal", i0);
   i0 = html.length;
-  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Print a shoot card</div><div class="note" style="margin-bottom:8px">One page with the compass, light times, subject, drone height, what's in the way, your notes and a code that reopens this plan. </div><button class="plan-seg-b" id="planPrint">🖨 Print / Save as PDF</button><div class="note" style="margin-top:8px">${printHint()}</div></div>`;
+  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Print a shoot card</div><div class="note" style="margin-bottom:8px">One page: compass, light times, subject, drone height, what's in the way and a code that reopens this plan.</div><button class="plan-seg-b" id="planPrint">🖨 Print / Save as PDF</button><div class="note" style="margin-top:8px">${printHint()}</div></div>`;
   cap("cal", i0);
   i0 = html.length;
   p.live = null;
@@ -4122,15 +4122,15 @@ function renderPlan(app, tabsHtml){
     <div class="plan-grid" style="margin:10px 0 0;"><div><div class="label">Moonrise</div><div class="value">${mRise}</div></div><div><div class="label">Moonset</div><div class="value">${mSet}</div></div></div>
   </div>`;
   cap("sum", i0);
-  const foldBody = (key, title, inner, force, cls) => `<details class="plan-fold${cls ? " " + cls : ""}" data-fold="${key}"${(p.fold[key] || force) ? " open" : ""}><summary>${title}</summary><div class="fold-body">${inner}${FOLD_CLOSE}</div></details>`;
+  const foldBody = (key, title, inner, force, cls) => `<details class="plan-fold${cls ? " " + cls : ""}" data-fold="${key}"${(p.fold[key] || force) ? " open" : ""}><summary>${title}</summary><div class="fold-body">${inner}</div></details>`;
   const vDrone = p.vmode !== "ground", vFt = vDrone ? Math.max(0, p.alt == null ? 400 : p.alt) : 0, vObs = loadObst(p.loc).length;
   const vTitle = "Height &amp; things in the way<span class=\"sub\">" + (vDrone ? lenOut(vFt, planUnit()) : "From the ground") + " · " + (vObs ? vObs + " in the way" : "nothing in the way") + "</span>";
-  html += (parts.time || "") + (parts.hz || "");
+  html += (parts.time || "") + (parts.hz || "") + (parts.sky || "");
   html += foldBody("view", vTitle, parts.view || "", false, "two");
-  html += (parts.subj || "") + (parts.sky || "") + (parts.chk || "") + (parts.find || "");
+  html += (parts.subj || "") + (parts.find || "");
   html += foldBody("dial", "Sky view<span class=\"sub\">top-down, north up</span>", parts.dial || "", false, "two");
   html += foldBody("tools", "Share, calendar &amp; print", (parts.share || "") + (parts.cal || ""), !!p.shareMsg);
-  html += `<div class="map-note" style="margin-top:4px;">Times and directions are calculated for a flat horizon, so hills and buildings change what you see. No sky forecast past about ten days.${esc(tzNote)}</div>`;
+  html += `<div class="map-note" style="margin-top:4px;">Times and directions are calculated for a flat horizon, so hills and buildings change what you see. No sky forecast past about ten days.${esc(tzNote)}</div>` + (parts.chk || "");
   app.innerHTML = html;
   document.querySelectorAll("details.plan-fold").forEach(d => d.addEventListener("toggle", () => { p.fold[d.dataset.fold] = d.open; }));
 
