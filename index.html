@@ -3953,7 +3953,7 @@ function planDialSVG(pl, tz){
   const dirs = [["N", 0, 0, -8], ["E", 90, 11, 4], ["S", 180, 0, 16], ["W", 270, -11, 4]]
     .map(([t, , dx, dy], i) => { const a = [0, 90, 180, 270][i] * Math.PI / 180; return `<text x="${(cx + (R) * Math.sin(a) + dx).toFixed(1)}" y="${(cy - R * Math.cos(a) + dy).toFixed(1)}" font-size="13" font-weight="700" fill="#F5E6D3" text-anchor="middle">${t}</text>`; }).join("");
   return `<svg class="plan-dial" viewBox="0 0 320 320" role="img" aria-label="Sun and Moon paths across the sky">
-    <circle cx="${cx}" cy="${cy}" r="${R + 14}" fill="#171b36"/>
+    <circle cx="${cx}" cy="${cy}" r="${R + 22}" fill="#171b36"/>
     <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="rgba(245,230,211,0.30)" stroke-width="1.5"/>
     <circle cx="${cx}" cy="${cy}" r="${R * 2 / 3}" fill="none" stroke="rgba(245,230,211,0.14)" stroke-dasharray="3 4"/>
     <circle cx="${cx}" cy="${cy}" r="${R / 3}" fill="none" stroke="rgba(245,230,211,0.14)" stroke-dasharray="3 4"/>
