@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.1u -->
+<!-- Afterglow v2.5.1v -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -117,7 +117,7 @@
   }
   .eyebrow{ font-family:'IBM Plex Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(245,230,211,0.65); margin-bottom: 6px; }
   .score-row{ display:flex; align-items:flex-end; gap: 14px; margin-bottom: 4px;}
-  .score-x{ font-family: ui-monospace, Menlo, monospace; font-size:12px; letter-spacing:.04em; color:#e8743b; margin:2px 0 8px; }
+  .score-x{ font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.04em; color:#e8743b; margin:2px 0 8px; }
   .score-num{ font-family: Georgia, 'Times New Roman', serif; font-size: 68px; line-height: 0.9; font-weight: 600; color: var(--sand); text-shadow: 0 2px 12px rgba(0,0,0,0.35); }
   .score-label{ font-size: 20px; font-weight: 600; padding-bottom: 8px; color: var(--sand); }
   .hero-sub{ font-size: 14px; color: rgba(245,230,211,0.8); max-width: 46ch; line-height: 1.5; }
@@ -601,14 +601,14 @@
   .tl-big{ font-size:20px; font-weight:700; margin-top:6px; line-height:1.15; overflow-wrap:anywhere; }
   .tl-time{ font-family:'IBM Plex Mono', monospace; font-size:15px; margin-top:4px; }
   .tl-sub{ font-size:12px; color:var(--slate); margin-top:6px; }
-  .tl-msg{ font-size:14px; line-height:1.4; color:var(--slate); margin-top:6px; }
-  .tl-note{ font-size:14px; line-height:1.5; color:var(--slate); margin-top:14px; }
-  .tl-live{ margin-top:14px; padding:10px 12px; border-left:3px solid var(--gold); background:rgba(242,184,75,.07); border-radius:0 8px 8px 0; font-size:14px; line-height:1.45; color:var(--slate); }
-  .tl-foot{ font-size:11.5px; color:var(--slate-dim); margin-top:14px; }
+  .tl-msg{ font-size:13px; line-height:1.4; color:var(--slate); margin-top:6px; }
+  .tl-note{ font-size:13px; line-height:1.5; color:var(--slate); margin-top:14px; }
+  .tl-live{ margin-top:14px; padding:10px 12px; border-left:3px solid var(--gold); background:rgba(242,184,75,.07); border-radius:0 8px 8px 0; font-size:13px; line-height:1.45; color:var(--slate); }
+  .tl-foot{ font-size:12px; color:var(--slate-dim); margin-top:14px; }
   .sky-verdict{ font-size:16px; font-weight:600; line-height:1.35; margin:2px 0 4px; }
     .sky-pic{ display:block; width:100%; height:auto; border-radius:12px; margin-top:8px; }
   .sky-rows{ margin-top:10px; }
-  .sk-row{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-size:13.5px; padding:6px 0; border-top:1px solid var(--line); }
+  .sk-row{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-size:13px; padding:6px 0; border-top:1px solid var(--line); }
   .sk-k{ color:var(--sand); flex:0 0 auto; }
   .sk-v{ text-align:right; }
   .sk-raw{ color:var(--slate); }
@@ -621,7 +621,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.1u</div>
+    <div class="test-ver">🧪 TEST · v2.5.1v</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2956,7 +2956,7 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
     <div class="sky-rows">${skySummary.rows.map(skyRowText).join("")}</div>
     <div class="outlook-note" style="margin-top:8px;">A sketch of how much cloud the forecast puts at each height. Not a photo of the sky.</div>`;
 
-  skyInner += `<div class="why">These are forecast numbers. The Reality check above compares them with airport reports and the satellite.<br><br><b>How this is scored</b> — Afterglow weighs high-altitude cloud cover (the layer that catches direct light and turns pink/orange), low and mid cloud (which physically block the view of the horizon or the light source), and visibility, or humidity when visibility isn't available (haze mutes saturation even on an otherwise clear evening). The score is for the glow around sunrise or sunset, not the exact moment: it reads the forecast about ${PEAK_OFFSET_MIN} minutes after sunset (or before sunrise), when high cloud usually lights up. It's a rule of thumb, not a guarantee, so it's always worth a look outside about 20 minutes before ${mode === "evening" ? "sunset" : "sunrise"}.</div>`;
+  skyInner += `<div class="why"><b>How this is scored</b> — Afterglow weighs high-altitude cloud cover (the layer that catches direct light and turns pink/orange), low and mid cloud (which physically block the view of the horizon or the light source), and visibility, or humidity when visibility isn't available (haze mutes saturation even on an otherwise clear evening). The score is for the glow around sunrise or sunset, not the exact moment: it reads the forecast about ${PEAK_OFFSET_MIN} minutes after sunset (or before sunrise), when high cloud usually lights up. It's a rule of thumb, not a guarantee, so it's always worth a look outside about 20 minutes before ${mode === "evening" ? "sunset" : "sunrise"}.</div>`;
   const skyExtra = (s.hazeFromVis ? ` · <span class="nw">Vis ${fmtVis(s.vis)}</span>` : "") + (s.precip >= 20 ? ` · <span class="nw">Rain ${Math.round(s.precip)}%</span>` : "");
   html += uiFold("sky", `Sky breakdown (forecast)${activeDay === 0 ? "" : " · " + parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' })} <span class="sub"><span class="nw">High ${Math.round(sF.high)}%</span> · <span class="nw">Mid ${Math.round(sF.mid)}%</span> · <span class="nw">Low ${Math.round(sF.low)}%</span>${skyExtra}</span>`, skyInner);
 
