@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.1z2 -->
+<!-- Afterglow v2.5.1z3 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -623,7 +623,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.1z2</div>
+    <div class="test-ver">🧪 TEST · v2.5.1z3</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -3950,19 +3950,18 @@ function planDialSVG(pl, tz){
     return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="${color}"/><text x="${x.toFixed(1)}" y="${(y + dy).toFixed(1)}" font-size="9" text-anchor="middle" fill="${color}">${lab}</text>`;
   }).join("");
   const dirs = [["N", 0, 0, -8], ["E", 90, 11, 4], ["S", 180, 0, 16], ["W", 270, -11, 4]]
-    .map(([t, , dx, dy], i) => { const a = [0, 90, 180, 270][i] * Math.PI / 180; return `<text x="${(cx + (R) * Math.sin(a) + dx).toFixed(1)}" y="${(cy - R * Math.cos(a) + dy).toFixed(1)}" font-size="13" font-weight="700" fill="#F5E6D3" text-anchor="middle">${t}</text>`; }).join("");
+    .map(([t, , dx, dy], i) => { const a = [0, 90, 180, 270][i] * Math.PI / 180; return `<text x="${(cx + (R) * Math.sin(a) + dx).toFixed(1)}" y="${(cy - R * Math.cos(a) + dy).toFixed(1)}" font-size="13" font-weight="700" fill="var(--sand)" text-anchor="middle">${t}</text>`; }).join("");
   return `<svg class="plan-dial" viewBox="0 0 320 320" role="img" aria-label="Sun and Moon paths across the sky">
-    <circle cx="${cx}" cy="${cy}" r="${R + 22}" fill="#171b36"/>
-    <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="rgba(245,230,211,0.30)" stroke-width="1.5"/>
-    <circle cx="${cx}" cy="${cy}" r="${R * 2 / 3}" fill="none" stroke="rgba(245,230,211,0.14)" stroke-dasharray="3 4"/>
-    <circle cx="${cx}" cy="${cy}" r="${R / 3}" fill="none" stroke="rgba(245,230,211,0.14)" stroke-dasharray="3 4"/>
-    <line x1="${cx}" y1="${cy - R}" x2="${cx}" y2="${cy + R}" stroke="rgba(245,230,211,0.14)"/><line x1="${cx - R}" y1="${cy}" x2="${cx + R}" y2="${cy}" stroke="rgba(245,230,211,0.14)"/>
-    <text x="${cx + 4}" y="${cy - R / 3 + 11}" font-size="9" fill="#a2abc1">60°</text><text x="${cx + 4}" y="${cy - 2 * R / 3 + 11}" font-size="9" fill="#a2abc1">30°</text>
-    <path d="${arc(pl.moonPts)}" fill="none" stroke="#9db4e8" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 6"/>
-    <path d="${arc(pl.sunPts)}" fill="none" stroke="#F2B84B" stroke-width="3.5" stroke-linecap="round"/>
-    ${ticks(pl.moonPts, 3, "#9db4e8", 13)}${ticks(pl.sunPts, 2, "#F2B84B", -7)}
-    ${dirs}<circle cx="${cx}" cy="${cy}" r="4" fill="#F5E6D3"/>
-    <circle id="planDialMoon" r="7" fill="#dfe8ff" stroke="#9db4e8" stroke-width="2" style="display:none"/><circle id="planDialSun" r="8" fill="#F2B84B" stroke="#fff" stroke-width="2" style="display:none"/></svg>`;
+    <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="var(--ring)" stroke-width="1.5"/>
+    <circle cx="${cx}" cy="${cy}" r="${R * 2 / 3}" fill="none" stroke="var(--ring2)" stroke-dasharray="3 4"/>
+    <circle cx="${cx}" cy="${cy}" r="${R / 3}" fill="none" stroke="var(--ring2)" stroke-dasharray="3 4"/>
+    <line x1="${cx}" y1="${cy - R}" x2="${cx}" y2="${cy + R}" stroke="var(--ring2)"/><line x1="${cx - R}" y1="${cy}" x2="${cx + R}" y2="${cy}" stroke="var(--ring2)"/>
+    <text x="${cx + 4}" y="${cy - R / 3 + 11}" font-size="9" fill="var(--slate)">60°</text><text x="${cx + 4}" y="${cy - 2 * R / 3 + 11}" font-size="9" fill="var(--slate)">30°</text>
+    <path d="${arc(pl.moonPts)}" fill="none" stroke="var(--moon)" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 6"/>
+    <path d="${arc(pl.sunPts)}" fill="none" stroke="var(--sun)" stroke-width="3.5" stroke-linecap="round"/>
+    ${ticks(pl.moonPts, 3, "var(--moon)", 13)}${ticks(pl.sunPts, 2, "var(--sun)", -7)}
+    ${dirs}<circle cx="${cx}" cy="${cy}" r="4" fill="var(--sand)"/>
+    <circle id="planDialMoon" r="7" fill="var(--moon-fill)" stroke="var(--moon)" stroke-width="2" style="display:none"/><circle id="planDialSun" r="8" fill="var(--sun)" stroke="#fff" stroke-width="2" style="display:none"/></svg>`;
 }
 
 async function planTimeZoneFor(lat, lon){
