@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.1w -->
+<!-- Afterglow v2.5.1x -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -201,7 +201,8 @@
   .map-slider-icon{ font-size: 15px; opacity: 0.7; }
   .map-readout{ display:flex; gap: 10px; margin-bottom: 14px; }
   .map-readout .card{ flex: 1; text-align: center; }
-  .map-note{ font-size: 12.5px; line-height: 1.5; color: var(--slate); }
+  .map-note{ font-size: 13px; line-height: 1.5; color: var(--slate); }
+  .note{ font-size: 13px; line-height: 1.5; color: var(--slate); }
   /* Reality check: airport reports toward the sun, shown in the last 3 hours before the event */
   .rc-hint{ font-size:12px; line-height:1.5; color: var(--slate); text-align:center; margin:22px 10px 22px; }
   .rc-card{ border:1px solid var(--line); border-left:4px solid var(--rc, var(--slate)); background: var(--card); border-radius:14px; padding:14px 16px 12px; margin:14px 0 12px; }
@@ -621,7 +622,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.1w</div>
+    <div class="test-ver">🧪 TEST · v2.5.1x</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -3299,7 +3300,7 @@ function skyCardHtml(p, sun, esc){
     const msg = p.date < sk.daily.time[0]
       ? "That date has passed. Pick a later date for a sky forecast."
       : `Too far out for a sky forecast. It becomes available <b>${planDayLabel(planShift(p.date, -(sk.daily.time.length - 1)))}</b>, about ten days before. Directions and times above are exact now.`;
-    return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky forecast · ${planDayLabel(p.date)}</div><div class="note" style="font-size:13px;">${msg}</div></div>`;
+    return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky forecast · ${planDayLabel(p.date)}</div><div class="note" style="font-size:13px">${msg}</div></div>`;
   }
   const rows = [];
   [["evening", "Sunset", sk.daily.sunset[i], sun.set], ["morning", "Sunrise", sk.daily.sunrise[i], sun.rise]].forEach(([mode, name, evt, t]) => {
@@ -3309,7 +3310,7 @@ function skyCardHtml(p, sun, esc){
     rows.push(`<div class="plan-row2"><span>${name}${t ? " " + fmtZ(t, p.loc.tz) : ""}</span><b class="${sc.score >= 44 ? "plan-good" : ""}">${label(sc.score)} · ${sc.score}</b></div>`);
   });
   const nearToday = i === 0 ? "" : "";
-  return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky forecast · ${planDayLabel(p.date)}</div>${sk.staleAt ? `<div class="note" style="margin-bottom:6px;color:var(--gold);">Offline: this is the last forecast that loaded, from ${describeAge(Date.now() - sk.staleAt)}.</div>` : ""}${rows.join("") || '<div class="note">No sunrise or sunset score for this date.</div>'}<div class="note" style="margin-top:6px;">Same score as Today and Outlook. Forecasts shift, so check again closer to the day.</div></div>`;
+  return `<div class="card" style="margin-bottom:10px;"><div class="label">Sky forecast · ${planDayLabel(p.date)}</div>${sk.staleAt ? `<div class="note" style="margin-bottom:6px;color:var(--gold)">Offline: this is the last forecast that loaded, from ${describeAge(Date.now() - sk.staleAt)}.</div>` : ""}${rows.join("") || '<div class="note">No sunrise or sunset score for this date.</div>'}<div class="note" style="margin-top:6px">Same score as Today and Outlook. Forecasts shift, so check again closer to the day.</div></div>`;
 }
 
 // ---- Calendar file (.ics): the shoot window plus the light times, in the event notes.
@@ -3550,7 +3551,7 @@ function planViewCardHtml(p, pl, esc){
     const shown = unit === "m" ? Math.round(hFt * FT_M) : Math.round(hFt);
     h += `<div class="plan-row"><span style="font-size:13.5px;flex:1;">Height above takeoff</span><input class="plan-date" style="max-width:110px;text-align:right;" type="number" inputmode="decimal" min="0" max="${unit === "m" ? 1000 : 3000}" id="planAlt" value="${shown}" aria-label="Height above takeoff in ${unit === "m" ? "meters" : "feet"}"><span style="font-size:13.5px;">${unit}</span></div>
     <div class="plan-seg" style="margin:6px 0;">${[100, 200, 300, 400].map(v => `<button class="plan-seg-b" data-altq="${v}">${unit === "m" ? Math.round(v * FT_M) : v}</button>`).join("")}</div>
-    <div class="note" style="font-size:12.5px;">${unit === "m" ? (hFt > 400 ? "Above the usual 122 m (400 ft) limit. " : "122 m (400 ft) is the US Part 107 limit above the takeoff point. ") : (hFt > 400 ? "Above the usual 400 ft limit. " : "400 ft is the Part 107 limit above the takeoff point. ")}Horizon dips ${dipDeg(hFt).toFixed(1)}° at this height.</div>`;
+    <div class="note">${unit === "m" ? (hFt > 400 ? "Above the usual 122 m (400 ft) limit. " : "122 m (400 ft) is the US Part 107 limit above the takeoff point. ") : (hFt > 400 ? "Above the usual 400 ft limit. " : "400 ft is the Part 107 limit above the takeoff point. ")}Horizon dips ${dipDeg(hFt).toFixed(1)}° at this height.</div>`;
   }
   h += `</div>`;
   const block = (mode, label) => {
@@ -3563,28 +3564,28 @@ function planViewCardHtml(p, pl, esc){
       const g = planVisibility(p, pl, 0, mode, obs), d = drone ? planVisibility(p, pl, hFt, mode, obs) : null;
       r += `<div class="plan-row2"><span>With what's in the way, from the ground</span><b class="nw ${g && g.blocked ? "plan-warn" : "plan-good"}">${fmt(g)}</b></div>`;
       if(drone) r += `<div class="plan-row2"><span>With what's in the way, from ${lenOut(hFt, unit)}</span><b class="nw ${d && d.blocked ? "plan-warn" : "plan-good"}">${fmt(d)}</b></div>`;
-      if(g && d){ const mins = Math.round(Math.abs(d.t - g.t) / 60000); if(mins >= 2) r += `<div class="note" style="font-size:12.5px;margin-top:6px;">${mode === "evening" ? "From the drone you get about " + mins + " more minutes of direct sun here." : "From the drone the sun is clear about " + mins + " minutes " + (d.t < g.t ? "earlier" : "later") + "."}</div>`; }
+      if(g && d){ const mins = Math.round(Math.abs(d.t - g.t) / 60000); if(mins >= 2) r += `<div class="note" style="margin-top:6px">${mode === "evening" ? "From the drone you get about " + mins + " more minutes of direct sun here." : "From the drone the sun is clear about " + mins + " minutes " + (d.t < g.t ? "earlier" : "later") + "."}</div>`; }
     }
     return `<div class="label" style="margin-top:8px;">${label}</div>${r}`;
   };
-  h += `<div class="card" style="margin-bottom:10px;"><div class="label">Sun at the horizon, ${planDayLabel(p.date)}</div>${block("evening", "Sunset") + block("morning", "Sunrise") || '<div class="note" style="font-size:12.5px;">The Sun doesn\'t rise or set on this date here.</div>'}</div>`;
+  h += `<div class="card" style="margin-bottom:10px;"><div class="label">Sun at the horizon, ${planDayLabel(p.date)}</div>${block("evening", "Sunset") + block("morning", "Sunrise") || '<div class="note">The Sun doesn\'t rise or set on this date here.</div>'}</div>`;
   h += `<div class="card" style="margin-bottom:12px;"><div class="label">Things in the way at this spot</div>${p.obNote ? `<div class="plan-msg" style="color:var(--gold);margin:4px 0 6px;">${esc(p.obNote)}</div>` : ""}`;
-  if(!obs.length) h += `<div class="note" style="font-size:12.5px;margin-bottom:8px;">Trees, buildings or a hill that block the Sun. You've seen them; the app can't. Enter what you know, and the times above allow for it.</div>`;
+  if(!obs.length) h += `<div class="note" style="margin-bottom:8px">Trees, buildings or a hill that block the Sun. You've seen them; the app can't. Enter what you know, and the times above allow for it.</div>`;
   obs.forEach((o, i) => {
     h += `<div class="plan-row2"><span><b>${esc(o.name)}</b> · ${Math.round(o.a1)}° to ${Math.round(o.a2)}°<br><span style="color:var(--slate);font-size:12.5px;">${lenOut(o.h, unit)} tall, ${lenOut(o.d, unit)} away</span></span><b>${Math.max(0, obstAngle(o, 0)).toFixed(0)}° from the ground${drone ? `<br><span style="color:var(--slate);font-weight:400;font-size:12.5px;">${Math.max(0, obstAngle(o, hFt)).toFixed(0)}° at ${lenOut(hFt, unit)}</span>` : ""}<br><button class="plan-seg-b" data-delobs="${i}" style="margin-top:4px;padding:3px 10px;font-size:12px;">Remove</button></b></div>`;
   });
   if(p.addObs){
-    h += `<div style="margin-top:8px;"><div class="note" style="font-size:12.5px;margin:0 0 4px;">What is it?</div><div class="ob-types"><button type="button" class="ob-type${p.obType === 'trees' || (!p.obType && 'trees' === 'trees') ? " on" : ""}" data-obtype="trees"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><circle cx="8" cy="14" r="6"/><circle cx="17" cy="12" r="7"/><circle cx="27" cy="14" r="6"/><circle cx="34" cy="15" r="5"/><rect x="3" y="14" width="34" height="8"/></svg>Trees</button><button type="button" class="ob-type${p.obType === 'tree' || (!p.obType && 'tree' === 'trees') ? " on" : ""}" data-obtype="tree"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><rect x="18.5" y="14" width="3" height="9"/><circle cx="20" cy="10" r="7"/><circle cx="14" cy="14" r="5"/><circle cx="26" cy="14" r="5"/></svg>Big tree</button><button type="button" class="ob-type${p.obType === 'building' || (!p.obType && 'building' === 'trees') ? " on" : ""}" data-obtype="building"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><rect x="8" y="5" width="14" height="17"/><rect x="22" y="12" width="10" height="10"/></svg>Building</button><button type="button" class="ob-type${p.obType === 'hill' || (!p.obType && 'hill' === 'trees') ? " on" : ""}" data-obtype="hill"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><path d="M2 22 Q12 4 22 12 Q32 2 38 16 L38 22 Z"/></svg>Hill</button><button type="button" class="ob-type${p.obType === 'tower' || (!p.obType && 'tower' === 'trees') ? " on" : ""}" data-obtype="tower"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><polygon points="18,22 22,22 21,2 19,2"/><rect x="13" y="8" width="14" height="1.5"/></svg>Tower</button><button type="button" class="ob-type${p.obType === 'wall' || (!p.obType && 'wall' === 'trees') ? " on" : ""}" data-obtype="wall"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><rect x="3" y="14" width="34" height="8"/></svg>Wall</button></div><input class="plan-name" id="obName" maxlength="30" placeholder="Name it (optional)">
+    h += `<div style="margin-top:8px;"><div class="note" style="margin:0 0 4px">What is it?</div><div class="ob-types"><button type="button" class="ob-type${p.obType === 'trees' || (!p.obType && 'trees' === 'trees') ? " on" : ""}" data-obtype="trees"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><circle cx="8" cy="14" r="6"/><circle cx="17" cy="12" r="7"/><circle cx="27" cy="14" r="6"/><circle cx="34" cy="15" r="5"/><rect x="3" y="14" width="34" height="8"/></svg>Trees</button><button type="button" class="ob-type${p.obType === 'tree' || (!p.obType && 'tree' === 'trees') ? " on" : ""}" data-obtype="tree"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><rect x="18.5" y="14" width="3" height="9"/><circle cx="20" cy="10" r="7"/><circle cx="14" cy="14" r="5"/><circle cx="26" cy="14" r="5"/></svg>Big tree</button><button type="button" class="ob-type${p.obType === 'building' || (!p.obType && 'building' === 'trees') ? " on" : ""}" data-obtype="building"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><rect x="8" y="5" width="14" height="17"/><rect x="22" y="12" width="10" height="10"/></svg>Building</button><button type="button" class="ob-type${p.obType === 'hill' || (!p.obType && 'hill' === 'trees') ? " on" : ""}" data-obtype="hill"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><path d="M2 22 Q12 4 22 12 Q32 2 38 16 L38 22 Z"/></svg>Hill</button><button type="button" class="ob-type${p.obType === 'tower' || (!p.obType && 'tower' === 'trees') ? " on" : ""}" data-obtype="tower"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><polygon points="18,22 22,22 21,2 19,2"/><rect x="13" y="8" width="14" height="1.5"/></svg>Tower</button><button type="button" class="ob-type${p.obType === 'wall' || (!p.obType && 'wall' === 'trees') ? " on" : ""}" data-obtype="wall"><svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true" fill="currentColor"><rect x="3" y="14" width="34" height="8"/></svg>Wall</button></div><input class="plan-name" id="obName" maxlength="30" placeholder="Name it (optional)">
       <div class="plan-row"><span style="font-size:13px;">From</span><input class="plan-date" type="number" inputmode="decimal" id="obA1" placeholder="e.g. 240" aria-label="From compass degrees"><span style="font-size:13px;">to</span><input class="plan-date" type="number" inputmode="decimal" id="obA2" placeholder="e.g. 260" aria-label="To compass degrees"><span style="font-size:13px;">°</span></div>
       <div class="plan-row"><span class="ob-lbl" style="font-size:13px;">Height</span><input class="plan-date" type="number" inputmode="decimal" id="obH" placeholder="e.g. 70" aria-label="Height"><span style="font-size:13px;">${unit}</span></div>
       <div class="plan-row"><span class="ob-lbl" style="font-size:13px;">Distance</span><input class="plan-date" type="number" inputmode="decimal" id="obD" placeholder="e.g. 700" aria-label="Distance"><span style="font-size:13px;">${unit}</span></div>
       <div class="plan-msg" id="obErr" style="display:${p.obMsg ? "block" : "none"};color:#e0600f;font-weight:600;">${esc(p.obMsg || "")}</div>
       <div class="plan-seg"><button class="plan-seg-b on" id="obSave">Save</button><button class="plan-seg-b" id="obCancel">Cancel</button></div>
-      <div class="note" style="font-size:12.5px;">Compass degrees: north 0, east 90, south 180, west 270. Height is above the ground you stand on.</div></div>`;
+      <div class="note">Compass degrees: north 0, east 90, south 180, west 270. Height is above the ground you stand on.</div></div>`;
   } else if(obs.length < 12){
     h += `<button class="plan-seg-b" id="obAdd" style="margin-top:8px;">＋ Add something in the way</button>`;
   }
-  h += `<div class="note" style="font-size:12.5px;margin-top:8px;">Saved on this device with this spot.</div></div>`;
+  h += `<div class="note" style="margin-top:8px">Saved on this device with this spot.</div></div>`;
   return h;
 }
 function planEventTitle(p){ return (p.calTitle || "").trim() || "Shoot: " + ((p.subject && p.subject.name) || p.loc.name); }
@@ -3805,7 +3806,7 @@ function planFinder(p, brg, mode){
       const w = windowsOf(list, k, back, 20), tx = runsText(w);
       rows.push(`<div class="plan-row2"><span>${label} behind you: front light <span style="color:var(--slate)">(within 20°)</span></span><b>${tx || "never"}</b></div>`);
     });
-    html = `<div class="note" style="margin-bottom:6px;">Dates in the next 12 months. The Sun's heading moves slowly, so these are runs of days.</div>` + rows.join("");
+    html = `<div class="note" style="margin-bottom:6px">Dates in the next 12 months. The Sun's heading moves slowly, so these are runs of days.</div>` + rows.join("");
     const firsts = [["rise", "Sunrise"], ["set", "Sunset"]].map(([k, label]) => { const w = windowsOf(list, k, brg, 3); return w.runs.length ? { label, r: w.runs[0] } : null; }).filter(Boolean).sort((a, b) => a.r.from < b.r.from ? -1 : 1);
     sum = firsts.length ? firsts[0].label + " behind it: " + (firsts[0].r.from === firsts[0].r.to ? planDayLabel(firsts[0].r.from) : planDayLabel(firsts[0].r.from) + " – " + planDayLabel(firsts[0].r.to)) : "no Sun lineup in 12 months";
   } else {
@@ -3823,7 +3824,7 @@ function planFinder(p, brg, mode){
     });
     const near = cand.filter(c => c.off <= 6).sort((a, b) => a.off - b.off).slice(0, 5).sort((a, b) => a.t - b.t);
     const show = near.length ? near : cand.slice().sort((a, b) => a.off - b.off).slice(0, 1);
-    html = `<div class="note" style="margin-bottom:6px;">${near.length ? "Moonrise or moonset within 6° of the subject, next " + days + " days" : "Nothing within 6° in the next " + days + " days. The closest one:"}</div>` +
+    html = `<div class="note" style="margin-bottom:6px">${near.length ? "Moonrise or moonset within 6° of the subject, next " + days + " days" : "Nothing within 6° in the next " + days + " days. The closest one:"}</div>` +
       show.map(c => `<div class="plan-row2"><span><b>${planDayLabel(c.ds)}</b> · ${c.label} ${fmtZ(c.t, tz)} · ${c.lit}% lit${c.rel ? `<br><span style="color:var(--slate);font-size:12.5px;">${c.rel}</span>` : ""}</span><b>${Math.round(c.az)}°, ${Math.round(c.off)}° off</b></div>`).join("");
   }
   p.scan = { key, html, sum };
@@ -4014,7 +4015,7 @@ function renderPlan(app, tabsHtml){
     html += `<button type="button" class="plan-btn plan-res" id="planGps" style="margin-top:8px;"><svg class="loc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4"/></svg><span>${p.loc.name === MYLOC ? "Update my location" : "My location"}</span></button>`;
     if(!p.results.length && !p.msg){
       const rl = recentsFor(p.loc);
-      if(rl.length) html += `<div class="note" style="margin:8px 0 4px;">Recent places</div>` + rl.map((r, i) => `<button type="button" class="plan-btn plan-res" data-recent="${i}">📍 ${esc(r.name)}</button>`).join("");
+      if(rl.length) html += `<div class="note" style="margin:8px 0 4px">Recent places</div>` + rl.map((r, i) => `<button type="button" class="plan-btn plan-res" data-recent="${i}">📍 ${esc(r.name)}</button>`).join("");
     }
     html += p.results.map((r, i) => `<button type="button" class="plan-btn plan-res" data-i="${i}">${esc(r.name)}${r.admin1 ? ", " + esc(r.admin1) : ""}${r.country ? " · " + esc(r.country) : ""}</button>`).join("");
     if(!sameAsSaved) html += `<button type="button" class="plan-btn plan-res" id="planSaved">Back to ${esc(state.loc.name)}</button>`;
@@ -4064,12 +4065,12 @@ function renderPlan(app, tabsHtml){
     if(sun.set) { const lp = lightPhrase(sun.setAz, bd.brg); rows.push(`<div class="plan-row2"><span>Sun at sunset (${fmtZ(sun.set, tz)})</span><b class="${lp.c}">${lp.t}</b></div>`); }
     if(moon.moonrise) { const dd = angDiff(moon.moonriseAz, bd.brg); rows.push(`<div class="plan-row2"><span>Moonrise (${fmtZ(moon.moonrise, tz)})</span><b>${Math.round(Math.abs(dd))}° ${dd > 0 ? "right" : "left"} of the subject</b></div>`); }
     if(moon.moonset) { const dd = angDiff(moon.moonsetAz, bd.brg); rows.push(`<div class="plan-row2"><span>Moonset (${fmtZ(moon.moonset, tz)})</span><b>${Math.round(Math.abs(dd))}° ${dd > 0 ? "right" : "left"} of the subject</b></div>`); }
-    html += `<div class="card" style="margin-bottom:10px;"><div class="label">${esc(sname)} · ${Math.round(bd.brg)}° ${compassDir(bd.brg)} · ${fmtDist(bd.km)}</div><div class="note" style="margin-bottom:4px;">Light on the subject, ${planDayLabel(p.date)}. You are facing it from your spot.</div>${rows.join("") || '<div class="note">No sunrise, sunset or moon events on this date.</div>'}</div>`;
+    html += `<div class="card" style="margin-bottom:10px;"><div class="label">${esc(sname)} · ${Math.round(bd.brg)}° ${compassDir(bd.brg)} · ${fmtDist(bd.km)}</div><div class="note" style="margin-bottom:4px">Light on the subject, ${planDayLabel(p.date)}. You are facing it from your spot.</div>${rows.join("") || '<div class="note">No sunrise, sunset or moon events on this date.</div>'}</div>`;
     cap("subj", i0);
     i0 = html.length;
     let fin = "";
     try{ fin = planFinder(p, bd.brg, p.finder); }catch(e){ console.error("Finder failed:", e); fin = '<div class="note">Couldn\'t search the dates.</div>'; }
-    html += `<details class="plan-fold two" data-fold="finder"${p.fold.finder ? " open" : ""}><summary>Find the dates it lines up${p.scan && p.scan.sum ? ` <span class="sub">${esc(p.scan.sum)}</span>` : ""}</summary><div class="fold-body"><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.finder === "sun" ? "on" : ""}" data-finder="sun">Sun</button><button class="plan-seg-b ${p.finder === "moon" ? "on" : ""}" data-finder="moon">Moon</button></div>${fin}<div class="note" style="margin-top:8px;">Direction only: it doesn't know how tall the subject is or what stands in between.</div>${FOLD_CLOSE}</div></details>`;
+    html += `<details class="plan-fold two" data-fold="finder"${p.fold.finder ? " open" : ""}><summary>Find the dates it lines up${p.scan && p.scan.sum ? ` <span class="sub">${esc(p.scan.sum)}</span>` : ""}</summary><div class="fold-body"><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.finder === "sun" ? "on" : ""}" data-finder="sun">Sun</button><button class="plan-seg-b ${p.finder === "moon" ? "on" : ""}" data-finder="moon">Moon</button></div>${fin}<div class="note" style="margin-top:8px">Direction only: it doesn't know how tall the subject is or what stands in between.</div>${FOLD_CLOSE}</div></details>`;
   }
   cap("find", i0);
   i0 = html.length;
@@ -4082,7 +4083,7 @@ function renderPlan(app, tabsHtml){
   html += checklistBtnHtml(p.loc, "planChk");
   cap("chk", i0);
   i0 = html.length;
-  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Share this plan</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b" id="planCopy">🔗 Copy link</button>${navigator.share ? '<button class="plan-seg-b" id="planShare">Share…</button>' : ""}</div>${p.shareMsg ? `<div class="note" style="margin-bottom:6px;color:var(--gold);">${esc(p.shareMsg)}</div>` : ""}<div class="note">Reopens this place${p.subject ? ', the subject pin' : ''} and date in AfterGlow on any phone. Nothing is stored on a server.</div></div>`;
+  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Share this plan</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b" id="planCopy">🔗 Copy link</button>${navigator.share ? '<button class="plan-seg-b" id="planShare">Share…</button>' : ""}</div>${p.shareMsg ? `<div class="note" style="margin-bottom:6px;color:var(--gold)">${esc(p.shareMsg)}</div>` : ""}<div class="note">Reopens this place${p.subject ? ', the subject pin' : ''} and date in AfterGlow on any phone. Nothing is stored on a server.</div></div>`;
   cap("share", i0);
   i0 = html.length;
   if(!p.calMode) p.calMode = "evening";
@@ -4096,10 +4097,10 @@ function renderPlan(app, tabsHtml){
       ? `<div class="cal-row"><select class="plan-name cal-sel" id="calOffH" aria-label="Hours">${hrOpts}</select><select class="plan-name cal-sel" id="calOffM" aria-label="Minutes">${mnOpts}</select><select class="plan-name cal-sel" id="calDir" aria-label="Before or after"><option value="before"${cc.dir === "before" ? " selected" : ""}>before</option><option value="after"${cc.dir === "after" ? " selected" : ""}>after</option></select></div><div class="cal-row"><select class="plan-name cal-sel" id="calAnchor" aria-label="Light event">${CAL_ANCHORS.map(selA).join("")}</select></div>`
       : `<input type="time" class="plan-name" id="calClock" value="${esc(cc.clock)}" aria-label="Start time" style="margin-bottom:8px;">`}<div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b" id="calUseBar" data-bar="${barClock}">⏱ Use the time on the bar</button></div><div class="label" style="margin:6px 0;">Length</div><div class="plan-seg" style="margin-bottom:8px;">${lenChip(60)}${lenChip(120)}${lenChip(180)}<button class="plan-seg-b ${cc.lenKind === "sunset" ? "on" : ""}" data-callen="sunset">Until sunset</button></div><div class="cal-row"><span class="cal-t">Or type:</span><input type="number" class="plan-name cal-num" id="calLenH" min="0" max="12" value="${Math.floor(cc.lenMin / 60)}" aria-label="Hours long"><span class="cal-t">hr</span><input type="number" class="plan-name cal-num" id="calLenM" min="0" max="59" value="${cc.lenMin % 60}" aria-label="Minutes long"><span class="cal-t">min</span></div>` : "";
   const calWords = p.calMode === "custom" ? planCustomText(pl, p, tz) : "an hour before golden hour through " + (p.calMode === "morning" ? "the end of golden hour." : "sunset.");
-  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Add to calendar</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.calMode === "evening" ? "on" : ""}" data-cal="evening">Sunset shoot</button><button class="plan-seg-b ${p.calMode === "morning" ? "on" : ""}" data-cal="morning">Sunrise shoot</button><button class="plan-seg-b ${p.calMode === "custom" ? "on" : ""}" data-cal="custom">Custom</button></div><input class="plan-name" id="planCalTitle" value="${esc(p.calTitle || "")}" maxlength="80" placeholder="${esc(planEventTitle({ loc: p.loc, subject: p.subject }))}" aria-label="Event title">${customUi}<textarea class="plan-name" id="planCalNotes" rows="3" maxlength="600" placeholder="Your notes (optional): gear, who is coming, a reminder" aria-label="Your notes" style="resize:vertical;">${esc(p.calNotes || "")}</textarea>${cw && !cw.bad ? `<div class="note" style="margin-bottom:8px;">${planDayLabel(p.date)}, ${fmtZ(cw.start, tz)} to ${fmtZ(cw.end, tz)}: ${calWords}</div><div class="plan-seg" style="margin:0;"><button class="plan-seg-b" id="planIcs">📅 Add to calendar</button><button class="plan-seg-b" id="planGcal">Google Calendar</button></div>` : cw && cw.bad ? `<div class="note">That ends before it starts. Try a longer length or an earlier start.</div>` : `<div class="note">${p.calMode === "custom" ? "That light event doesn't happen on this date here (the Moon doesn't always rise or set each day), so there's no window to add." : "The Sun doesn't " + (p.calMode === "morning" ? "rise" : "set") + " on this date here, so there's no window to add."}</div>`}<div class="note" style="margin-top:8px;">Light times and a link back to this plan go in the event notes.</div></div>`;
+  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Add to calendar</div><div class="plan-seg" style="margin-bottom:8px;"><button class="plan-seg-b ${p.calMode === "evening" ? "on" : ""}" data-cal="evening">Sunset shoot</button><button class="plan-seg-b ${p.calMode === "morning" ? "on" : ""}" data-cal="morning">Sunrise shoot</button><button class="plan-seg-b ${p.calMode === "custom" ? "on" : ""}" data-cal="custom">Custom</button></div><input class="plan-name" id="planCalTitle" value="${esc(p.calTitle || "")}" maxlength="80" placeholder="${esc(planEventTitle({ loc: p.loc, subject: p.subject }))}" aria-label="Event title">${customUi}<textarea class="plan-name" id="planCalNotes" rows="3" maxlength="600" placeholder="Your notes (optional): gear, who is coming, a reminder" aria-label="Your notes" style="resize:vertical;">${esc(p.calNotes || "")}</textarea>${cw && !cw.bad ? `<div class="note" style="margin-bottom:8px">${planDayLabel(p.date)}, ${fmtZ(cw.start, tz)} to ${fmtZ(cw.end, tz)}: ${calWords}</div><div class="plan-seg" style="margin:0;"><button class="plan-seg-b" id="planIcs">📅 Add to calendar</button><button class="plan-seg-b" id="planGcal">Google Calendar</button></div>` : cw && cw.bad ? `<div class="note">That ends before it starts. Try a longer length or an earlier start.</div>` : `<div class="note">${p.calMode === "custom" ? "That light event doesn't happen on this date here (the Moon doesn't always rise or set each day), so there's no window to add." : "The Sun doesn't " + (p.calMode === "morning" ? "rise" : "set") + " on this date here, so there's no window to add."}</div>`}<div class="note" style="margin-top:8px">Light times and a link back to this plan go in the event notes.</div></div>`;
   cap("cal", i0);
   i0 = html.length;
-  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Print a shoot card</div><div class="note" style="margin-bottom:8px;font-size:12.5px;">One page with the compass, light times, subject, drone height, what's in the way, your notes and a code that reopens this plan. </div><button class="plan-seg-b" id="planPrint">🖨 Print / Save as PDF</button><div class="note" style="margin-top:8px;font-size:12.5px;">${printHint()}</div></div>`;
+  html += `<div class="card" style="margin-bottom:12px;"><div class="label">Print a shoot card</div><div class="note" style="margin-bottom:8px">One page with the compass, light times, subject, drone height, what's in the way, your notes and a code that reopens this plan. </div><button class="plan-seg-b" id="planPrint">🖨 Print / Save as PDF</button><div class="note" style="margin-top:8px">${printHint()}</div></div>`;
   cap("cal", i0);
   i0 = html.length;
   p.live = null;
