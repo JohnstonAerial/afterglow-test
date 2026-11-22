@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.7d -->
+<!-- Afterglow v2.5.7e -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -623,7 +623,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.7d</div>
+    <div class="test-ver">🧪 TEST · v2.5.7e</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2273,8 +2273,7 @@ function moonCardHTML(m){
     : null;
 
   return `<div class="card" style="grid-column: 1 / -1;">
-    <div class="label">${m.emoji} ${m.phaseName} · ${m.illumPct}% lit${m.atNoon ? " at noon " + m.dayName : ""}</div>
-    <div class="grid" style="margin-top:10px;">
+    <div class="grid">
       <div><div class="label">Moonrise</div><div class="value">${riseStr}</div></div>
       <div><div class="label">Moonset</div><div class="value">${setStr}</div></div>
     </div>
@@ -2950,6 +2949,7 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
     <div class="hero-swatch" style="background:${gradient}"></div>
     <div class="hero-content">
       <div class="day-nav"><button class="day-step" id="dayPrev" aria-label="Previous day"${activeDay <= 0 ? " disabled" : ""}>‹</button><div class="eyebrow">${activeDay === 0 ? "Today, " + parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { month:'short', day:'numeric' }) : parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' })}</div><button class="day-step" id="dayNext" aria-label="Next day"${activeDay >= Math.min(9, daily.time.length - 1) ? " disabled" : ""}>›</button></div>
+      ${activeDay > 0 ? `<div style="text-align:center;margin-top:10px;"><button class="plan-btn" id="dayHome" style="border-color:var(--gold);">↩ Back to today</button></div>` : ""}
       ${activeDay >= 7 ? `<div class="far-note">Day ${activeDay + 1} of 10: less certain. Forecasts shift most this far out.</div>` : ""}
       <div class="score-row">
         <div class="score-num">${s.score}</div>
@@ -3016,7 +3016,8 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
   document.querySelectorAll(".toggle-btn").forEach(b => b.addEventListener("click", () => {
     state.mode = b.dataset.mode; render();
   }));
-  const dp = $("dayPrev"), dn = $("dayNext");
+  const dp = $("dayPrev"), dn = $("dayNext"), dh = $("dayHome");
+  if(dh) dh.addEventListener("click", () => { state.activeDay = 0; render(); window.scrollTo(0, 0); });   // 2.5.7e
   if(dp) dp.addEventListener("click", () => { if(state.activeDay > 0){ state.activeDay--; render(); } });
   if(dn) dn.addEventListener("click", () => { if(state.activeDay < Math.min(9, state.daily.time.length - 1)){ state.activeDay++; render(); } });
   bindFolds();
