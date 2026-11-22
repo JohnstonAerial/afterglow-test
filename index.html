@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.7e -->
+<!-- Afterglow v2.5.7f -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -259,7 +259,7 @@
   .today-fold > summary .nw{ white-space:nowrap; }
   .today-fold > summary .sub, .plan-fold > summary .sub{ color: var(--slate); font-size:12px; margin-left:auto; margin-right:10px; }
   /* Today cards: title and arrow stay on the first row; the summary drops to its own line when it does not fit beside the title */
-  .today-fold > summary{ position:relative; flex-wrap:wrap; justify-content:space-between; gap:4px 10px; padding-right:42px; white-space:nowrap; }
+  .today-fold > summary{ position:relative; flex-wrap:wrap; justify-content:space-between; gap:4px 10px; padding-right:42px; white-space:normal; }   /* 2.5.7f: title may wrap at large text sizes */
   .today-fold > summary::after{ position:absolute; right:16px; top:50%; margin-top:-0.6em; line-height:1.2; }
   .today-fold > summary .sub{ margin:0; text-align:left; white-space:normal; }
   .ag-head, .ag-row{ display:grid; grid-template-columns:54px minmax(0,1fr) minmax(0,1fr); gap:8px; align-items:stretch; }
@@ -623,7 +623,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.7e</div>
+    <div class="test-ver">🧪 TEST · v2.5.7f</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
