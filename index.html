@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.7b -->
+<!-- Afterglow v2.5.7c -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -623,7 +623,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.7b</div>
+    <div class="test-ver">🧪 TEST · v2.5.7c</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2860,7 +2860,23 @@ function moonTick(){
 }
 setInterval(rcTick, 60000);
 setInterval(moonTick, 60000);
-document.addEventListener("visibilitychange", () => { if(!document.hidden){ rcTick(); moonTick(); } });
+// 2.5.7c: reopening the app after more than 15 minutes does what the Refresh button does (forecast, score, text, Moon card, "Updated" time).
+// Not on the Plan tab (the person may be mid-edit); at most one try every 2 minutes; the page keeps its scroll position.
+const AUTO_REFRESH_MIN = 15;
+function autoRefreshIfOld(){
+  try{
+    if(document.hidden || !state.loc || !state.daily || state.view === "plan" || state.autoRefreshing) return false;
+    const now = Date.now();
+    if(!state.updatedAt || now - state.updatedAt < AUTO_REFRESH_MIN * 60000) return false;
+    if(state.lastAutoTry && now - state.lastAutoTry < 120000) return false;
+    state.lastAutoTry = now; state.autoRefreshing = true;
+    const y = window.scrollY;
+    Promise.resolve(boot(state.loc, true)).catch(() => {}).then(() => { state.autoRefreshing = false; window.scrollTo(0, y); });
+    return true;
+  }catch(e){ state.autoRefreshing = false; return false; }
+}
+document.addEventListener("visibilitychange", () => { if(!document.hidden){ if(!autoRefreshIfOld()){ rcTick(); moonTick(); } } });
+window.addEventListener("pageshow", e => { if(e.persisted) autoRefreshIfOld(); });
 function renderToday(app, tabsHtml){
   const { daily, hourly, activeDay, mode, loc } = state;
 
