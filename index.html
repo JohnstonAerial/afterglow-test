@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.8a -->
+<!-- Afterglow v2.5.8b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -623,7 +623,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.8a</div>
+    <div class="test-ver">🧪 TEST · v2.5.8b</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2555,7 +2555,9 @@ function syncLocLabel(){
 }
 function render(){
   const app = $("app");
-  if(!state.daily){ app.innerHTML = '<div class="loading">Reading the sky…</div>'; return; }
+  // 2.5.8b: the 90%-of-window reserve (CSS) only holds the footer steady while the forecast loads; once the forecast is in, the content sets the height, so a tall window shows no gap above the footer
+  if(!state.daily){ app.style.minHeight = ''; app.innerHTML = '<div class="loading">Reading the sky…</div>'; return; }
+  app.style.minHeight = '0';
   const tabsHtml = `<div class="view-tabs">
     <button class="view-tab ${state.view==='today'?'active':''}" data-view="today">Today</button>
     <button class="view-tab ${state.view==='outlook'?'active':''}" data-view="outlook">Outlook</button>
@@ -4677,7 +4679,7 @@ async function boot(loc, keep){
   state.stale = null;
   if(keepDay) state.rc = null; // a refresh also pulls a fresh airport and satellite check
   const esc = (t) => String(t).replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
-  const say = (msg) => { $("app").innerHTML = `<div class="loading">${msg}</div>`; };
+  const say = (msg) => { $("app").style.minHeight = ''; $("app").innerHTML = `<div class="loading">${msg}</div>`; };
 
   if(!keepDay) say('Reading the sky over ' + esc(loc.name) + '…');
 
@@ -5110,7 +5112,7 @@ function initLocation(){
     return;
   }
   // No saved location yet — ask for it up front instead of silently defaulting.
-  $("app").innerHTML = '<div class="loading">Requesting your location…</div>';
+  $("app").style.minHeight = ''; $("app").innerHTML = '<div class="loading">Requesting your location…</div>';
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       const loc = { name: MYLOC, lat: pos.coords.latitude, lon: pos.coords.longitude };
