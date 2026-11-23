@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.9a -->
+<!-- Afterglow v2.5.9b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -623,7 +623,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.9a</div>
+    <div class="test-ver">🧪 TEST · v2.5.9b</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2327,8 +2327,8 @@ function moonPathHTML(m){
   return `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);">
     <div style="display:flex;justify-content:space-between;align-items:baseline;"><div class="label">Moon path · ${m.nowPos ? "today" : (m.dayName || "this day")}</div><small style="color:var(--slate);">${upTxt}</small></div>
     ${svg}
-    <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--slate);margin-top:4px;"><span><b style="color:var(--sun);">▌</b> golden hour</span><span><b style="color:var(--moon);">━</b> Moon height</span><span>◯ rise / set</span></div>
-    <div class="outlook-note" style="margin-top:6px;">${note}</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--slate);margin-top:4px;"><span><b style="color:var(--sun);">▌</b> golden hour</span></div>
+    ${m.alignment ? "" : `<div class="outlook-note" style="margin-top:6px;">${note}</div>`}
   </div>`;
 }
 function moonCardHTML(m){
