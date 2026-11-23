@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.8b -->
+<!-- Afterglow v2.5.9a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -623,7 +623,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.8b</div>
+    <div class="test-ver">🧪 TEST · v2.5.9a</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2252,6 +2252,17 @@ function computeMoonInfoPlace(dayStart, lat, lon, sunriseIso, sunsetIso){
       }
     }
   }catch(e){}
+  // 2.5.9a: Moon path curve data: the Moon's height every 10 minutes across this calendar day (place clock), plus where the sun is (night and golden-hour bands).
+  try{
+    const t0 = frameR(dayStart).getTime(), t1 = frameR(new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate() + 1)).getTime();
+    const n = Math.round((t1 - t0) / 600000), alts = [], sun = [];
+    for(let i = 0; i <= n; i++){
+      const d = new Date(t0 + i * 600000);
+      alts.push(moonHorizontal(d, lat, lon).alt);
+      sun.push(solarHorizontal(d, lat, lon).alt);
+    }
+    m.path = { alts, sun, n, hours: (t1 - t0) / 3600000, sunrise: new Date(sunriseIso), sunset: new Date(sunsetIso), dayStart };
+  }catch(e){}
   if(!m.nowPos){ m.atNoon = true; m.dayName = dayStart.toLocaleDateString([], { weekday:'long' }); }   // 2.5.7d: any day but today is the midday value, and says so
   return m;
 }
@@ -2262,6 +2273,63 @@ function fistsText(alt){
   if(f < 0.75) return "about half a fist above the horizon";
   const w = Math.floor(f) + (f % 1 ? "½" : "");
   return `about ${w} ${f === 1 ? "fist" : "fists"} above the horizon`;
+}
+// 2.5.9a: the Moon path card: the Moon's height across the day, with rise/set markers, night and golden-hour bands, and a dot for right now.
+function moonPathHTML(m){
+  const P = m.path; if(!P || !P.alts || P.alts.length < 6) return "";
+  const W = 342, H = 168, L = 10, R = 10, T = 22, B = 26, n = P.n, hrs = P.hours;
+  const x = i => L + (W - L - R) * i / n;
+  const lo = Math.min(-15, Math.floor(Math.min(...P.alts) / 5) * 5), hi = Math.max(30, Math.ceil(Math.max(...P.alts) / 5) * 5);
+  const y = a => T + (H - T - B) * (hi - a) / (hi - lo);
+  const hz = y(0), bandH = H - T - B;
+  const idxOf = d => { const h = (d - P.dayStart) / 3600000; return Math.max(0, Math.min(n, h / hrs * n)); };
+  // runs of samples where a test holds -> rects
+  const runs = f => { const out = []; let s0 = -1; for(let i = 0; i <= n; i++){ const ok = f(i); if(ok && s0 < 0) s0 = i; if((!ok || i === n) && s0 >= 0){ out.push([s0, ok ? i : i - 1]); s0 = -1; } } return out; };
+  const rects = (rs, fill, op) => rs.map(([a, b]) => `<rect x="${x(a).toFixed(1)}" y="${T}" width="${Math.max(1, x(b) - x(a)).toFixed(1)}" height="${bandH}" fill="${fill}" opacity="${op}"/>`).join("");
+  const night = rects(runs(i => P.sun[i] < -0.83), "var(--ink)", 0.5);
+  const gold = rects(runs(i => P.sun[i] >= -4 && P.sun[i] < 6), "var(--sun)", 0.22);
+  const line = P.alts.map((a, i) => (i ? "L" : "M") + x(i).toFixed(1) + "," + y(a).toFixed(1)).join(" ");
+  const fill = "M" + x(0).toFixed(1) + "," + hz.toFixed(1) + " " + P.alts.map((a, i) => "L" + x(i).toFixed(1) + "," + y(Math.max(a, 0)).toFixed(1)).join(" ") + " L" + x(n).toFixed(1) + "," + hz.toFixed(1) + " Z";
+  const sr = x(idxOf(P.sunrise)), ss = x(idxOf(P.sunset));
+  // moon rise/set crossings from the samples (the card's own rise/set times stay the headline numbers)
+  let marks = "";
+  for(let i = 1; i <= n; i++){
+    const a = P.alts[i - 1] - MOON_UP_ALT, b = P.alts[i] - MOON_UP_ALT;
+    if((a < 0) !== (b < 0)){
+      const f = a / (a - b), cx = x(i - 1 + f), rise = b > a;
+      marks += `<circle cx="${cx.toFixed(1)}" cy="${hz.toFixed(1)}" r="3.5" fill="var(--panel)" stroke="var(--moon)" stroke-width="1.6"/><text x="${Math.max(24, Math.min(W - 24, cx)).toFixed(1)}" y="${(hz + 16).toFixed(1)}" fill="var(--sand)" font-size="9.5" text-anchor="middle">${rise ? "Moonrise" : "Moonset"}</text>`;
+    }
+  }
+  let nowMark = "";
+  if(m.nowPos){
+    const ni = idxOf(m.nowPos.at), nx = x(ni), na = m.nowPos.alt, ny = y(na);
+    nowMark = `<line x1="${nx.toFixed(1)}" x2="${nx.toFixed(1)}" y1="${T}" y2="${H - B}" stroke="var(--ring)"/><circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="9" fill="var(--moon)" opacity=".2"/><circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="5" fill="var(--moon-fill)" stroke="var(--moon)" stroke-width="1.5"/><text x="${Math.min(W - 24, nx + 8).toFixed(1)}" y="${Math.max(T + 8, ny - 8).toFixed(1)}" fill="var(--sand)" font-size="9.5">Now</text>`;
+  }
+  const hr = k => { const h = ((P.dayStart.getHours() + k) % 24); return h === 0 ? "12 AM" : h === 12 ? "12 PM" : (h % 12) + (h < 12 ? " AM" : " PM"); };
+  const ticks = [0, 6, 12, 18, 24].map((k, j) => `<text x="${x(k / hrs * n).toFixed(1)}" y="${H - 8}" fill="var(--slate)" font-size="9.5" text-anchor="${j === 0 ? "start" : j === 4 ? "end" : "middle"}">${hr(k)}</text>`).join("");
+  const svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Moon height across the day" style="display:block;">
+    ${night}${gold}
+    <line x1="${L}" x2="${W - R}" y1="${hz.toFixed(1)}" y2="${hz.toFixed(1)}" stroke="var(--ring)" stroke-dasharray="3 3"/>
+    <line x1="${sr.toFixed(1)}" x2="${sr.toFixed(1)}" y1="${T}" y2="${H - B}" stroke="var(--sun)" opacity=".75"/><line x1="${ss.toFixed(1)}" x2="${ss.toFixed(1)}" y1="${T}" y2="${H - B}" stroke="var(--sun)" opacity=".75"/>
+    <path d="${fill}" fill="var(--moon)" opacity=".16"/><path d="${line}" fill="none" stroke="var(--moon)" stroke-width="2"/>
+    ${marks}${nowMark}
+    <text x="${sr.toFixed(1)}" y="${T - 8}" fill="var(--sun)" font-size="9.5" text-anchor="middle">☀ rise</text><text x="${ss.toFixed(1)}" y="${T - 8}" fill="var(--sun)" font-size="9.5" text-anchor="middle">☀ set</text>
+    ${ticks}</svg>`;
+  // how long the Moon is up in this window
+  let upMin = 0; for(let i = 0; i < n; i++) if(P.alts[i] > MOON_UP_ALT) upMin += 10;
+  const upTxt = upMin ? `Up ${Math.floor(upMin / 60)} h ${upMin % 60} m` : "Not up today";
+  // one line: what the Moon is doing at the golden hours
+  const at = d => P.alts[Math.round(idxOf(d))];
+  const eveUp = at(P.sunset) > 0, mornUp = at(P.sunrise) > 0;
+  const note = eveUp ? "The Moon is up at sunset, so it sits in the sky during evening golden hour."
+    : mornUp ? "The Moon is still up at sunrise, so it sits in the sky during morning golden hour."
+    : "The Moon is below the horizon at both sunrise and sunset today.";
+  return `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;"><div class="label">Moon path · ${m.nowPos ? "today" : (m.dayName || "this day")}</div><small style="color:var(--slate);">${upTxt}</small></div>
+    ${svg}
+    <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--slate);margin-top:4px;"><span><b style="color:var(--sun);">▌</b> golden hour</span><span><b style="color:var(--moon);">━</b> Moon height</span><span>◯ rise / set</span></div>
+    <div class="outlook-note" style="margin-top:6px;">${note}</div>
+  </div>`;
 }
 function moonCardHTML(m){
   const riseStr = m.moonrise ? `${fmt(m.moonrise)} <small><span style="white-space:nowrap;">${compassDir(m.moonriseAz)}</span></small>` : `<small>Doesn't rise today</small>`;
@@ -2285,6 +2353,7 @@ function moonCardHTML(m){
            <div class="outlook-note" style="margin-top:6px;">A fist held at arm's length is about 10°. Start at the horizon in that direction and count fists up.</div>`
         : `<div class="value">Below the horizon${(m.moonrise && m.moonrise > m.nowPos.at) ? ` <small>· <span style="white-space:nowrap;">rises in ${(() => { const mins = Math.max(1, Math.round((m.moonrise - m.nowPos.at) / 60000)); const h = Math.floor(mins / 60), r = mins % 60; return h ? (r ? `${h} hr ${r} min` : `${h} hr`) : `${r} min`; })()}</span></small>` : ""}</div>`}
     </div>` : ""}
+    ${moonPathHTML(m)}
     ${alignNote ? `<div class="outlook-note" style="margin-top:10px;">${alignNote}</div>` : ""}
     <div class="outlook-note" style="margin-top:${alignNote ? 6 : 10}px;">Rise/set times are calculated, not observed — usually within a few minutes, but can be off by up to ~30-45 min when the Moon crosses the horizon at a shallow angle.</div>
   </div>`;
