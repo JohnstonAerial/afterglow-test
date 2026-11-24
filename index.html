@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.9e -->
+<!-- Afterglow v2.5.10a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -262,6 +262,9 @@
   .today-fold > summary{ position:relative; flex-wrap:wrap; justify-content:space-between; gap:4px 10px; padding-right:42px; white-space:normal; }   /* 2.5.7f: title may wrap at large text sizes */
   .today-fold > summary::after{ position:absolute; right:16px; top:50%; margin-top:-0.6em; line-height:1.2; }
   .today-fold > summary .sub{ margin:0; text-align:left; white-space:normal; }
+  /* 2.5.10a: the Moon & timelapse header keeps emoji and title together on the left and puts the summary on its own line (a long summary no longer pushes the title across the card on a wide window) */
+  .today-fold.moonfold > summary{ justify-content:flex-start; }
+  .today-fold.moonfold > summary .sub{ flex-basis:100%; }
   .ag-head, .ag-row{ display:grid; grid-template-columns:54px minmax(0,1fr) minmax(0,1fr); gap:8px; align-items:stretch; }
   .ag-head{ font-size:11px; color: var(--slate); text-transform:uppercase; letter-spacing:.08em; font-family:'IBM Plex Mono', monospace; margin:2px 0 6px; }
   .ag-row{ margin-bottom:8px; }
@@ -623,7 +626,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.9e</div>
+    <div class="test-ver">🧪 TEST · v2.5.10a</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2577,9 +2580,9 @@ document.addEventListener("click", e => {
   d.open = false;
   try{ d.scrollIntoView({ block: "nearest", behavior: "smooth" }); }catch(err){ d.scrollIntoView(); }
 });
-function uiFold(key, title, inner){
+function uiFold(key, title, inner, cls){
   state.fold = state.fold || {};
-  return `<details class="plan-fold today-fold" data-fold="${key}"${state.fold[key] ? " open" : ""}><summary>${title}</summary><div class="fold-body">${inner}${(key === "sky" || key === "moon") ? FOLD_CLOSE : ""}</div></details>`;
+  return `<details class="plan-fold today-fold${cls ? " " + cls : ""}" data-fold="${key}"${state.fold[key] ? " open" : ""}><summary>${title}</summary><div class="fold-body">${inner}${(key === "sky" || key === "moon") ? FOLD_CLOSE : ""}</div></details>`;
 }
 function bindFolds(){
   document.querySelectorAll("details.today-fold").forEach(d => d.addEventListener("toggle", () => { state.fold = state.fold || {}; state.fold[d.dataset.fold] = d.open; }));
@@ -3086,7 +3089,7 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
       const why = k === "clear" ? "clear sky, nothing to move" : k === "solid" ? "solid cloud, nothing to move" : k === "patchy" ? "patchy cloud, little movement" : "no good window";
       tlSum = ` · <span class="nw">Timelapse: ${why}</span>`; } }
   if(state.windPending) tlSum = ` · <span class="nw">Timelapse: checking wind…</span>`;
-  html += uiFold("moon", `<span id="moonEmoji">${moon.emoji}</span> Moon &amp; timelapse${activeDay === 0 ? "" : " · " + parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' })} <span class="sub"><span id="moonPh">${moon.phaseName}</span> · <span class="nw" id="moonPct">${moon.illumPct}% lit</span>${tlSum}</span>`, `<div class="grid"><div id="moonSlot" style="display:contents">${moonCardHTML(moon)}</div>${timelapseCardHTML(timelapse)}</div>`);
+  html += uiFold("moon", `<span id="moonEmoji">${moon.emoji}</span> Moon &amp; timelapse${activeDay === 0 ? "" : " · " + parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' })} <span class="sub"><span id="moonPh">${moon.phaseName}</span> · <span class="nw" id="moonPct">${moon.illumPct}% lit</span>${tlSum}</span>`, `<div class="grid"><div id="moonSlot" style="display:contents">${moonCardHTML(moon)}</div>${timelapseCardHTML(timelapse)}</div>`, "moonfold");
 
   html += checklistBtnHtml(state.loc, "todayChk");
   app.innerHTML = html;
