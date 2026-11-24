@@ -26,6 +26,12 @@ Use the **Sunrise** / **Sunset** toggle at the top to switch between the two. Us
 | Fair | 26–43 | Modest, mostly gradient |
 | Flat | under 26 | Little to catch the light |
 
+**Moon path.** Open **Moon & timelapse** and under Moonrise and Moonset you'll find a small curve of the Moon's height across the day, midnight to midnight. Open circles mark moonrise and moonset, gold lines mark sunrise and sunset, the gold bands are golden hour, the shaded areas are night, and on today a dot marks where the Moon is right now. It is worked out from the Moon's position on your device, not from the forecast, so clouds don't change it. A one-line note says whether the Moon is up at sunset or sunrise. On other days it shows that day.
+
+**Moon & timelapse header.** The line under the title shows the phase and how much is lit, then **Daytime clouds** (the best time to shoot moving clouds in daylight) and, when it differs, **Moon:** how the sky looks around the Moon (for example "mostly cloud-covered"). "100% lit" means how much of the Moon's face the Sun lights up, not whether you can see it.
+
+**Reopening the app.** If you reopen Afterglow after more than 15 minutes away, Today refreshes by itself the way the **Refresh** button does (not on Plan, and your scroll position stays put).
+
 ## 3. Look ahead with Outlook
 
 The **Outlook** tab lists the coming sunrises and sunsets in order, color-coded by score, so you can spot the best day. Times that have already passed are dimmed, and "best" only points at one still ahead. Tap any row to open that day in Today.
