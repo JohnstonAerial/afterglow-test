@@ -24,6 +24,9 @@ Afterglow predicts how good a sunrise or sunset is actually going to look — no
 
 ## What's new
 
+**2.5.11**
+- **Moonrise and moonset** on the Moon card now come from the same calendar day, with the next one first and past ones dimmed, so they agree with the Moon path curve (before, the moonset could be tomorrow's, which looked wrong after midnight).
+
 **2.5.10**
 - **Moon & timelapse header** keeps the emoji and title together on the left, with the summary on its own line, so a long summary no longer pushes the title across a wide window.
 

@@ -30,6 +30,8 @@ Use the **Sunrise** / **Sunset** toggle at the top to switch between the two. Us
 
 **Refresh.** Under the Sunrise / Sunset toggle, Today shows when the forecast was fetched. Tap **Refresh** to load it again; you stay on the same day and sunrise or sunset. If you reopen Afterglow after more than 15 minutes away, Today refreshes by itself the same way (not on Plan, and your scroll position stays put).
 
+**Moonrise and moonset.** The two tiles at the top of the Moon card show the rise and the set from the same calendar day, so they match the Moon path curve below. The one that comes next is shown first, and ones that have already happened are dimmed. On the rare day with no rise or no set, the tile says so.
+
 **Moon path.** Open **Moon & timelapse** and under Moonrise and Moonset you'll find a small curve of the Moon's height across the day, midnight to midnight. Open circles mark moonrise and moonset, gold lines mark sunrise and sunset, the gold bands are golden hour, the shaded areas are night, and on today a dot marks where the Moon is right now. It is worked out from the Moon's position on your device, not from the forecast, so clouds don't change it. A one-line note says whether the Moon is up at sunset or sunrise. On other days it shows that day.
 
 **Moon & timelapse header.** The line under the title shows the phase and how much is lit, then **Daytime clouds** (the best time to shoot moving clouds in daylight) and, when it differs, **Moon:** how the sky looks around the Moon (for example "mostly cloud-covered"). "100% lit" means how much of the Moon's face the Sun lights up, not whether you can see it.
