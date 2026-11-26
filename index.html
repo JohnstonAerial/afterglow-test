@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.13c -->
+<!-- Afterglow v2.5.14a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -250,6 +250,18 @@
   .plan-seg-b.jump{ display:flex; flex-direction:column; align-items:center; line-height:1.25; padding:6px 12px; }
   .plan-seg-b.jump small{ font-size:11px; color: var(--slate); font-family:'IBM Plex Mono', monospace; }
   [hidden]{ display:none !important; }
+  /* 2.5.14a: Today panel times as one list in the order the sky goes dark, with direction, wind and daylight in small tiles under it. Everything shows; no More / Less links. */
+  .time-list{ margin: 16px 0 4px; border-top: 1px solid var(--line); }
+  .tl-row{ display:flex; justify-content:space-between; align-items:baseline; gap:4px 12px; flex-wrap:wrap; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .tl-row .k{ font-size:14px; color: rgba(245,230,211,0.78); line-height:1.25; }
+  .tl-row .k small{ display:block; font-size:11.5px; color: rgba(245,230,211,0.55); margin-top:1px; }
+  .tl-row .v{ font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; color: var(--sand); white-space:nowrap; margin-left:auto; }
+  .tl-row.glow .k, .tl-row.glow .v, .tl-row.glow .k small{ color: var(--gold); }
+  .hero-facts{ display:grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap:8px; margin-top:14px; }
+  .hf{ border:1px solid var(--line); border-radius:12px; padding:8px 10px; background: rgba(10,11,22,0.22); min-width:0; }
+  .hf .k{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; color: rgba(245,230,211,0.6); }
+  .hf .v{ font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; color: var(--sand); margin-top:2px; white-space:nowrap; }
+  .hf .s{ font-size:11px; color: rgba(245,230,211,0.55); margin-top:1px; line-height:1.25; }
   .more-link{ background:none; border:0; color: var(--gold); font: inherit; font-size:13px; padding:4px 0; cursor:pointer; text-decoration:underline; }
   .today-fold .card{ border:1px solid var(--line); background: var(--card); border-radius:14px; padding:14px 16px; }
   .today-fold .card + .card{ border-top:1px solid var(--line); border-radius:14px; }
@@ -635,7 +647,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.13c</div>
+    <div class="test-ver">🧪 TEST · v2.5.14a</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -3075,26 +3087,52 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
       ${document.querySelector(".test-ver") && s.fc ? `<div class="score-x" title="Test copy only">Forecast only: <b>${s.fc.score}</b> ${label(s.fc.score)} · test only</div>` : ""}
       ${(() => { if(!document.querySelector(".test-ver")) return ""; const e = ecmwfScore(hourly, state.second, eventIso, mode, sampleAt(state.sample[mode], eventIso)); if(!e) return ""; return `<div class="score-x" title="Test copy only">Same forecast on ECMWF: <b>${e.score}</b> ${label(e.score)} · test only</div>`; })()}
       ${document.querySelector(".test-ver") && s.scoreX != null ? `<div class="score-x" title="Test copy only">Experimental score: <b>${s.scoreX}</b> ${label(s.scoreX)} · test only</div>` : ""}
-      ${(() => { const [b1, b2] = splitBlurb(blurb(s, mode)); return `<div class="hero-sub">${b1}${b2 ? ` <span id="blurbRest"${state.blurbMore ? "" : " hidden"}>${b2}</span> <button class="more-link" id="blurbMore">${state.blurbMore ? "Less" : "More"}</button>` : ""}</div>`; })()}
+      ${(() => { const [b1, b2] = splitBlurb(blurb(s, mode)); return `<div class="hero-sub">${b1}${b2 ? " " + b2 : ""}</div>`; })()}
       ${liveWhy(s)}
-      <div class="hero-sub" style="margin-top:8px;">${afterglowTip(eventIso, mode, s.score, s)}</div>
+      ${(() => { const x = ((mode !== "evening" && s.score >= 26 ? "Get there early." : "") + tipClear(s, s.score)).trim(); return x ? `<div class="hero-sub" style="margin-top:8px;">${x}</div>` : ""; })()}
       ${(() => { if(!document.querySelector(".test-ver")) return ""; const d = modelDisagreement(sF, state.second, eventIso, mode); if(!d || !d.disagree) return ""; return `<div class="hero-sub" style="margin-top:8px;"><b>The forecast models disagree.</b> On ${d.worst.name}, this forecast says ${Math.round(d.worst.a)}% and a second model (${state.second.model}) says ${Math.round(d.worst.b)}%. Treat the score as less certain, and check again closer to the time.</div>`; })()}
-      <div class="hero-times">
-        ${(twilight && mode !== "evening") ? `<div class="hero-time-item"><div class="k">${twilightLabel}</div><div class="v">${fmt(twilight)}</div></div>` : ""}
-        ${mode === "evening" ? "" : bestItem}
-        <div class="hero-time-item"><div class="k">${mode === "evening" ? "Sunset" : "Sunrise"}</div><div class="v">${fmtTime(eventIso)}</div></div>
-        ${mode === "evening" ? bestItem : ""}
-        ${(twilight && mode === "evening") ? `<div class="hero-time-item"><div class="k">${twilightLabel}</div><div class="v">${fmt(twilight)}</div></div>` : ""}
-        <div class="hero-time-item"><div class="k">Direction</div><div class="v">${azimuthLabel}</div></div>
-        ${(() => { const w = windAtEvent(hourly, eventIso); return w ? `<div class="hero-time-item"><div class="k">Wind</div><div class="v">${w}</div></div>` : ""; })()}
-        <div class="hero-time-item"><div class="k">Golden hour</div><div class="v">${fmt(goldenStart)}–${fmt(goldenEnd)}</div></div>
-        <div class="hero-time-item"><div class="k">Blue hour</div><div class="v">${fmt(blueStart)}–${fmt(blueEnd)}</div></div>
-      </div>
-      ${(nauticalTwilight || astroTwilight) ? `<button class="more-link" id="moreTimes">${state.moreTimes ? "Fewer times" : "More twilight times"}</button>
-      <div class="hero-times" id="moreTimesBox" style="margin-top:6px;"${state.moreTimes ? "" : " hidden"}>
-        ${nauticalTwilight ? `<div class="hero-time-item"><div class="k">${nauticalLabel}</div><div class="v">${fmt(nauticalTwilight)}</div></div>` : ""}
-        ${astroTwilight ? `<div class="hero-time-item"><div class="k">${astroLabel}</div><div class="v">${fmt(astroTwilight)}</div></div>` : ""}
-      </div>` : ""}
+      ${(() => {
+        const ms = v => new Date(v).getTime(), min = 60000, ev = ms(eventIso), evening = mode === "evening";
+        const rows = [];
+        const add = (t, k, v, cls, sub) => { if(t != null && v) rows.push({ t: ms(t), k, v, cls: cls || "", sub: sub || "" }); };
+        if(evening){
+          add(goldenStart, "Golden hour", `${fmt(goldenStart)}–${fmt(goldenEnd)}`);
+          add(eventIso, "Sunset", fmtTime(eventIso));
+          if(s.score >= 26) add(ev + 15*min, "Best light", `${fmt(new Date(ev + 15*min))}–${fmt(new Date(ev + 20*min))}`);
+          add(ev + PEAK_OFFSET_MIN*min, "Scored for the glow", fmt(new Date(ev + PEAK_OFFSET_MIN*min)), "glow", `${PEAK_OFFSET_MIN} min after sunset`);
+          add(blueStart, "Blue hour", `${fmt(blueStart)}–${fmt(blueEnd)}`);
+          if(twilight) add(twilight, twilightLabel, fmt(twilight));
+          if(nauticalTwilight) add(nauticalTwilight, nauticalLabel, fmt(nauticalTwilight));
+          if(astroTwilight) add(astroTwilight, astroLabel, fmt(astroTwilight));
+        } else {
+          if(astroTwilight) add(astroTwilight, astroLabel, fmt(astroTwilight));
+          if(nauticalTwilight) add(nauticalTwilight, nauticalLabel, fmt(nauticalTwilight));
+          if(twilight) add(twilight, twilightLabel, fmt(twilight));
+          add(blueStart, "Blue hour", `${fmt(blueStart)}–${fmt(blueEnd)}`);
+          if(s.score >= 26) add(ev - 20*min, "Best light", `${fmt(new Date(ev - 20*min))}–${fmt(new Date(ev - 15*min))}`);
+          add(ev - PEAK_OFFSET_MIN*min, "Scored for the glow", fmt(new Date(ev - PEAK_OFFSET_MIN*min)), "glow", `${PEAK_OFFSET_MIN} min before sunrise`);
+          add(goldenStart, "Golden hour", `${fmt(goldenStart)}–${fmt(goldenEnd)}`);
+          add(eventIso, "Sunrise", fmtTime(eventIso));
+        }
+        rows.forEach((r, n) => r.n = n);
+        rows.sort((a, b) => a.t - b.t || a.n - b.n);
+        const list = `<div class="time-list">${rows.map(r => `<div class="tl-row${r.cls ? " " + r.cls : ""}"><div class="k">${r.k}${r.sub ? `<small>${r.sub}</small>` : ""}</div><div class="v">${r.v}</div></div>`).join("")}</div>`;
+        const w = windAtEvent(hourly, eventIso);
+        // Daylight: today's sunrise to sunset, and how it changed from yesterday (the same solver for both days, so the difference is not thrown off by two sources).
+        let dayTile = "";
+        try{
+          const sr = ms(sunrise), ss = ms(sunset);
+          if(ss > sr){
+            const len = Math.round((ss - sr) / min);
+            const solverLen = d => { const r = civilTwilight(d, loc.lat, loc.lon, "dawn", 90.833), t = civilTwilight(d, loc.lat, loc.lon, "dusk", 90.833); return (r && t) ? (t - r) / min : null; };
+            const a = solverLen(new Date(ss)), b = solverLen(new Date(ss - 86400000));
+            let cmp = "";
+            if(a != null && b != null){ const dm = Math.round(a - b); cmp = dm === 0 ? "same as yesterday" : (dm > 0 ? "+" : "−") + Math.abs(dm) + " m vs yesterday"; }
+            dayTile = `<div class="hf"><div class="k">Daylight</div><div class="v">${Math.floor(len / 60)} h ${String(len % 60).padStart(2, "0")} m</div>${cmp ? `<div class="s">${cmp}</div>` : ""}</div>`;
+          }
+        }catch(e){ dayTile = ""; }
+        return list + `<div class="hero-facts"><div class="hf"><div class="k">Direction</div><div class="v">${azimuthLabel}</div></div>${w ? `<div class="hf"><div class="k">Wind</div><div class="v">${w}</div></div>` : ""}${dayTile}</div>`;
+      })()}
     </div>
   </div>
   <div id="rcSlot"></div>`;
@@ -3146,8 +3184,6 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
   [["barPrev", -1], ["barNext", 1]].forEach(([id, d]) => { const b = $(id); if(b) b.addEventListener("click", () => stepDay(d)); });
   { const b = $("barDate"); if(b) b.addEventListener("click", goHome); }
   bindFolds();
-  const bm = $("blurbMore"); if(bm) bm.addEventListener("click", () => { state.blurbMore = !state.blurbMore; $("blurbRest").hidden = !state.blurbMore; bm.textContent = state.blurbMore ? "Less" : "More"; });
-  const mt = $("moreTimes"); if(mt) mt.addEventListener("click", () => { state.moreTimes = !state.moreTimes; $("moreTimesBox").hidden = !state.moreTimes; mt.textContent = state.moreTimes ? "Fewer times" : "More twilight times"; });
   const staleBtn = $("staleRetry");
   if(staleBtn) staleBtn.addEventListener("click", () => boot(state.loc, true));
   const updBtn = $("updBtn");
