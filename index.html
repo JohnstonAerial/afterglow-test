@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.14d -->
+<!-- Afterglow v2.5.15a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -515,6 +515,8 @@
   .day-dock{ position: sticky; top: env(safe-area-inset-top, 0px); z-index: 1100; margin: 0 -20px 14px; padding: 8px 20px 9px; background: rgb(20,23,44); border-bottom: 1px solid var(--line); box-shadow: 0 2px 16px rgba(0,0,0,0.4); }
   .day-dock .dd-top{ display:flex; align-items:center; gap:8px; }
   .day-dock .dd-date{ flex:1; min-width:0; text-align:center; background:none; border:0; color: var(--sand); font:inherit; font-size:16px; font-weight:600; padding:6px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:default; }
+  .day-dock .dd-date .wd-l{ display:none; }
+  @media (min-width: 600px){ .day-dock .dd-date .wd-s{ display:none; } .day-dock .dd-date .wd-l{ display:inline; } }
   .day-dock .dd-date.home{ cursor:pointer; text-decoration: underline dotted; text-underline-offset:4px; }
   .day-dock .toggle-row{ margin: 7px 0 0; }
   .day-dock .toggle-btn{ padding: 8px; }
@@ -668,7 +670,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.14d</div>
+    <div class="test-ver">🧪 TEST · v2.5.15a</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -3098,7 +3100,7 @@ function renderToday(app, tabsHtml){
 
   {
     const dObj = parseLocalDate(daily.time[activeDay]);
-    const dLbl = activeDay === 0 ? "Today, " + dObj.toLocaleDateString([], { month:"short", day:"numeric" }) : dObj.toLocaleDateString([], { weekday:"short", month:"short", day:"numeric" });
+    const dLbl = activeDay === 0 ? "Today, " + dObj.toLocaleDateString([], { month:"short", day:"numeric" }) : (() => { const md = dObj.toLocaleDateString([], { month:"short", day:"numeric" }); return `<span class="wd-s">${dObj.toLocaleDateString([], { weekday:"short" })}</span><span class="wd-l">${dObj.toLocaleDateString([], { weekday:"long" })}</span>, ${md}`; })();   // 2.5.15a: full weekday name on wide screens (CSS)
     const lastDay = Math.min(9, daily.time.length - 1);
     html += `<div class="day-dock"><div class="dd-top"><button class="day-step" id="barPrev" aria-label="Previous day"${activeDay <= 0 ? " disabled" : ""}>‹</button><button class="dd-date${activeDay > 0 ? " home" : ""}" id="barDate"${activeDay > 0 ? ' aria-label="Back to today"' : ""}>${dLbl}</button><button class="day-step" id="barNext" aria-label="Next day"${activeDay >= lastDay ? " disabled" : ""}>›</button></div>
     <div class="toggle-row">
