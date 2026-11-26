@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.15a -->
+<!-- Afterglow v2.5.15b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -670,7 +670,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.15a</div>
+    <div class="test-ver">🧪 TEST · v2.5.15b</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -3189,7 +3189,7 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
 
   skyInner += `<div class="why"><b>How this is scored</b> — Afterglow weighs high-altitude cloud cover (the layer that catches direct light and turns pink/orange), low and mid cloud (which physically block the view of the horizon or the light source), and visibility, or humidity when visibility isn't available (haze mutes saturation even on an otherwise clear evening). The score is for the glow around sunrise or sunset, not the exact moment: it reads the forecast about ${PEAK_OFFSET_MIN} minutes after sunset (or before sunrise), when high cloud usually lights up. It's a rule of thumb, not a guarantee, so it's always worth a look outside about 20 minutes before ${mode === "evening" ? "sunset" : "sunrise"}.</div>`;
   const skyExtra = (s.hazeFromVis ? ` · <span class="nw">Vis ${fmtVis(s.vis)}</span>` : "") + (s.precip >= 20 ? ` · <span class="nw">Rain ${Math.round(s.precip)}%</span>` : "");
-  html += uiFold("sky", `Sky breakdown (forecast)${activeDay === 0 ? "" : " · " + parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' })} <span class="sub"><span class="nw">High ${Math.round(sF.high)}%</span> · <span class="nw">Mid ${Math.round(sF.mid)}%</span> · <span class="nw">Low ${Math.round(sF.low)}%</span>${skyExtra}</span>`, skyInner);
+  html += uiFold("sky", `Sky breakdown (forecast) <span class="sub"><span class="nw">High ${Math.round(sF.high)}%</span> · <span class="nw">Mid ${Math.round(sF.mid)}%</span> · <span class="nw">Low ${Math.round(sF.low)}%</span>${skyExtra}</span>`, skyInner);
 
   const moon = computeMoonInfoPlace(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, sunrise, sunset);
   const timelapse = scanTimelapseWindow(parseLocalDate(daily.time[activeDay]), loc.lat, loc.lon, hourly, frameR, sunrise, sunset);
@@ -3209,7 +3209,7 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
       const why = k === "clear" ? "clear sky, nothing to move" : k === "solid" ? "solid cloud, nothing to move" : k === "patchy" ? "patchy cloud, little movement" : "no good window";
       tlSum = ` · <span class="nw">Timelapse: ${why}</span>`; } }
   if(state.windPending) tlSum = ` · <span class="nw">Timelapse: checking wind…</span>`;
-  html += uiFold("moon", `<span id="moonEmoji">${moon.emoji}</span> Moon &amp; timelapse${activeDay === 0 ? "" : " · " + parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' })} <span class="sub"><span id="moonPh">${moon.phaseName}</span> · <span class="nw" id="moonPct">${moon.illumPct}% lit</span>${tlSum}</span>`, `<div class="grid"><div id="moonSlot" style="display:contents">${moonCardHTML(moon)}</div>${timelapseCardHTML(timelapse)}</div>`, "moonfold");
+  html += uiFold("moon", `<span id="moonEmoji">${moon.emoji}</span> Moon &amp; timelapse <span class="sub"><span id="moonPh">${moon.phaseName}</span> · <span class="nw" id="moonPct">${moon.illumPct}% lit</span>${tlSum}</span>`, `<div class="grid"><div id="moonSlot" style="display:contents">${moonCardHTML(moon)}</div>${timelapseCardHTML(timelapse)}</div>`, "moonfold");
 
   html += checklistBtnHtml(state.loc, "todayChk");
   app.innerHTML = html;
