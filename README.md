@@ -24,6 +24,9 @@ Afterglow predicts how good a sunrise or sunset is actually going to look — no
 
 ## What's new
 
+**2.5.12**
+- **Sky breakdown picture:** the low cloud layer is now drawn in a lighter shade with a faint lit edge, so a heavy low cloud deck is easy to see instead of blending into the dark sky.
+
 **2.5.11**
 - **Moonrise and moonset** on the Moon card now come from the same calendar day, with the next one first and past ones dimmed, so they agree with the Moon path curve (before, the moonset could be tomorrow's, which looked wrong after midnight).
 
