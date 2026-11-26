@@ -24,6 +24,10 @@ Afterglow predicts how good a sunrise or sunset is actually going to look — no
 
 ## What's new
 
+**2.5.13**
+- **Day bar.** Under the tabs, one bar now holds the ‹ › day arrows, the date and the Sunrise | Sunset switch. It stays pinned to the top as you scroll, so you can change days while Sky breakdown or Moon is open. **Tap the date to jump back to today** (this replaces the "Back to today" button).
+- **The page keeps your place** when you change the day or switch between Sunrise and Sunset: the section you are reading stays where it was, even when the panels above it change height.
+
 **2.5.12**
 - **Sky breakdown picture:** the low cloud layer is now drawn in a lighter shade with a faint lit edge, so a heavy low cloud deck is easy to see instead of blending into the dark sky.
 

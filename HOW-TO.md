@@ -16,7 +16,7 @@ Your choice is saved on your device. If you tap **My location** again later it s
 
 ## 2. Read the Today view
 
-Use the **Sunrise** / **Sunset** toggle at the top to switch between the two. Use the ‹ and › arrows to move to the day before or after. You'll see a score and label, golden and blue hour times, a short plain-language explanation, and moon conditions.
+A bar under the tabs holds the day controls: use the ‹ and › arrows to move to the day before or after, **tap the date to jump back to today**, and use the **Sunrise** / **Sunset** switch to flip between the two. The bar stays pinned to the top as you scroll, so you can change days while you read Sky breakdown or Moon, and the page keeps your place. You'll see a score and label, golden and blue hour times, a short plain-language explanation, and moon conditions.
 
 | Label | Score | What to expect |
 |---|---|---|
@@ -28,7 +28,7 @@ Use the **Sunrise** / **Sunset** toggle at the top to switch between the two. Us
 
 **Reality check.** In the last 3 hours before sunrise or sunset, a card appears on Today. It compares the forecast with recent airport weather reports toward the sun (airports see cloud below about 12,000 ft) and with a satellite view of high cloud, which is the layer that gives color. It tells you whether the airports agree with the forecast. It shows the sky now, not at sunrise or sunset, and from about 3 hours out the score itself moves toward what the satellite and airports report, more and more as the time gets closer. Outside that window a small note says when it will appear. Tap the card's title to collapse it.
 
-**Refresh.** Under the Sunrise / Sunset toggle, Today shows when the forecast was fetched. Tap **Refresh** to load it again; you stay on the same day and sunrise or sunset. If you reopen Afterglow after more than 15 minutes away, Today refreshes by itself the same way (not on Plan, and your scroll position stays put).
+**Refresh.** Under the day bar, Today shows when the forecast was fetched. Tap **Refresh** to load it again; you stay on the same day and sunrise or sunset. If you reopen Afterglow after more than 15 minutes away, Today refreshes by itself the same way (not on Plan, and your scroll position stays put).
 
 **Moonrise and moonset.** The two tiles at the top of the Moon card show the rise and the set from the same calendar day, so they match the Moon path curve below. The one that comes next is shown first, and ones that have already happened are dimmed. On the rare day with no rise or no set, the tile says so.
 
