@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.13b -->
+<!-- Afterglow v2.5.13c -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -635,7 +635,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.13b</div>
+    <div class="test-ver">🧪 TEST · v2.5.13c</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2602,6 +2602,25 @@ function uiFold(key, title, inner, cls){
   state.fold = state.fold || {};
   return `<details class="plan-fold today-fold${cls ? " " + cls : ""}" data-fold="${key}"${state.fold[key] ? " open" : ""}><summary>${title}</summary><div class="fold-body">${inner}${(key === "sky" || key === "moon") ? FOLD_CLOSE : ""}</div></details>`;
 }
+// 2.5.13c: redraw while keeping your place. The panels above the Sky breakdown / Moon sections change height from day to day, so a plain pixel scroll position lands on the wrong spot.
+// Instead, note which open section is on screen (the one with the most showing) and how far its top is from the top of the screen, redraw, then scroll so that same section's top is back in the same place.
+// With no open section on screen it falls back to the old pixel position.
+function keepPlace(redraw){
+  const y = window.scrollY;
+  let key = null, off = 0;
+  const dock = document.querySelector(".day-dock");
+  const top = dock ? dock.getBoundingClientRect().bottom : 0;
+  let best = 20;   // the open section with the most of itself on screen is the one being read (at least 20 px)
+  for(const d of document.querySelectorAll("#app details[open][data-fold]")){
+    const r = d.getBoundingClientRect();
+    const seen = Math.min(r.bottom, window.innerHeight) - Math.max(r.top, top);
+    if(seen > best){ best = seen; key = d.dataset.fold; off = r.top; }
+  }
+  redraw();
+  const d2 = key ? document.querySelector('#app details[data-fold="' + key + '"]') : null;
+  if(d2) window.scrollTo(0, Math.max(0, window.scrollY + d2.getBoundingClientRect().top - off));
+  else window.scrollTo(0, y);
+}
 function bindFolds(){
   document.querySelectorAll("details.today-fold").forEach(d => d.addEventListener("toggle", () => { state.fold = state.fold || {}; state.fold[d.dataset.fold] = d.open; }));
 }
@@ -3119,11 +3138,11 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
   rcSlot(eventIso, mode, azimuth, { low: sF.low, mid: sF.mid, bLow: sF.beam != null ? sF.beamLow : null, bMid: sF.beam != null ? sF.beamMid : null }, sF.beam != null ? "toward the sun" : "at your spot", sF.high);
 
   document.querySelectorAll(".toggle-btn").forEach(b => b.addEventListener("click", () => {
-    const y = window.scrollY; state.mode = b.dataset.mode; render(); window.scrollTo(0, y);   // 2.5.13b: keep your place
+    keepPlace(() => { state.mode = b.dataset.mode; render(); });   // 2.5.13c: keep your place
   }));
   // 2.5.13b: the day arrows and tap-the-date-for-today keep your scroll position, so you can step through days while reading Sky breakdown or Moon.
-  const stepDay = (d) => { const nd = state.activeDay + d; if(nd < 0 || nd > Math.min(9, state.daily.time.length - 1)) return; const y = window.scrollY; state.activeDay = nd; render(); window.scrollTo(0, y); };
-  const goHome = () => { if(state.activeDay === 0) return; const y = window.scrollY; state.activeDay = 0; render(); window.scrollTo(0, y); };
+  const stepDay = (d) => { const nd = state.activeDay + d; if(nd < 0 || nd > Math.min(9, state.daily.time.length - 1)) return; keepPlace(() => { state.activeDay = nd; render(); }); };
+  const goHome = () => { if(state.activeDay === 0) return; keepPlace(() => { state.activeDay = 0; render(); }); };
   [["barPrev", -1], ["barNext", 1]].forEach(([id, d]) => { const b = $(id); if(b) b.addEventListener("click", () => stepDay(d)); });
   { const b = $("barDate"); if(b) b.addEventListener("click", goHome); }
   bindFolds();
