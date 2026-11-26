@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.14b -->
+<!-- Afterglow v2.5.14c -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -257,7 +257,8 @@
   .tl-row .k small{ display:block; font-size:11.5px; color: rgba(245,230,211,0.55); margin-top:1px; }
   .tl-row .v{ font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; color: var(--sand); white-space:nowrap; margin-left:auto; }
   .tl-row.glow .k, .tl-row.glow .v, .tl-row.glow .k small{ color: var(--gold); }
-  .hero-facts{ display:grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap:8px; margin-top:14px; }
+  .hero-facts{ display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:8px; margin-top:14px; }
+  .hero-facts .hf:last-child:nth-child(odd){ grid-column: 1 / -1; }   /* 2.5.14c: two by two; if one tile is missing the last one spans the row */
   .hf{ border:1px solid var(--line); border-radius:12px; padding:8px 10px; background: rgba(10,11,22,0.22); min-width:0; }
   .hf .k{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; color: rgba(245,230,211,0.6); }
   .hf .v{ font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; color: var(--sand); margin-top:2px; white-space:nowrap; }
@@ -647,7 +648,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.14b</div>
+    <div class="test-ver">🧪 TEST · v2.5.14c</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -3138,7 +3139,10 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
             dayTile = `<div class="hf"><div class="k">Daylight</div><div class="v">${Math.floor(len / 60)} h ${String(len % 60).padStart(2, "0")} m</div>${cmp ? `<div class="s">${cmp}</div>` : ""}</div>`;
           }
         }catch(e){ dayTile = ""; }
-        return list + `<div class="hero-facts" data-anchor="facts"><div class="hf"><div class="k">Direction</div><div class="v">${azimuthLabel}</div></div>${w ? `<div class="hf"><div class="k">Wind</div><div class="v">${w}</div></div>` : ""}${dayTile}</div>`;
+        // 2.5.14c: the fourth tile is Visibility (or Humidity when there is no visibility figure), worded the same as the Sky breakdown.
+        let visTile = "";
+        try{ const vr = skyMeters(sF, s).rows.find(r => r.label === "Visibility" || r.label === "Humidity"); if(vr) visTile = `<div class="hf"><div class="k">${vr.label}</div><div class="v">${vr.raw}</div><div class="s">${vr.word}</div></div>`; }catch(e){ visTile = ""; }
+        return list + `<div class="hero-facts" data-anchor="facts"><div class="hf"><div class="k">Direction</div><div class="v">${azimuthLabel}</div></div>${w ? `<div class="hf"><div class="k">Wind</div><div class="v">${w}</div></div>` : ""}${dayTile}${visTile}</div>`;
       })()}
     </div>
   </div>
