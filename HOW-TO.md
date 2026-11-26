@@ -16,7 +16,7 @@ Your choice is saved on your device. If you tap **My location** again later it s
 
 ## 2. Read the Today view
 
-A bar under the tabs holds the day controls: use the ‹ and › arrows to move to the day before or after, **tap the date to jump back to today**, and use the **Sunrise** / **Sunset** switch to flip between the two. The bar stays pinned to the top as you scroll, so you can change days while you read Sky breakdown or Moon, and the page keeps your place. You'll see a score and label, golden and blue hour times, a short plain-language explanation, and moon conditions.
+A bar under the tabs holds the day controls: use the ‹ and › arrows to move to the day before or after, **tap the date to jump back to today**, and use the **Sunrise** / **Sunset** switch to flip between the two. The bar stays pinned to the top as you scroll, so you can change days while you read Sky breakdown or Moon, and the page keeps your place. You'll see a score and label and a short plain-language explanation (always shown in full). Under it, one list gives every time in the order the sky goes dark, such as golden hour, the sunrise or sunset itself, blue hour and last light. Below the list are four small tiles: **Direction**, **Wind** (with gusts), **Daylight** (how long the day is and how many minutes it changed since yesterday) and **Visibility**. Moon conditions follow.
 
 | Label | Score | What to expect |
 |---|---|---|
@@ -86,15 +86,18 @@ Alerts only work when Afterglow is installed as an app (step 5). They won't turn
 
 When an alert has a minimum, the message includes the forecast, for example "Sunset in 60 minutes: Good (52)". To stop, open the bell again and turn the alerts off. Your details are then removed from the notification service.
 
-## 7. Larger text
+## 7. Settings (units, larger text, theme, help)
 
-Tap **Aa** near the top to make all the text bigger. Tap it again to go back. Afterglow remembers your choice in that browser or installed app. Each one keeps its own setting, so if you use Afterglow in Safari and from your Home Screen, set it in both.
+Tap the **Settings** button (the sliders icon) at the top right, next to the bell. The panel stays open while you change things, and closes when you tap anywhere else.
 
-## 8. Light or dark (Theme)
+- **Units:** **mi** or **km** for distances such as visibility. Wind speed follows the same choice (mph or km/h).
+- **Larger text:** **On** makes all the text bigger; **Off** goes back. 
+- **Theme:** **Auto**, **Light** or **Dark**. Auto follows your phone or computer setting, so Afterglow switches along with it. In dark mode the page has a soft gold glow along the right edge; in light mode it has a pale dawn-sky wash with the same glow.
+- **Help & how it works** opens the README, and **Buy me a coffee** is there too.
 
-Tap the theme button near the top (next to **Aa**) and choose **Auto**, **Light** or **Dark**. Auto follows your phone or computer setting, so Afterglow switches along with it. Afterglow remembers your choice in that browser or installed app. The **?** button opens the README. In dark mode the page has a soft gold glow along the right edge; in light mode it has a pale dawn-sky wash with the same glow.
+Afterglow remembers your choices in that browser or installed app. Each one keeps its own settings, so if you use Afterglow in Safari and from your Home Screen, set them in both.
 
-## 9. Open the Drone Preflight Checklist for your place
+## 8. Open the Drone Preflight Checklist for your place
 
 When the sky looks good, check that you can fly there. The blue **Drone Preflight Checklist** button on **Today** (under Moon & timelapse) and on **Plan** (under the Sky forecast) opens the free checklist with the weather, airspace links and preflight checks for the same place. The button says which place it will use. On **Plan** it uses the place you're planning from, so you can check a spot before you go.
 

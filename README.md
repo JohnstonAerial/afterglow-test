@@ -24,6 +24,12 @@ Afterglow predicts how good a sunrise or sunset is actually going to look — no
 
 ## What's new
 
+**2.5.14**
+- **Today panel, rebuilt.** Every time now sits in one list, in the order the sky goes dark, and each one keeps its own row (golden hour, the event itself, blue hour, last light and so on). The full explanation is always shown, so there are no More or Less links to tap.
+- **Four small tiles** under the list: Direction, Wind (with gusts), Daylight (length of the day and how many minutes it changed since yesterday) and Visibility, worded the same way as the Sky breakdown (Humidity if there is no visibility figure).
+- **The page keeps your place on the top panel too.** The description changes length from day to day, so stepping through days used to make it jump. Now whatever you are reading stays put.
+- **Settings button.** The header is now the title with the bell and one **Settings** button. Units (mi or km), Larger text, Theme, Help and Buy me a coffee are all inside it, so the top of the page is no longer a row of small buttons.
+
 **2.5.13**
 - **Day bar.** Under the tabs, one bar now holds the ‹ › day arrows, the date and the Sunrise | Sunset switch. It stays pinned to the top as you scroll, so you can change days while Sky breakdown or Moon is open. **Tap the date to jump back to today** (this replaces the "Back to today" button).
 - **The page keeps your place** when you change the day or switch between Sunrise and Sunset: the section you are reading stays where it was, even when the panels above it change height.
