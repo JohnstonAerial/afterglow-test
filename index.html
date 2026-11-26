@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.14c -->
+<!-- Afterglow v2.5.14d -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -549,6 +549,26 @@
   #themeBtn:hover{ color: var(--gold); border-color: var(--slate); }
   #themeBtn[aria-expanded="true"]{ border-color: var(--gold); color: var(--gold); }
   #notifBtn, #textBtn, #themeBtn{ padding-left: 9px; padding-right: 9px; }
+  /* 2.5.14d: header is the title plus Notifications and one Settings button; units, text size, theme and Help live in the Settings panel. The old buttons stay in the page (hidden) so their code keeps working. */
+  .hdr-top{ flex-wrap: nowrap; align-items:flex-start; position:relative; }
+  .header-actions{ flex: 0 0 auto; gap: 8px; position:static; }
+  .hdr-legacy[hidden]{ display:none; }
+  #setBtn{ background: transparent; border: 1px solid var(--line); border-radius: 10px; color: var(--sand); padding: 7px 10px; cursor: pointer; line-height: 1; display:inline-flex; align-items:center; justify-content:center; }
+  #notifBtn{ padding: 7px 10px; }
+  #setBtn:hover, #notifBtn:hover{ color: var(--gold); border-color: var(--slate); }
+  #setBtn[aria-expanded="true"]{ border-color: var(--gold); color: var(--gold); }
+  .set-panel{ position:absolute; right:0; top: calc(100% + 8px); z-index: 6000; width: min(300px, calc(100vw - 40px)); padding: 4px 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 12px 32px rgba(0,0,0,0.35); }
+  .set-panel[hidden]{ display:none; }
+  .set-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+  .set-k{ font-size:15px; color: var(--sand); }
+  .set-seg{ display:flex; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  .set-seg button{ background:transparent; border:0; color: var(--slate); font:inherit; font-size:13.5px; padding: 7px 12px; cursor:pointer; }
+  .set-seg button + button{ border-left:1px solid var(--line); }
+  .set-seg button.on{ background: var(--sand); color: var(--ink); font-weight:600; }
+  .set-link{ display:flex; justify-content:space-between; align-items:center; padding: 12px 0; border-bottom:1px solid var(--line); color: var(--sand); text-decoration:none; font-size:15px; }
+  .set-link:last-child{ border-bottom:0; }
+  .set-link span{ color: var(--slate); }
+  html[data-theme="light"] .set-panel{ box-shadow: 0 12px 30px rgba(30,35,70,0.22); }
   .theme-panel{ position:absolute; right:0; top: calc(100% + 8px); z-index: 6000; width: 230px; padding: 10px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 12px 32px rgba(0,0,0,0.35); }
   .theme-panel[hidden]{ display:none; }
   .theme-title{ font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--slate); margin: 2px 4px 8px; }
@@ -648,22 +668,30 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.14c</div>
+    <div class="test-ver">🧪 TEST · v2.5.14d</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
-      <a class="hdr-help" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and about (opens the README in a new tab)" title="Help and about">Help</a>
-      <a class="hdr-coffee" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee</a>
-      <button id="unitBtn" title="Units" aria-label="Units">mi</button>
-      <button id="textBtn" title="Larger text" aria-label="Larger text" aria-pressed="false">Aa</button>
-      <button id="themeBtn" title="Theme" aria-label="Theme: Auto" aria-haspopup="true" aria-expanded="false"></button>
       <button id="notifBtn" title="Notifications" aria-label="Notifications">🔔</button>
+      <button id="setBtn" title="Settings" aria-label="Settings" aria-haspopup="true" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h9M18 6h3M3 12h3M12 12h9M3 18h11M20 18h1"/><circle cx="15" cy="6" r="2.6" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="2.6" fill="currentColor" stroke="none"/><circle cx="17" cy="18" r="2.6" fill="currentColor" stroke="none"/></svg></button>
+      <div id="setPanel" class="set-panel" role="dialog" aria-label="Settings" hidden>
+        <div class="set-row"><span class="set-k">Units</span><div class="set-seg" role="group" aria-label="Units"><button type="button" data-unit="mi">mi</button><button type="button" data-unit="km">km</button></div></div>
+        <div class="set-row"><span class="set-k">Larger text</span><div class="set-seg" role="group" aria-label="Larger text"><button type="button" data-bigtext="0">Off</button><button type="button" data-bigtext="1">On</button></div></div>
+        <div class="set-row"><span class="set-k">Theme</span><div class="set-seg" role="group" aria-label="Theme"><button type="button" data-th="auto">Auto</button><button type="button" data-th="light">Light</button><button type="button" data-th="dark">Dark</button></div></div>
+        <a class="set-link" href="https://github.com/JohnstonAerial/afterglow-test#readme" target="_blank" rel="noopener" aria-label="Help and how it works (opens the README in a new tab)">Help &amp; how it works <span aria-hidden="true">›</span></a>
+        <a class="set-link" href="https://buymeacoffee.com/JohnstonAerial" target="_blank" rel="noopener" aria-label="Buy me a coffee (opens in a new tab)">☕ Buy me a coffee <span aria-hidden="true">›</span></a>
+      </div>
+      <div class="hdr-legacy" hidden>
+        <button id="unitBtn" title="Units" aria-label="Units">mi</button>
+        <button id="textBtn" title="Larger text" aria-label="Larger text" aria-pressed="false">Aa</button>
+        <button id="themeBtn" title="Theme" aria-label="Theme: Auto" aria-haspopup="true" aria-expanded="false"></button>
       <div id="themePanel" class="theme-panel" role="radiogroup" aria-label="Theme" hidden>
         <div class="theme-title">Theme</div>
         <button type="button" class="theme-opt" role="radio" data-theme-pref="auto"><span class="ti" data-ico="auto"></span><span>Auto</span><span class="tck" aria-hidden="true">✓</span></button>
         <button type="button" class="theme-opt" role="radio" data-theme-pref="light"><span class="ti" data-ico="light"></span><span>Light</span><span class="tck" aria-hidden="true">✓</span></button>
         <button type="button" class="theme-opt" role="radio" data-theme-pref="dark"><span class="ti" data-ico="dark"></span><span>Dark</span><span class="tck" aria-hidden="true">✓</span></button>
         <div class="theme-note">Auto follows your device setting.</div>
+      </div>
       </div>
     </div>
     </div>
@@ -5378,6 +5406,29 @@ function applyBigText(on){
     try{ localStorage.setItem(BIGTEXT_KEY, on ? "1" : "0"); }catch(e){}
     applyBigText(on);
   });
+})();
+// ---------- Settings panel (2.5.14d): units, larger text and theme, using the same code as the old header buttons ----------
+(function(){
+  const btn = document.getElementById("setBtn"), panel = document.getElementById("setPanel");
+  if(!btn || !panel) return;
+  const sync = () => {
+    const u = agUnits();
+    panel.querySelectorAll("[data-unit]").forEach(b => { const on = b.dataset.unit === u; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
+    const big = document.getElementById("textBtn").getAttribute("aria-pressed") === "true";
+    panel.querySelectorAll("[data-bigtext]").forEach(b => { const on = (b.dataset.bigtext === "1") === big; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
+    const th = document.documentElement.getAttribute("data-theme-pref") || "auto";
+    panel.querySelectorAll("[data-th]").forEach(b => { const on = b.dataset.th === th; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
+  };
+  const open = on => { panel.hidden = !on; btn.setAttribute("aria-expanded", on ? "true" : "false"); if(on) sync(); };
+  let busy = false;   // the panel stays open while it presses the old buttons for you
+  const press = el => { busy = true; try{ el.click(); }finally{ busy = false; } };
+  btn.addEventListener("click", e => { e.stopPropagation(); open(panel.hidden); });
+  panel.addEventListener("click", e => e.stopPropagation());
+  panel.querySelectorAll("[data-unit]").forEach(b => b.addEventListener("click", () => { if(agUnits() !== b.dataset.unit) press(document.getElementById("unitBtn")); sync(); }));
+  panel.querySelectorAll("[data-bigtext]").forEach(b => b.addEventListener("click", () => { const big = document.getElementById("textBtn").getAttribute("aria-pressed") === "true"; if(big !== (b.dataset.bigtext === "1")) press(document.getElementById("textBtn")); sync(); }));
+  panel.querySelectorAll("[data-th]").forEach(b => b.addEventListener("click", () => { const o = document.querySelector('.theme-opt[data-theme-pref="' + b.dataset.th + '"]'); if(o) press(o); sync(); }));
+  document.addEventListener("click", () => { if(!busy && !panel.hidden) open(false); });
+  document.addEventListener("keydown", e => { if(e.key === "Escape" && !panel.hidden){ open(false); btn.focus(); } });
 })();
 </script>
 <script>
