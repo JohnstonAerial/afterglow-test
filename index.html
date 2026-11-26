@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.12a -->
+<!-- Afterglow v2.5.13a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -498,6 +498,12 @@
   .day-nav .eyebrow{ margin:0; text-align:center; flex:1; white-space:nowrap; letter-spacing:0.1em; }
   .day-step{ width:38px; height:38px; border-radius:50%; border:1px solid var(--line); background: rgba(10,11,22,0.35); color: var(--sand); font-size:20px; line-height:1; cursor:pointer; }
   .day-step:disabled{ opacity:0.3; cursor:default; }
+  /* 2.5.13a: pinned day bar (same look as the Plan time dock). Shown only once the first panel's day arrows have scrolled off the top. */
+  .day-bar{ position:fixed; top:0; left:0; right:0; z-index:1100; padding: calc(6px + env(safe-area-inset-top, 0px)) 20px 8px; background: rgb(20,23,44); border-bottom: 1px solid var(--line); box-shadow: 0 2px 16px rgba(0,0,0,0.4); transform: translateY(-110%); visibility:hidden; transition: transform .18s ease, visibility 0s linear .18s; }
+  .day-bar.show{ transform:none; visibility:visible; transition: transform .18s ease; }
+  .day-bar-in{ max-width:680px; margin:0 auto; display:flex; align-items:center; gap:8px; }
+  .day-bar-lbl{ flex:1; min-width:0; text-align:center; background:none; border:0; color: var(--sand); font:inherit; font-size:15px; font-weight:600; padding:6px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:default; }
+  .day-bar-lbl.home, .day-nav .eyebrow.home{ cursor:pointer; text-decoration: underline dotted; text-underline-offset:4px; }
   .ag-day{ flex-direction:column; align-items:flex-start; justify-content:center; line-height:1.15; }
   .ag-day small{ font-family:'IBM Plex Mono', monospace; font-size:11px; font-weight:400; color: var(--slate); }
   .ag-cell.past{ opacity:0.5; }
@@ -586,6 +592,8 @@
   html[data-theme="light"] .bar, html[data-theme="light"] .agenda-bar{ background: rgba(30,35,70,0.10); }
   /* The sky card and the map overlays keep their dark look in both themes */
   html[data-theme="light"] .hero{ --sand:#F5E6D3; --slate:#a2abc1; --gold:#F2B84B; --line: rgba(245,230,211,0.14); --card: rgba(245,230,211,0.05); color:#F5E6D3; }
+  html[data-theme="light"] .day-bar{ background: var(--panel); box-shadow: 0 2px 14px rgba(30,35,70,0.16); }
+  html[data-theme="light"] .day-bar .day-step{ background: transparent; }
   html[data-theme="light"] .plan-dock{ background: var(--panel); box-shadow: 0 2px 14px rgba(30,35,70,0.16); }
   html[data-theme="light"] .plan-date{ color-scheme: light; }
   html[data-theme="light"] .map-wrap.full .map-fs-panel{ background: rgba(255,250,241,0.96); }
@@ -626,7 +634,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.12a</div>
+    <div class="test-ver">🧪 TEST · v2.5.13a</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2593,6 +2601,7 @@ function uiFold(key, title, inner, cls){
   state.fold = state.fold || {};
   return `<details class="plan-fold today-fold${cls ? " " + cls : ""}" data-fold="${key}"${state.fold[key] ? " open" : ""}><summary>${title}</summary><div class="fold-body">${inner}${(key === "sky" || key === "moon") ? FOLD_CLOSE : ""}</div></details>`;
 }
+let dayObs = null;   // 2.5.13a: watches the first panel's day arrows to show the pinned day bar
 function bindFolds(){
   document.querySelectorAll("details.today-fold").forEach(d => d.addEventListener("toggle", () => { state.fold = state.fold || {}; state.fold[d.dataset.fold] = d.open; }));
 }
@@ -3030,11 +3039,16 @@ function renderToday(app, tabsHtml){
 
   const bestLight = s.score >= 26 ? (() => { const e = new Date(eventIso).getTime(), m = 60000; return mode === "evening" ? fmt(new Date(e + 15*m)) + "–" + fmt(new Date(e + 20*m)) : fmt(new Date(e - 20*m)) + "–" + fmt(new Date(e - 15*m)); })() : "";
 const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best light</div><div class="v">${bestLight}</div></div>` : "";
+  {
+    const dObj = parseLocalDate(daily.time[activeDay]);
+    const dLbl = activeDay === 0 ? "Today, " + dObj.toLocaleDateString([], { month:"short", day:"numeric" }) : dObj.toLocaleDateString([], { weekday:"short", month:"short", day:"numeric" });
+    const lastDay = Math.min(9, daily.time.length - 1);
+    html += `<div class="day-bar" id="dayBar"><div class="day-bar-in"><button class="day-step" id="barPrev" aria-label="Previous day"${activeDay <= 0 ? " disabled" : ""}>‹</button><button class="day-bar-lbl${activeDay > 0 ? " home" : ""}" id="barDate"${activeDay > 0 ? ' aria-label="Back to today"' : ""}>${dLbl} · ${mode === "evening" ? "Sunset" : "Sunrise"}</button><button class="day-step" id="barNext" aria-label="Next day"${activeDay >= lastDay ? " disabled" : ""}>›</button></div></div>`;
+  }
   html += `<div class="hero">
     <div class="hero-swatch" style="background:${gradient}"></div>
     <div class="hero-content">
-      <div class="day-nav"><button class="day-step" id="dayPrev" aria-label="Previous day"${activeDay <= 0 ? " disabled" : ""}>‹</button><div class="eyebrow">${activeDay === 0 ? "Today, " + parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { month:'short', day:'numeric' }) : parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' })}</div><button class="day-step" id="dayNext" aria-label="Next day"${activeDay >= Math.min(9, daily.time.length - 1) ? " disabled" : ""}>›</button></div>
-      ${activeDay > 0 ? `<div style="text-align:center;margin-top:10px;"><button class="plan-btn" id="dayHome" style="border-color:var(--gold);">↩ Back to today</button></div>` : ""}
+      <div class="day-nav"><button class="day-step" id="dayPrev" aria-label="Previous day"${activeDay <= 0 ? " disabled" : ""}>‹</button><div class="eyebrow${activeDay > 0 ? " home" : ""}" id="dayDate"${activeDay > 0 ? ' role="button" tabindex="0" aria-label="Back to today"' : ""}>${activeDay === 0 ? "Today, " + parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { month:'short', day:'numeric' }) : parseLocalDate(daily.time[activeDay]).toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' })}</div><button class="day-step" id="dayNext" aria-label="Next day"${activeDay >= Math.min(9, daily.time.length - 1) ? " disabled" : ""}>›</button></div>
       ${activeDay >= 7 ? `<div class="far-note">Day ${activeDay + 1} of 10: less certain. Forecasts shift most this far out.</div>` : ""}
       <div class="score-row">
         <div class="score-num">${s.score}</div>
@@ -3108,10 +3122,17 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
   document.querySelectorAll(".toggle-btn").forEach(b => b.addEventListener("click", () => {
     state.mode = b.dataset.mode; render();
   }));
-  const dp = $("dayPrev"), dn = $("dayNext"), dh = $("dayHome");
-  if(dh) dh.addEventListener("click", () => { state.activeDay = 0; render(); window.scrollTo(0, 0); });   // 2.5.7e
-  if(dp) dp.addEventListener("click", () => { if(state.activeDay > 0){ state.activeDay--; render(); } });
-  if(dn) dn.addEventListener("click", () => { if(state.activeDay < Math.min(9, state.daily.time.length - 1)){ state.activeDay++; render(); } });
+  // 2.5.13a: the day arrows (first panel and pinned bar) and the tap-the-date jump home all keep your scroll position, so you can step through days while reading Sky breakdown or Moon.
+  const stepDay = (d) => { const nd = state.activeDay + d; if(nd < 0 || nd > Math.min(9, state.daily.time.length - 1)) return; const y = window.scrollY; state.activeDay = nd; render(); window.scrollTo(0, y); };
+  const goHome = () => { if(state.activeDay === 0) return; const y = window.scrollY; state.activeDay = 0; render(); window.scrollTo(0, y); };
+  [["dayPrev", -1], ["barPrev", -1], ["dayNext", 1], ["barNext", 1]].forEach(([id, d]) => { const b = $(id); if(b) b.addEventListener("click", () => stepDay(d)); });
+  ["dayDate", "barDate"].forEach(id => { const b = $(id); if(b){ b.addEventListener("click", goHome); b.addEventListener("keydown", e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); goHome(); } }); } });
+  if(dayObs){ dayObs.disconnect(); dayObs = null; }
+  { const bar = $("dayBar"), anchor = document.querySelector(".hero .day-nav");
+    if(bar && anchor && "IntersectionObserver" in window){
+      dayObs = new IntersectionObserver(es => { const e = es[es.length - 1]; bar.classList.toggle("show", !e.isIntersecting && e.boundingClientRect.bottom < 0); });
+      dayObs.observe(anchor);
+    } }
   bindFolds();
   const bm = $("blurbMore"); if(bm) bm.addEventListener("click", () => { state.blurbMore = !state.blurbMore; $("blurbRest").hidden = !state.blurbMore; bm.textContent = state.blurbMore ? "Less" : "More"; });
   const mt = $("moreTimes"); if(mt) mt.addEventListener("click", () => { state.moreTimes = !state.moreTimes; $("moreTimesBox").hidden = !state.moreTimes; mt.textContent = state.moreTimes ? "Fewer times" : "More twilight times"; });
