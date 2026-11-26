@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.14a -->
+<!-- Afterglow v2.5.14b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -647,7 +647,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.14a</div>
+    <div class="test-ver">🧪 TEST · v2.5.14b</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -2614,23 +2614,30 @@ function uiFold(key, title, inner, cls){
   state.fold = state.fold || {};
   return `<details class="plan-fold today-fold${cls ? " " + cls : ""}" data-fold="${key}"${state.fold[key] ? " open" : ""}><summary>${title}</summary><div class="fold-body">${inner}${(key === "sky" || key === "moon") ? FOLD_CLOSE : ""}</div></details>`;
 }
-// 2.5.13c: redraw while keeping your place. The panels above the Sky breakdown / Moon sections change height from day to day, so a plain pixel scroll position lands on the wrong spot.
-// Instead, note which open section is on screen (the one with the most showing) and how far its top is from the top of the screen, redraw, then scroll so that same section's top is back in the same place.
-// With no open section on screen it falls back to the old pixel position.
+// 2.5.14b: redraw while keeping your place. The text in the top panel changes length from day to day, so a plain pixel scroll position (or even "the section I was in") can land on the wrong spot.
+// Take a reading line about a third of the way down the screen below the pinned bar and find the section sitting on it: the score, the description, the times list, the direction/wind/daylight tiles, or an open Sky breakdown / Moon section.
+// If the line falls between sections, use the nearest one. After the redraw, scroll so that same section's top is back where it was. At the very top of the page nothing is anchored.
 function keepPlace(redraw){
   const y = window.scrollY;
   let key = null, off = 0;
-  const dock = document.querySelector(".day-dock");
-  const top = dock ? dock.getBoundingClientRect().bottom : 0;
-  let best = 20;   // the open section with the most of itself on screen is the one being read (at least 20 px)
-  for(const d of document.querySelectorAll("#app details[open][data-fold]")){
-    const r = d.getBoundingClientRect();
-    const seen = Math.min(r.bottom, window.innerHeight) - Math.max(r.top, top);
-    if(seen > best){ best = seen; key = d.dataset.fold; off = r.top; }
+  const keyOf = el => el.dataset.anchor || el.dataset.fold;
+  if(y > 4){
+    const dock = document.querySelector(".day-dock");
+    const dockB = dock ? dock.getBoundingClientRect().bottom : 0;
+    const line = dockB + 0.3 * (window.innerHeight - dockB);   // about where the eye rests on the screen
+    let inside = null, insideH = Infinity, near = null, nearD = Infinity;
+    for(const el of document.querySelectorAll("#app [data-anchor], #app details[open][data-fold]")){
+      const r = el.getBoundingClientRect();
+      if(r.top <= line && r.bottom >= line){ if(r.height < insideH){ inside = el; insideH = r.height; } }
+      else { const d = Math.min(Math.abs(r.top - line), Math.abs(r.bottom - line)); if(d < nearD){ near = el; nearD = d; } }
+    }
+    const pick = inside || near;
+    if(pick){ key = keyOf(pick); off = pick.getBoundingClientRect().top; }
   }
   redraw();
-  const d2 = key ? document.querySelector('#app details[data-fold="' + key + '"]') : null;
-  if(d2) window.scrollTo(0, Math.max(0, window.scrollY + d2.getBoundingClientRect().top - off));
+  let el2 = null;
+  if(key){ for(const el of document.querySelectorAll("#app [data-anchor], #app details[open][data-fold]")){ if(keyOf(el) === key){ el2 = el; break; } } }
+  if(el2) window.scrollTo(0, Math.max(0, window.scrollY + el2.getBoundingClientRect().top - off));
   else window.scrollTo(0, y);
 }
 function bindFolds(){
@@ -3080,14 +3087,14 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
     <div class="hero-swatch" style="background:${gradient}"></div>
     <div class="hero-content">
       ${activeDay >= 7 ? `<div class="far-note">Day ${activeDay + 1} of 10: less certain. Forecasts shift most this far out.</div>` : ""}
-      <div class="score-row">
+      <div class="score-row" data-anchor="score">
         <div class="score-num">${s.score}</div>
         <div class="score-label">${label(s.score)} ${mode === "evening" ? "sunset" : "sunrise"}</div>
       </div>
       ${document.querySelector(".test-ver") && s.fc ? `<div class="score-x" title="Test copy only">Forecast only: <b>${s.fc.score}</b> ${label(s.fc.score)} · test only</div>` : ""}
       ${(() => { if(!document.querySelector(".test-ver")) return ""; const e = ecmwfScore(hourly, state.second, eventIso, mode, sampleAt(state.sample[mode], eventIso)); if(!e) return ""; return `<div class="score-x" title="Test copy only">Same forecast on ECMWF: <b>${e.score}</b> ${label(e.score)} · test only</div>`; })()}
       ${document.querySelector(".test-ver") && s.scoreX != null ? `<div class="score-x" title="Test copy only">Experimental score: <b>${s.scoreX}</b> ${label(s.scoreX)} · test only</div>` : ""}
-      ${(() => { const [b1, b2] = splitBlurb(blurb(s, mode)); return `<div class="hero-sub">${b1}${b2 ? " " + b2 : ""}</div>`; })()}
+      ${(() => { const [b1, b2] = splitBlurb(blurb(s, mode)); return `<div class="hero-sub" data-anchor="desc">${b1}${b2 ? " " + b2 : ""}</div>`; })()}
       ${liveWhy(s)}
       ${(() => { const x = ((mode !== "evening" && s.score >= 26 ? "Get there early." : "") + tipClear(s, s.score)).trim(); return x ? `<div class="hero-sub" style="margin-top:8px;">${x}</div>` : ""; })()}
       ${(() => { if(!document.querySelector(".test-ver")) return ""; const d = modelDisagreement(sF, state.second, eventIso, mode); if(!d || !d.disagree) return ""; return `<div class="hero-sub" style="margin-top:8px;"><b>The forecast models disagree.</b> On ${d.worst.name}, this forecast says ${Math.round(d.worst.a)}% and a second model (${state.second.model}) says ${Math.round(d.worst.b)}%. Treat the score as less certain, and check again closer to the time.</div>`; })()}
@@ -3116,7 +3123,7 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
         }
         rows.forEach((r, n) => r.n = n);
         rows.sort((a, b) => a.t - b.t || a.n - b.n);
-        const list = `<div class="time-list">${rows.map(r => `<div class="tl-row${r.cls ? " " + r.cls : ""}"><div class="k">${r.k}${r.sub ? `<small>${r.sub}</small>` : ""}</div><div class="v">${r.v}</div></div>`).join("")}</div>`;
+        const list = `<div class="time-list" data-anchor="times">${rows.map(r => `<div class="tl-row${r.cls ? " " + r.cls : ""}"><div class="k">${r.k}${r.sub ? `<small>${r.sub}</small>` : ""}</div><div class="v">${r.v}</div></div>`).join("")}</div>`;
         const w = windAtEvent(hourly, eventIso);
         // Daylight: today's sunrise to sunset, and how it changed from yesterday (the same solver for both days, so the difference is not thrown off by two sources).
         let dayTile = "";
@@ -3131,7 +3138,7 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
             dayTile = `<div class="hf"><div class="k">Daylight</div><div class="v">${Math.floor(len / 60)} h ${String(len % 60).padStart(2, "0")} m</div>${cmp ? `<div class="s">${cmp}</div>` : ""}</div>`;
           }
         }catch(e){ dayTile = ""; }
-        return list + `<div class="hero-facts"><div class="hf"><div class="k">Direction</div><div class="v">${azimuthLabel}</div></div>${w ? `<div class="hf"><div class="k">Wind</div><div class="v">${w}</div></div>` : ""}${dayTile}</div>`;
+        return list + `<div class="hero-facts" data-anchor="facts"><div class="hf"><div class="k">Direction</div><div class="v">${azimuthLabel}</div></div>${w ? `<div class="hf"><div class="k">Wind</div><div class="v">${w}</div></div>` : ""}${dayTile}</div>`;
       })()}
     </div>
   </div>
