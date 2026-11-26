@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.14a -->
+<!-- Afterglow v2.5.13b -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -498,7 +498,7 @@
   .day-nav .eyebrow{ margin:0; text-align:center; flex:1; white-space:nowrap; letter-spacing:0.1em; }
   .day-step{ width:38px; height:38px; border-radius:50%; border:1px solid var(--line); background: rgba(10,11,22,0.35); color: var(--sand); font-size:20px; line-height:1; cursor:pointer; }
   .day-step:disabled{ opacity:0.3; cursor:default; }
-  /* 2.5.14a: one control bar (day arrows + date, then Sunrise | Sunset) under the tabs. It sticks to the top as you scroll, like the Plan time dock. Tap the date to jump back to today. */
+  /* 2.5.13b: one control bar (day arrows + date, then Sunrise | Sunset) under the tabs. It sticks to the top as you scroll, like the Plan time dock. Tap the date to jump back to today. */
   .day-dock{ position: sticky; top: env(safe-area-inset-top, 0px); z-index: 1100; margin: 0 -20px 14px; padding: 8px 20px 9px; background: rgb(20,23,44); border-bottom: 1px solid var(--line); box-shadow: 0 2px 16px rgba(0,0,0,0.4); }
   .day-dock .dd-top{ display:flex; align-items:center; gap:8px; }
   .day-dock .dd-date{ flex:1; min-width:0; text-align:center; background:none; border:0; color: var(--sand); font:inherit; font-size:16px; font-weight:600; padding:6px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:default; }
@@ -635,7 +635,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.14a</div>
+    <div class="test-ver">🧪 TEST · v2.5.13b</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -3119,9 +3119,9 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
   rcSlot(eventIso, mode, azimuth, { low: sF.low, mid: sF.mid, bLow: sF.beam != null ? sF.beamLow : null, bMid: sF.beam != null ? sF.beamMid : null }, sF.beam != null ? "toward the sun" : "at your spot", sF.high);
 
   document.querySelectorAll(".toggle-btn").forEach(b => b.addEventListener("click", () => {
-    const y = window.scrollY; state.mode = b.dataset.mode; render(); window.scrollTo(0, y);   // 2.5.14a: keep your place
+    const y = window.scrollY; state.mode = b.dataset.mode; render(); window.scrollTo(0, y);   // 2.5.13b: keep your place
   }));
-  // 2.5.14a: the day arrows and tap-the-date-for-today keep your scroll position, so you can step through days while reading Sky breakdown or Moon.
+  // 2.5.13b: the day arrows and tap-the-date-for-today keep your scroll position, so you can step through days while reading Sky breakdown or Moon.
   const stepDay = (d) => { const nd = state.activeDay + d; if(nd < 0 || nd > Math.min(9, state.daily.time.length - 1)) return; const y = window.scrollY; state.activeDay = nd; render(); window.scrollTo(0, y); };
   const goHome = () => { if(state.activeDay === 0) return; const y = window.scrollY; state.activeDay = 0; render(); window.scrollTo(0, y); };
   [["barPrev", -1], ["barNext", 1]].forEach(([id, d]) => { const b = $(id); if(b) b.addEventListener("click", () => stepDay(d)); });
