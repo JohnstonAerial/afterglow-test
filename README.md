@@ -24,6 +24,10 @@ Afterglow predicts how good a sunrise or sunset is actually going to look — no
 
 ## What's new
 
+**2.5.15**
+- **Day bar spells out the weekday on wide screens.** On an iPad or computer it reads "Thursday, Nov 26"; phones keep the short "Thu, Nov 26".
+- **Sky breakdown and Moon & timelapse headers** no longer repeat the day and date on other days, because the pinned day bar already shows it.
+
 **2.5.14**
 - **Today panel, rebuilt.** Every time now sits in one list, in the order the sky goes dark, and each one keeps its own row (golden hour, the event itself, blue hour, last light and so on). The full explanation is always shown, so there are no More or Less links to tap.
 - **Four small tiles** under the list: Direction, Wind (with gusts), Daylight (length of the day and how many minutes it changed since yesterday) and Visibility, worded the same way as the Sky breakdown (Humidity if there is no visibility figure).
