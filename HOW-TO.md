@@ -26,6 +26,8 @@ A bar under the tabs holds the day controls: use the ‹ and › arrows to move 
 | Fair | 26–43 | Modest, mostly gradient |
 | Flat | under 26 | Little to catch the light |
 
+Tap the score on Today (it has a small **i**) to open this list in the app, with a short note on what each label usually takes and your current tier marked.
+
 **Reality check.** In the last 3 hours before sunrise or sunset, a card appears on Today. It compares the forecast with recent airport weather reports toward the sun (airports see cloud below about 12,000 ft) and with a satellite view of high cloud, which is the layer that gives color. It tells you whether the airports agree with the forecast. It shows the sky now, not at sunrise or sunset, and from about 3 hours out the score itself moves toward what the satellite and airports report, more and more as the time gets closer. Outside that window a small note says when it will appear. Tap the card's title to collapse it.
 
 **Refresh.** Under the day bar, Today shows when the forecast was fetched. Tap **Refresh** to load it again; you stay on the same day and sunrise or sunset. If you reopen Afterglow after more than 15 minutes away, Today refreshes by itself the same way (not on Plan, and your scroll position stays put).

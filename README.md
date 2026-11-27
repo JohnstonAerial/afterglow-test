@@ -24,6 +24,9 @@ Afterglow predicts how good a sunrise or sunset is actually going to look — no
 
 ## What's new
 
+**2.5.16**
+- **Tap the score to see what it means.** On Today, tap the score (it has a small ⓘ) for a sheet listing Epic, Great, Good, Fair and Flat with their score ranges, what each usually means for the sky, and a marker on today's tier.
+
 **2.5.15**
 - **Day bar spells out the weekday on wide screens.** On an iPad or computer it reads "Thursday, Nov 26"; phones keep the short "Thu, Nov 26".
 - **Sky breakdown and Moon & timelapse headers** no longer repeat the day and date on other days, because the pinned day bar already shows it.
