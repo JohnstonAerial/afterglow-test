@@ -52,6 +52,28 @@ Afterglow predicts how good a sunrise or sunset is actually going to look — no
 - **Clearer Moon & timelapse header.** It now says **Daytime clouds** for the daytime timelapse, adds a **Moon:** note for the sky around the Moon, and drops "at noon" (the lit percentage is how much of the Moon the Sun lights, not whether it is visible).
 - **Reopen refresh.** Reopening Afterglow after more than 15 minutes refreshes Today like the Refresh button, except on Plan, and keeps your place on the page.
 
+**2.5.8**
+- **The footer sits right under the last card** once the forecast has loaded, so tall windows no longer show a gap.
+
+**2.5.7**
+- **Moon card** shows the lit percentage for the current time today and refreshes it every minute. The duplicate inner label is removed.
+- **Sky sketch** fades its glow when the Sun is blocked and shows a night sky with a caption once the event is over.
+- **Today section titles** can wrap at large text sizes, and the timelapse verdict word is a little smaller.
+
+**2.5.6**
+- **Sky breakdown picture.** A sketch of the sky toward the sun, a one-line verdict, and a word on each row.
+- **Same text sizes** across Today, Outlook and Plan.
+- **Plan tab reordered.** The sky forecast moves up under the view, the checklist button comes last, and the Close links are gone.
+
+**2.5.5**
+- **Timelapse card redesigned** as two tiles (rating, best time and Moon hours), with one shared interval tip, a highlighted live check and a shorter footnote.
+
+**2.5.4**
+- **Moon card keeps direction phrases together,** and "rises in 1 hr 18 min" replaces the repeated moonrise time.
+
+**2.5.3**
+- **Clearer wording and labels.** The Moon & timelapse summary names its window and shows when the Moon is up. The Moon's cloud is scored after dark only, and the Reality check placeholder says it blends into the score.
+
 **2.5.2**
 - **Quicker first screen.** The forecast and score now appear as soon as the main forecast arrives. The reading toward the sun is added a moment later, and the score may shift a few points when it does.
 
