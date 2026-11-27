@@ -1,4 +1,4 @@
-<!-- Afterglow v2.5.15b -->
+<!-- Afterglow v2.5.16a -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -121,6 +121,18 @@
   .score-row{ display:flex; align-items:flex-end; gap: 14px; margin-bottom: 4px;}
   .score-x{ font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.04em; color:#e8743b; margin:2px 0 8px; }
   .score-num{ font-family: Georgia, 'Times New Roman', serif; font-size: 68px; line-height: 0.9; font-weight: 600; color: var(--sand); text-shadow: 0 2px 12px rgba(0,0,0,0.35); }
+  .score-row[data-anchor="score"]{ cursor:pointer; }
+  .score-info{ display:inline-block; margin-left:6px; width:18px; height:18px; line-height:17px; text-align:center; border:1px solid currentColor; border-radius:50%; font-size:11px; font-weight:700; font-style:normal; opacity:.65; vertical-align:2px; }
+  .tier{ padding:11px 0; border-top:1px solid var(--line); }
+  .tier:first-of-type{ border-top:0; padding-top:2px; }
+  .tier.now{ background: rgba(245,230,211,0.07); margin:0 -10px; padding-left:10px; padding-right:10px; border-radius:10px; border-top-color:transparent; }
+  .tier .th{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+  .tier .tn{ font-family: Georgia, serif; font-weight:600; font-size:17px; }
+  .tier .tr{ font-size:12px; color: var(--slate); }
+  .tier .ts{ font-size:14px; margin-top:2px; }
+  .tier .tw{ font-size:13px; color: var(--slate); margin-top:3px; }
+  .tier-note{ font-size:12px; color: var(--slate); margin:10px 0 2px; }
+  html[data-theme="light"] .tier.now{ background: rgba(30,35,70,0.07); }
   .score-label{ font-size: 20px; font-weight: 600; padding-bottom: 8px; color: var(--sand); }
   .hero-sub{ font-size: 14px; color: rgba(245,230,211,0.8); max-width: 46ch; line-height: 1.5; }
   .hero-times{ display:flex; gap: 22px; margin-top: 18px; flex-wrap: wrap; }
@@ -670,7 +682,7 @@
 <div class="wrap">
 
   <header>
-    <div class="test-ver">🧪 TEST · v2.5.15b</div>
+    <div class="test-ver">🧪 TEST · v2.5.16a</div>
     <div class="hdr-top">
     <div class="brand">After<em>glow</em><span class="tagline">Know the sky. Plan the light.</span></div>
     <div class="header-actions">
@@ -719,6 +731,15 @@
     <div class="modal-actions">
       <button id="closeModal">Cancel</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="scoreBackdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="scoreTitle">
+    <h3 id="scoreTitle">What the scores mean</h3>
+    <div id="scoreTiers"></div>
+    <div class="tier-note">The score is a forecast of the odds, not a promise. It is for the glow about 20 minutes after sunset or before sunrise, and it can change when a new forecast run arrives, so check again closer to the time.</div>
+    <div class="modal-actions"><button id="closeScoreModal">Close</button></div>
   </div>
 </div>
 
@@ -3118,9 +3139,9 @@ const bestItem = bestLight ? `<div class="hero-time-item"><div class="k">Best li
     <div class="hero-swatch" style="background:${gradient}"></div>
     <div class="hero-content">
       ${activeDay >= 7 ? `<div class="far-note">Day ${activeDay + 1} of 10: less certain. Forecasts shift most this far out.</div>` : ""}
-      <div class="score-row" data-anchor="score">
+      <div class="score-row" data-anchor="score" data-score="${s.score}" role="button" tabindex="0" aria-label="What the scores mean">
         <div class="score-num">${s.score}</div>
-        <div class="score-label">${label(s.score)} ${mode === "evening" ? "sunset" : "sunrise"}</div>
+        <div class="score-label">${label(s.score)} ${mode === "evening" ? "sunset" : "sunrise"}<i class="score-info" aria-hidden="true">i</i></div>
       </div>
       ${document.querySelector(".test-ver") && s.fc ? `<div class="score-x" title="Test copy only">Forecast only: <b>${s.fc.score}</b> ${label(s.fc.score)} · test only</div>` : ""}
       ${(() => { if(!document.querySelector(".test-ver")) return ""; const e = ecmwfScore(hourly, state.second, eventIso, mode, sampleAt(state.sample[mode], eventIso)); if(!e) return ""; return `<div class="score-x" title="Test copy only">Same forecast on ECMWF: <b>${e.score}</b> ${label(e.score)} · test only</div>`; })()}
@@ -4967,6 +4988,28 @@ $("locBtn").addEventListener("click", () => {
 });
 $("closeModal").addEventListener("click", () => backdrop.classList.remove("open"));
 backdrop.addEventListener("click", (e) => { if(e.target === backdrop) backdrop.classList.remove("open"); });
+
+/* ---------- What the scores mean (2.5.16a): tap the score on Today ---------- */
+const SCORE_TIERS = [
+  ["Epic", "85 and up", "The sky should put on a show.", "Light can reach the clouds from a clear gap near the horizon, there is plenty of mid and high cloud overhead to catch it, and little low cloud, rain or haze gets in the way. Rare."],
+  ["Great", "70 to 84", "Strong color likely.", "Most of the same ingredients, a little short on one: the cloud overhead is a bit thin or patchy, or the gap toward the sun is not fully open."],
+  ["Good", "44 to 69", "Decent color possible.", "Some light gets through and some cloud can catch it, but not both at their best. Worth going, with realistic hopes."],
+  ["Fair", "26 to 43", "Modest, mostly gradient.", "Usually a clear sky with nothing to light up, or cloud that blocks most of the light. Expect soft color near the horizon."],
+  ["Flat", "under 26", "Little to catch the light.", "Thick low cloud, rain or fog, or a completely empty sky. Not a day to plan around."]
+];
+const scoreBackdrop = $("scoreBackdrop");
+function openScoreSheet(score){
+  const cur = label(score);
+  $("scoreTiers").innerHTML = SCORE_TIERS.map(t => `<div class="tier${t[0] === cur ? " now" : ""}"><div class="th"><span class="tn">${t[0]}</span><span class="tr">${t[1]}${t[0] === cur ? " · now " + score : ""}</span></div><div class="ts">${t[2]}</div><div class="tw">${t[3]}</div></div>`).join("");
+  scoreBackdrop.classList.add("open");
+}
+document.addEventListener("click", (e) => { const r = e.target.closest && e.target.closest('.score-row[data-score]'); if(r) openScoreSheet(Number(r.dataset.score)); });
+document.addEventListener("keydown", (e) => {
+  if((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches('.score-row[data-score]')){ e.preventDefault(); openScoreSheet(Number(e.target.dataset.score)); }
+  if(e.key === "Escape") scoreBackdrop.classList.remove("open");
+});
+$("closeScoreModal").addEventListener("click", () => scoreBackdrop.classList.remove("open"));
+scoreBackdrop.addEventListener("click", (e) => { if(e.target === scoreBackdrop) scoreBackdrop.classList.remove("open"); });
 
 /* ---------- Push notifications ---------- */
 // This is the VAPID *public* key only — safe to embed in client code by design.
